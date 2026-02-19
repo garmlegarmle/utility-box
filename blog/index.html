@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Read Utility Box blog posts about tools, workflows, and practical web operations.">
+    <title>Blog | Utility Box</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+    <script src="../assets/js/main.js" defer></script>
+  </head>
+  <body data-page="blog" data-tools-path="../tools/">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div class="site-shell">
+      <header class="site-header">
+        <div class="container topbar">
+          <a class="brand" href="../" aria-label="Utility Box home">
+            <span class="brand-mark" aria-hidden="true">UB</span>
+            <span>Utility Box</span>
+          </a>
+
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Toggle navigation">
+            Menu
+          </button>
+
+          <nav id="primary-nav" class="primary-nav" aria-label="Primary">
+            <ul class="nav-list">
+              <li><a href="../tools/">Tools</a></li>
+              <li><a class="current" href="../blog/">Blog</a></li>
+              <li><a href="../about/">About</a></li>
+              <li><a href="../contact/">Contact</a></li>
+              <li>
+                <button class="search-trigger" type="button" data-search-open aria-label="Open search dialog">
+                  Search
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </header>
+
+      <main id="main-content">
+        <section class="hero">
+          <div class="container">
+            <div class="page-header">
+              <p class="eyebrow">Utility Box Blog</p>
+              <h1>Latest practical posts</h1>
+              <p>
+                Find concise guides, category-specific insights, and quick comparisons focused on real workflows.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="container">
+            <div id="blog-categories" class="filters" aria-label="Blog category filters"></div>
+            <p id="blog-count" class="count-line"></p>
+            <div id="blog-grid" class="grid cards-3" aria-live="polite"></div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-wrap">
+          <a class="footer-link" href="../privacy-policy/">Privacy Policy</a>
+          <small>&copy; <span data-current-year>2026</span> Utility Box. All rights reserved.</small>
+        </div>
+      </footer>
+    </div>
+
+    <div id="search-modal" class="search-modal" hidden>
+      <button class="search-backdrop" type="button" data-search-close aria-label="Close search dialog"></button>
+      <div class="search-panel" role="dialog" aria-modal="true" aria-labelledby="search-title">
+        <div class="search-head">
+          <h2 id="search-title">Search Utility Box</h2>
+          <button class="icon-btn" type="button" data-search-close aria-label="Close search dialog">&times;</button>
+        </div>
+
+        <label class="sr-only" for="site-search-input">Search query</label>
+        <input id="site-search-input" class="search-input" type="search" placeholder="Search posts by title, excerpt, or category" autocomplete="off">
+        <p class="search-note" data-search-note></p>
+
+        <div class="search-routing" data-search-routing>
+          <button class="btn btn-primary" type="button" data-search-go>Search in Tools</button>
+          <a class="btn btn-secondary" data-tools-route href="../tools/">Open Tools Page</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
