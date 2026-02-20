@@ -1,0 +1,16 @@
+---
+import { renderSectionMarkdown } from '../../lib/section-markdown';
+
+interface Props {
+  title?: string;
+  body: string;
+  tone?: 'neutral' | 'info';
+}
+
+const { title, body, tone = 'neutral' } = Astro.props;
+const html = renderSectionMarkdown(body ?? '');
+---
+<aside class={`builder-callout ${tone}`}>
+  {title && <h3>{title}</h3>}
+  <div class="content-prose" set:html={html}></div>
+</aside>

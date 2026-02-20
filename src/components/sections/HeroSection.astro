@@ -1,0 +1,45 @@
+---
+import type { BuilderLink } from '../../lib/section-links';
+import SectionTextLink from './SectionTextLink.astro';
+
+interface Props {
+  heading?: string;
+  subheading?: string;
+  mediaEnabled?: boolean;
+  mediaSrc?: string;
+  mediaAlt?: string;
+  links?: BuilderLink[];
+  pageTitle: string;
+}
+
+const { heading, subheading, mediaEnabled, mediaSrc, mediaAlt, links = [], pageTitle } = Astro.props;
+const displayHeading = heading?.trim() || pageTitle;
+const showMedia = mediaEnabled !== false && Boolean(mediaSrc);
+const isVideoMedia = Boolean(mediaSrc && /\.(mp4|webm|ogg)$/i.test(mediaSrc));
+---
+<section class="builder-hero">
+  <div class="builder-hero__copy">
+    <h2>{displayHeading}</h2>
+    {subheading && <p>{subheading}</p>}
+    {
+      links.length > 0 && (
+        <div class="builder-link-row">
+          {links.map((link) => <SectionTextLink link={link} />)}
+        </div>
+      )
+    }
+  </div>
+
+  {showMedia && (
+    <figure class="builder-media-frame ratio-4-3">
+      {isVideoMedia ? (
+        <video controls playsinline preload="metadata">
+          <source src={mediaSrc} />
+          {mediaAlt ?? displayHeading}
+        </video>
+      ) : (
+        <img src={mediaSrc} alt={mediaAlt ?? displayHeading} loading="lazy" decoding="async" />
+      )}
+    </figure>
+  )}
+</section>

@@ -1,0 +1,144 @@
+---
+title: About Utility Box
+description: Why Utility Box uses a section-based content system with code-ready feature routes.
+slug: about
+lang: en
+date: 2026-02-18
+tags:
+  - platform
+  - workflow
+category: Company
+cardImage: /uploads/blog-grid.svg
+pairSlug: about
+pageBg:
+  type: solid
+  color: '#F6F4EF'
+sections:
+  - id: hero-about
+    type: Hero
+    heading: Section-based editing with long-term stability
+    subheading: Editors structure pages by sections, while developers keep tools and games maintainable in code.
+    mediaEnabled: true
+    mediaSrc: /uploads/blog-grid.svg
+    mediaAlt: Editorial grid illustration
+    links:
+      - label: Browse tools
+        kind: internal
+        internalRoute: /en/tools/
+      - label: Read architecture notes
+        kind: internal
+        internalRoute: /en/blog/rebuilding-with-astro-mdx-decap/
+    settings:
+      width: container
+      align: left
+      spacing: normal
+      bg:
+        type: none
+
+  - id: richtext-model
+    type: RichText
+    body: |
+      Utility Box intentionally avoids pixel-level drag editing.
+
+      Instead, each page is composed of structured sections. This keeps content reusable,
+      translation-friendly, and version-controlled in Git.
+    settings:
+      width: container
+      align: left
+      spacing: normal
+      bg:
+        type: none
+
+  - id: media-text-flow
+    type: MediaText
+    mediaEnabled: true
+    src: /uploads/blog-release.svg
+    alt: Release note paper layout
+    mediaPosition: right
+    body: |
+      ### Editorial + Product Workflow
+
+      1. Editors update section data in CMS.
+      2. Build validation checks internal links.
+      3. Cloudflare Pages deploys static output globally.
+    settings:
+      width: container
+      align: left
+      spacing: normal
+      bg:
+        type: none
+
+  - id: card-grid-capabilities
+    type: CardGrid
+    title: Core capabilities
+    columns: 3
+    items:
+      - title: Tool Pages
+        description: Manage tool descriptions in CMS, link to functional routes.
+        kind: internal
+        internalRoute: /en/tools/compound-interest-calculator/
+        imageSrc: /uploads/tool-compound.svg
+        meta: Tool route
+      - title: Game Pages
+        description: Place game embeds and launch links where needed.
+        kind: internal
+        internalRoute: /en/games/word-grid/
+        imageSrc: /uploads/game-wordgrid.svg
+        meta: Game route
+      - title: Blog Guides
+        description: Publish bilingual operational notes with minimal layout overhead.
+        kind: internal
+        internalRoute: /en/blog/editorial-grid-cms-workflow/
+        imageSrc: /uploads/blog-grid.svg
+        meta: Documentation
+    settings:
+      width: container
+      align: left
+      spacing: normal
+      bg:
+        type: none
+
+  - id: callout-rule
+    type: Callout
+    title: Design rule
+    body: Keep interactions text-link focused, preserve whitespace, and avoid app-like visual noise.
+    tone: info
+    settings:
+      width: container
+      align: left
+      spacing: compact
+      bg:
+        type: none
+
+  - id: divider-about
+    type: Divider
+    variant: line
+    settings:
+      width: container
+      align: left
+      spacing: compact
+      bg:
+        type: none
+
+  - id: links-about
+    type: LinkList
+    title: Related pages
+    items:
+      - label: Contact
+        kind: internal
+        internalRoute: /en/pages/contact/
+      - label: Privacy Policy
+        kind: internal
+        internalRoute: /en/pages/privacy-policy/
+      - label: GitHub repository
+        kind: external
+        externalUrl: https://github.com/garmlegarmle/utility-box
+        openInNewTab: true
+    settings:
+      width: container
+      align: left
+      spacing: compact
+      bg:
+        type: none
+---
+

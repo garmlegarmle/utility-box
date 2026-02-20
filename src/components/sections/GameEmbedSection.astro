@@ -1,0 +1,21 @@
+---
+import { resolveRouteValue } from '../../lib/section-links';
+
+interface Props {
+  route: string;
+  title?: string;
+  description?: string;
+}
+
+const { route, title, description } = Astro.props;
+const href = resolveRouteValue(route);
+---
+<div class="builder-embed">
+  <h3>{title ?? 'Game block'}</h3>
+  {description && <p>{description}</p>}
+  {href && (
+    <a class="text-link" href={href}>
+      Open game <span aria-hidden="true">→</span>
+    </a>
+  )}
+</div>

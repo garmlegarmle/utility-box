@@ -8,8 +8,10 @@ import Divider from './Divider.astro';
 import QuoteBlock from './QuoteBlock.astro';
 import Steps from './Steps.astro';
 import YouTubeEmbed from './YouTubeEmbed.astro';
+import HeadingOne from './HeadingOne.astro';
 
 export const mdxComponents = {
+  h1: HeadingOne,
   TextLink,
   CTASection,
   Callout,

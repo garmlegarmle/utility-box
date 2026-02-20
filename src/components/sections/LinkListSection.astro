@@ -1,0 +1,25 @@
+---
+import type { BuilderLink } from '../../lib/section-links';
+import SectionTextLink from './SectionTextLink.astro';
+
+interface Props {
+  title?: string;
+  items: BuilderLink[];
+}
+
+const { title, items = [] } = Astro.props;
+---
+<section class="builder-link-list">
+  {title && <h3>{title}</h3>}
+  {
+    items.length > 0 && (
+      <ul>
+        {items.map((item) => (
+          <li>
+            <SectionTextLink link={item} />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>

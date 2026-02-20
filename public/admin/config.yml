@@ -73,7 +73,489 @@ collections:
 
   - name: pages_en
     label: Pages (EN)
-    folder: src/content/en/pages
+    folder: src/content/pages/en
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string, hint: 'Changing slug changes page URL and may break existing links.' }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: en
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - label: Page Background
+        name: pageBg
+        widget: object
+        fields: &bg_fields
+          - label: Type
+            name: type
+            widget: select
+            options: [none, solid, image]
+            default: none
+          - { label: Color (for solid), name: color, widget: string, required: false }
+          - { label: Image (for image), name: imageSrc, widget: image, required: false }
+      - label: Sections
+        name: sections
+        widget: list
+        required: false
+        summary: '{{type}} · {{fields.heading}}{{fields.title}}{{fields.id}}'
+        types:
+          - label: Hero
+            name: Hero
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Heading, name: heading, widget: string, required: false }
+              - { label: Subheading, name: subheading, widget: text, required: false }
+              - { label: Media Enabled, name: mediaEnabled, widget: boolean, required: false, default: true }
+              - { label: Media Source (image/video path), name: mediaSrc, widget: string, required: false }
+              - { label: Media Alt, name: mediaAlt, widget: string, required: false }
+              - label: Links
+                name: links
+                widget: list
+                required: false
+                fields: &section_link_fields
+                  - { label: Label, name: label, widget: string }
+                  - label: Kind
+                    name: kind
+                    widget: select
+                    options: [internal, external]
+                    default: internal
+                  - label: Internal Route
+                    name: internalRoute
+                    widget: internalRoute
+                    required: false
+                    langField: lang
+                  - { label: External URL, name: externalUrl, widget: string, required: false, hint: 'Use absolute URL for external links.' }
+                  - { label: Legacy Href (optional), name: href, widget: string, required: false }
+                  - { label: Open in New Tab (external only), name: openInNewTab, widget: boolean, required: false, default: true }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: &section_settings_fields
+                  - label: Width
+                    name: width
+                    widget: select
+                    options: [container, full]
+                    default: container
+                  - label: Align
+                    name: align
+                    widget: select
+                    options: [left, center]
+                    default: left
+                  - label: Spacing
+                    name: spacing
+                    widget: select
+                    options: [compact, normal, loose]
+                    default: normal
+                  - label: Background
+                    name: bg
+                    widget: object
+                    fields: *bg_fields
+
+          - label: RichText
+            name: RichText
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Body (Markdown), name: body, widget: text }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: Media
+            name: Media
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Source (image/video path), name: src, widget: string }
+              - { label: Alt, name: alt, widget: string }
+              - { label: Caption, name: caption, widget: string, required: false }
+              - label: Ratio
+                name: ratio
+                widget: select
+                options: ['1:1', '4:3', '16:9']
+                default: '4:3'
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: MediaText
+            name: MediaText
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Media Enabled, name: mediaEnabled, widget: boolean, required: false, default: true }
+              - { label: Source (image/video path), name: src, widget: string, required: false }
+              - { label: Alt, name: alt, widget: string, required: false }
+              - { label: Body (Markdown), name: body, widget: text }
+              - label: Media Position
+                name: mediaPosition
+                widget: select
+                options: [top, left, right]
+                default: top
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: ToolEmbed
+            name: ToolEmbed
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - label: Route
+                name: route
+                widget: internalRoute
+                langField: lang
+              - { label: Title, name: title, widget: string, required: false }
+              - { label: Description, name: description, widget: text, required: false }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: GameEmbed
+            name: GameEmbed
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - label: Route
+                name: route
+                widget: internalRoute
+                langField: lang
+              - { label: Title, name: title, widget: string, required: false }
+              - { label: Description, name: description, widget: text, required: false }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: LinkList
+            name: LinkList
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Title, name: title, widget: string, required: false }
+              - label: Items
+                name: items
+                widget: list
+                fields: *section_link_fields
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: CardGrid
+            name: CardGrid
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Title, name: title, widget: string, required: false }
+              - label: Columns
+                name: columns
+                widget: select
+                options: [2, 3]
+                default: 3
+              - label: Items
+                name: items
+                widget: list
+                fields:
+                  - { label: Title, name: title, widget: string }
+                  - { label: Description, name: description, widget: text }
+                  - label: Kind
+                    name: kind
+                    widget: select
+                    options: [internal, external]
+                    default: internal
+                  - label: Internal Route
+                    name: internalRoute
+                    widget: internalRoute
+                    required: false
+                    langField: lang
+                  - { label: External URL, name: externalUrl, widget: string, required: false }
+                  - { label: Legacy Href (optional), name: href, widget: string, required: false }
+                  - { label: Open in New Tab (external only), name: openInNewTab, widget: boolean, required: false, default: true }
+                  - { label: Image Source, name: imageSrc, widget: image, required: false }
+                  - { label: Meta, name: meta, widget: string, required: false }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: Callout
+            name: Callout
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Title, name: title, widget: string, required: false }
+              - { label: Body (Markdown), name: body, widget: text }
+              - label: Tone
+                name: tone
+                widget: select
+                options: [neutral, info]
+                default: neutral
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: Divider
+            name: Divider
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - label: Variant
+                name: variant
+                widget: select
+                options: [line, space]
+                default: line
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+      - { label: Body (optional fallback), name: body, widget: markdown, required: false }
+
+  - name: pages_ko
+    label: Pages (KO)
+    folder: src/content/pages/ko
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string, hint: '슬러그 변경 시 URL이 바뀌어 기존 링크가 깨질 수 있습니다.' }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: ko
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - label: Page Background
+        name: pageBg
+        widget: object
+        fields: *bg_fields
+      - label: Sections
+        name: sections
+        widget: list
+        required: false
+        summary: '{{type}} · {{fields.heading}}{{fields.title}}{{fields.id}}'
+        types:
+          - label: Hero
+            name: Hero
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Heading, name: heading, widget: string, required: false }
+              - { label: Subheading, name: subheading, widget: text, required: false }
+              - { label: Media Enabled, name: mediaEnabled, widget: boolean, required: false, default: true }
+              - { label: Media Source (image/video path), name: mediaSrc, widget: string, required: false }
+              - { label: Media Alt, name: mediaAlt, widget: string, required: false }
+              - label: Links
+                name: links
+                widget: list
+                required: false
+                fields: *section_link_fields
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: RichText
+            name: RichText
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Body (Markdown), name: body, widget: text }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: Media
+            name: Media
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Source (image/video path), name: src, widget: string }
+              - { label: Alt, name: alt, widget: string }
+              - { label: Caption, name: caption, widget: string, required: false }
+              - label: Ratio
+                name: ratio
+                widget: select
+                options: ['1:1', '4:3', '16:9']
+                default: '4:3'
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: MediaText
+            name: MediaText
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Media Enabled, name: mediaEnabled, widget: boolean, required: false, default: true }
+              - { label: Source (image/video path), name: src, widget: string, required: false }
+              - { label: Alt, name: alt, widget: string, required: false }
+              - { label: Body (Markdown), name: body, widget: text }
+              - label: Media Position
+                name: mediaPosition
+                widget: select
+                options: [top, left, right]
+                default: top
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: ToolEmbed
+            name: ToolEmbed
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - label: Route
+                name: route
+                widget: internalRoute
+                langField: lang
+              - { label: Title, name: title, widget: string, required: false }
+              - { label: Description, name: description, widget: text, required: false }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: GameEmbed
+            name: GameEmbed
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - label: Route
+                name: route
+                widget: internalRoute
+                langField: lang
+              - { label: Title, name: title, widget: string, required: false }
+              - { label: Description, name: description, widget: text, required: false }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: LinkList
+            name: LinkList
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Title, name: title, widget: string, required: false }
+              - label: Items
+                name: items
+                widget: list
+                fields: *section_link_fields
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: CardGrid
+            name: CardGrid
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Title, name: title, widget: string, required: false }
+              - label: Columns
+                name: columns
+                widget: select
+                options: [2, 3]
+                default: 3
+              - label: Items
+                name: items
+                widget: list
+                fields:
+                  - { label: Title, name: title, widget: string }
+                  - { label: Description, name: description, widget: text }
+                  - label: Kind
+                    name: kind
+                    widget: select
+                    options: [internal, external]
+                    default: internal
+                  - label: Internal Route
+                    name: internalRoute
+                    widget: internalRoute
+                    required: false
+                    langField: lang
+                  - { label: External URL, name: externalUrl, widget: string, required: false }
+                  - { label: Legacy Href (optional), name: href, widget: string, required: false }
+                  - { label: Open in New Tab (external only), name: openInNewTab, widget: boolean, required: false, default: true }
+                  - { label: Image Source, name: imageSrc, widget: image, required: false }
+                  - { label: Meta, name: meta, widget: string, required: false }
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: Callout
+            name: Callout
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - { label: Title, name: title, widget: string, required: false }
+              - { label: Body (Markdown), name: body, widget: text }
+              - label: Tone
+                name: tone
+                widget: select
+                options: [neutral, info]
+                default: neutral
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+
+          - label: Divider
+            name: Divider
+            widget: object
+            fields:
+              - { label: Section ID, name: id, widget: string }
+              - label: Variant
+                name: variant
+                widget: select
+                options: [line, space]
+                default: line
+              - label: Settings
+                name: settings
+                widget: object
+                fields: *section_settings_fields
+      - { label: Body (optional fallback), name: body, widget: markdown, required: false }
+
+  - name: tools_en
+    label: Tools (EN)
+    folder: src/content/en/tools
     create: true
     extension: mdx
     format: frontmatter
@@ -98,43 +580,6 @@ collections:
       - { label: Card Image, name: cardImage, widget: image, required: false }
       - { label: Pair Slug, name: pairSlug, widget: string, required: false }
       - { label: Body, name: body, widget: markdown }
-
-  - name: pages_ko
-    label: Pages (KO)
-    folder: src/content/ko/pages
-    create: true
-    extension: mdx
-    format: frontmatter
-    slug: '{{slug}}'
-    fields:
-      - { label: Title, name: title, widget: string }
-      - { label: Description, name: description, widget: text }
-      - { label: Slug, name: slug, widget: string }
-      - label: Lang
-        name: lang
-        widget: select
-        options: [en, ko]
-        default: ko
-      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
-      - label: Tags
-        name: tags
-        widget: list
-        required: false
-        field: { label: Tag, name: tag, widget: string }
-      - { label: Category, name: category, widget: string, required: false }
-      - { label: Hero Image, name: heroImage, widget: image, required: false }
-      - { label: Card Image, name: cardImage, widget: image, required: false }
-      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
-      - { label: Body, name: body, widget: markdown }
-
-  - name: tools_en
-    label: Tools (EN)
-    folder: src/content/en/tools
-    create: true
-    extension: mdx
-    format: frontmatter
-    slug: '{{slug}}'
-    fields: *shared_fields
 
   - name: tools_ko
     label: Tools (KO)

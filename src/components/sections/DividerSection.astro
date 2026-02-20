@@ -1,0 +1,8 @@
+---
+interface Props {
+  variant?: 'line' | 'space';
+}
+
+const { variant = 'line' } = Astro.props;
+---
+{variant === 'line' ? <hr class="builder-divider-line" /> : <div class="builder-divider-space" aria-hidden="true"></div>}

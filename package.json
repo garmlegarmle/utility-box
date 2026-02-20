@@ -5,13 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "generate:routes": "node scripts/generate-internal-routes.mjs",
+    "validate:links": "node scripts/validate-internal-links.mjs",
+    "prebuild": "npm run generate:routes && npm run validate:links",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "astro preview",
     "check": "astro check"
   },
   "dependencies": {
     "astro": "^5.2.0",
     "@astrojs/mdx": "^4.0.0",
-    "@astrojs/rss": "^4.0.0"
+    "@astrojs/rss": "^4.0.0",
+    "gray-matter": "^4.0.3",
+    "marked": "^16.3.0"
   }
 }

@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SectionRenderer from '../../../components/sections/SectionRenderer.astro';
 import { LANGS, type SiteLang } from '../../../consts';
 import { buildCollectionPath, buildLangHomePath, getEntryBySlug, getPairedEntry } from '../../../lib/content';
 import { mdxComponents } from '../../../components/mdx';
@@ -43,7 +44,24 @@ const alternates = paired
       { lang: otherLang, href: buildLangHomePath(otherLang) }
     ];
 
-const { Content } = await render(entry);
+const hasSections = (entry.data.sections ?? []).length > 0;
+let Content: ((props: { components: Record<string, unknown> }) => unknown) | null = null;
+
+if (!hasSections) {
+  const rendered = await render(entry);
+  Content = rendered.Content;
+}
+
+const pageBg = entry.data.pageBg ?? { type: 'none' };
+const pageBackgroundStyle =
+  pageBg.type === 'solid' && pageBg.color
+    ? `--page-bg:${pageBg.color};`
+    : pageBg.type === 'image' && pageBg.imageSrc
+      ? `--page-bg-image:url('${pageBg.imageSrc}');`
+      : undefined;
+
+const pageBackgroundClass =
+  pageBg.type === 'solid' ? 'page-bg-solid' : pageBg.type === 'image' ? 'page-bg-image' : 'page-bg-none';
 ---
 <BaseLayout
   title={entry.data.title}
@@ -53,22 +71,26 @@ const { Content } = await render(entry);
   canonicalPath={buildCollectionPath(lang, 'pages', entry.data.slug)}
   alternates={alternates}
 >
-  <article class="section">
+  <article class={`section page-builder-surface ${pageBackgroundClass}`} style={pageBackgroundStyle}>
     <div class="container">
       <header class="page-head">
         <h1>{entry.data.title}</h1>
         <p>{entry.data.description}</p>
       </header>
-
-      {entry.data.heroImage && (
-        <figure class="hero-image">
-          <img src={entry.data.heroImage} alt={entry.data.title} loading="lazy" decoding="async" />
-        </figure>
-      )}
-
-      <div class="content-surface content-prose">
-        <Content components={mdxComponents} />
-      </div>
     </div>
+
+    {hasSections ? (
+      <SectionRenderer sections={entry.data.sections} lang={lang} pageTitle={entry.data.title} />
+    ) : (
+      <div class="container">
+        {entry.data.heroImage && (
+          <figure class="hero-image">
+            <img src={entry.data.heroImage} alt={entry.data.title} loading="lazy" decoding="async" />
+          </figure>
+        )}
+
+        <div class="content-surface content-prose">{Content && <Content components={mdxComponents} />}</div>
+      </div>
+    )}
   </article>
 </BaseLayout>

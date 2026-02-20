@@ -1,0 +1,11 @@
+---
+import { renderSectionMarkdown } from '../../lib/section-markdown';
+
+interface Props {
+  body: string;
+}
+
+const { body } = Astro.props;
+const html = renderSectionMarkdown(body ?? '');
+---
+<div class="builder-richtext content-prose" set:html={html}></div>
