@@ -15,12 +15,44 @@ function renderHtml(message, origin = '*') {
   <head><meta charset=\"utf-8\"><title>Decap Auth</title></head>
   <body>
     <script>
-      const receiveMessage = (event) => {
-        window.opener.postMessage('authorization:github:success:' + ${payload}, event.origin || ${JSON.stringify(origin)});
-        window.removeEventListener('message', receiveMessage, false);
-      };
-      window.addEventListener('message', receiveMessage, false);
-      window.opener.postMessage('authorizing:github', '*');
+      (function () {
+        const data = ${payload};
+        const serialized = 'authorization:github:success:' + JSON.stringify(data);
+        const defaultOrigin = ${JSON.stringify(origin)};
+
+        const send = (targetOrigin) => {
+          if (!window.opener) return;
+          try {
+            window.opener.postMessage(serialized, targetOrigin);
+          } catch (_) {}
+        };
+
+        if (!window.opener) {
+          document.body.textContent = 'Authentication complete. You can close this window.';
+          return;
+        }
+
+        // Decap versions differ in handshake behavior; send both proactively and on handshake.
+        send(window.location.origin);
+        send(defaultOrigin);
+        send('*');
+
+        const onMessage = (event) => {
+          if (event.data === 'authorizing:github') {
+            send(event.origin || window.location.origin);
+            setTimeout(() => window.close(), 50);
+          }
+        };
+
+        window.addEventListener('message', onMessage, false);
+
+        // Trigger handshake for clients that expect it.
+        try {
+          window.opener.postMessage('authorizing:github', '*');
+        } catch (_) {}
+
+        setTimeout(() => window.close(), 400);
+      })();
     </script>
   </body>
 </html>`;
