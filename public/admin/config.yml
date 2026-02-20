@@ -2,11 +2,14 @@ backend:
   name: github
   repo: garmlegarmle/utility-box
   branch: main
+  base_url: https://www.utility-box.org
+  auth_endpoint: /api/auth
+  site_domain: www.utility-box.org
 
 media_folder: public/uploads
 public_folder: /uploads
 
-site_url: https://utility-box.org
+site_url: https://www.utility-box.org
 logo_url: /uploads/blog-grid.svg
 publish_mode: simple
 local_backend: true

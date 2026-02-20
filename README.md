@@ -61,6 +61,21 @@ Language toggle behavior:
 - Config: `public/admin/config.yml`
 - Upload directory: `public/uploads`
 
+### GitHub OAuth on Cloudflare Pages
+Decap CMS with `backend: github` needs an OAuth token exchange endpoint.
+This repo provides Cloudflare Pages Functions endpoints:
+- `/api/auth` -> starts GitHub OAuth
+- `/api/callback` -> exchanges code for token and returns token to Decap popup
+
+Set these Cloudflare Pages environment variables:
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- optional: `GITHUB_OAUTH_SCOPE` (default `repo`)
+
+GitHub OAuth App settings:
+- Homepage URL: `https://www.utility-box.org`
+- Authorization callback URL: `https://www.utility-box.org/api/callback`
+
 ## MDX block components
 Reusable blocks are in `src/components/mdx/`:
 - `TextLink`
