@@ -1,0 +1,43 @@
+---
+import type { SiteLang } from '../../consts';
+
+interface NavItem {
+  key: 'home' | 'blog' | 'tools' | 'games';
+  label: string;
+  href: string;
+}
+
+interface Props {
+  lang: SiteLang;
+  active?: NavItem['key'];
+  languageToggleHref: string;
+}
+
+const { lang, active, languageToggleHref } = Astro.props;
+
+const navItems: NavItem[] = [
+  { key: 'home', label: lang === 'ko' ? '홈' : 'Home', href: `/${lang}/` },
+  { key: 'tools', label: lang === 'ko' ? '도구' : 'Tools', href: `/${lang}/tools/` },
+  { key: 'games', label: lang === 'ko' ? '게임' : 'Games', href: `/${lang}/games/` },
+  { key: 'blog', label: lang === 'ko' ? '블로그' : 'Blog', href: `/${lang}/blog/` }
+];
+
+const toggleLabel = lang === 'ko' ? 'English' : '한국어';
+---
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="site-title" href={`/${lang}/`}>Utility Box</a>
+    <nav class="site-nav" aria-label={lang === 'ko' ? '주요 탐색' : 'Primary navigation'}>
+      {
+        navItems.map((item) => (
+          <a href={item.href} aria-current={active === item.key ? 'page' : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+      <a class="lang-toggle" href={languageToggleHref} rel="alternate" hreflang={lang === 'ko' ? 'en' : 'ko'}>
+        {toggleLabel}
+      </a>
+    </nav>
+  </div>
+</header>

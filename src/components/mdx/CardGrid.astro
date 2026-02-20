@@ -1,0 +1,31 @@
+---
+import EntryCard from '../site/EntryCard.astro';
+
+interface CardItem {
+  title: string;
+  description: string;
+  href: string;
+  image?: string;
+  meta?: string;
+}
+
+interface Props {
+  items: CardItem[];
+}
+
+const { items } = Astro.props;
+---
+<div class="grid editorial-grid">
+  {
+    items.map((item) => (
+      <EntryCard
+        title={item.title}
+        description={item.description}
+        href={item.href}
+        image={item.image}
+        meta={item.meta ? [item.meta] : []}
+        ctaLabel="View"
+      />
+    ))
+  }
+</div>

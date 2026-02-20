@@ -1,0 +1,25 @@
+---
+interface MediaItem {
+  src: string;
+  alt: string;
+  caption?: string;
+}
+
+interface Props {
+  images: MediaItem[];
+  columns?: 2 | 3 | 4;
+}
+
+const { images, columns = 3 } = Astro.props;
+const columnClass = columns === 2 ? 'cols-2' : columns === 4 ? 'cols-4' : 'cols-3';
+---
+<div class={`mdx-media-grid ${columnClass}`}>
+  {images.map((image) => (
+    <figure class="mdx-media">
+      <div class="mdx-media-frame ratio-4-3">
+        <img src={image.src} alt={image.alt} loading="lazy" decoding="async" />
+      </div>
+      {image.caption && <figcaption class="mdx-caption">{image.caption}</figcaption>}
+    </figure>
+  ))}
+</div>

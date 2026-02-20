@@ -1,0 +1,37 @@
+---
+title: Building an Editorial Grid Workflow with MDX + CMS
+description: How to keep a calm visual style while allowing non-developers to publish quickly.
+slug: editorial-grid-cms-workflow
+lang: en
+date: 2026-02-20
+tags:
+  - guides
+  - workflow
+category: Guides
+heroImage: /uploads/blog-grid.svg
+cardImage: /uploads/blog-grid.svg
+pairSlug: editorial-grid-cms-workflow
+---
+
+This setup separates editorial content from functional code and keeps both maintainable.
+
+<Divider />
+
+<CardGrid
+  items={[
+    {
+      title: 'Compound Interest Calculator',
+      description: 'Finance-focused utility page with MDX blocks.',
+      href: '/en/tools/compound-interest-calculator/',
+      image: '/uploads/tool-compound.svg',
+      meta: 'Finance'
+    },
+    {
+      title: 'Word Grid',
+      description: 'Simple game page linked from editorial posts.',
+      href: '/en/games/word-grid/',
+      image: '/uploads/game-wordgrid.svg',
+      meta: 'Brain'
+    }
+  ]}
+/>

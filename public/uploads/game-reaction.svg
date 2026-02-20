@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Reaction timer game</title>
+  <desc id="desc">Concentric circles representing reaction timing.</desc>
+  <rect width="1200" height="900" fill="#f8f6f1" />
+  <circle cx="600" cy="450" r="300" fill="#ffffff" stroke="rgba(0,0,0,0.12)" />
+  <circle cx="600" cy="450" r="220" fill="none" stroke="rgba(0,0,0,0.12)" />
+  <circle cx="600" cy="450" r="140" fill="none" stroke="rgba(0,0,0,0.18)" />
+  <circle cx="600" cy="450" r="40" fill="#111111" />
+</svg>

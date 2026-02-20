@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../../components/site/EntryCard.astro';
+import { LANGS, type SiteLang } from '../../../../consts';
+import { buildCollectionPath, byTag, formatDate, getLocalizedCollection, getTaxonomy } from '../../../../lib/content';
+
+export async function getStaticPaths() {
+  const paths = [];
+
+  for (const lang of LANGS) {
+    const entries = await getLocalizedCollection('pages', lang);
+    const taxonomy = getTaxonomy(entries);
+    taxonomy.tags.forEach((tag) => {
+      paths.push({
+        params: { lang, tag: tag.slug }
+      });
+    });
+  }
+
+  return paths;
+}
+
+const lang = Astro.params.lang as SiteLang;
+const tagSlug = Astro.params.tag as string;
+
+if (!LANGS.includes(lang) || !tagSlug) {
+  throw new Error('Invalid route params');
+}
+
+const entries = await getLocalizedCollection('pages', lang);
+const taxonomy = getTaxonomy(entries);
+const tagLabel = taxonomy.tags.find((item) => item.slug === tagSlug)?.label ?? tagSlug;
+const filtered = byTag(entries, tagSlug);
+const otherLang: SiteLang = lang === 'en' ? 'ko' : 'en';
+const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
+const title = lang === 'ko' ? `페이지 태그: #${tagLabel}` : `Page tag: #${tagLabel}`;
+---
+<BaseLayout
+  title={title}
+  description={title}
+  lang={lang}
+  languageToggleHref={`/${otherLang}/pages/`}
+  canonicalPath={`/${lang}/pages/tag/${tagSlug}/`}
+  alternates={[
+    { lang: 'en', href: '/en/pages/' },
+    { lang: 'ko', href: '/ko/pages/' }
+  ]}
+>
+  <section class="section">
+    <div class="container">
+      <header class="page-head">
+        <h1>{title}</h1>
+        <p>{lang === 'ko' ? `${filtered.length}개 페이지` : `${filtered.length} pages`}</p>
+      </header>
+
+      <div class="grid editorial-grid">
+        {
+          filtered.map((entry) => (
+            <EntryCard
+              title={entry.data.title}
+              description={entry.data.description}
+              href={buildCollectionPath(lang, 'pages', entry.data.slug)}
+              image={entry.data.cardImage}
+              meta={[
+                entry.data.date ? formatDate(entry.data.date, locale) : '',
+                entry.data.category ?? '',
+                ...(entry.data.tags ?? []).slice(0, 2)
+              ].filter(Boolean)}
+              ctaLabel={lang === 'ko' ? '보기' : 'View'}
+            />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>

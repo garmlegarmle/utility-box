@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../components/site/EntryCard.astro';
+import { LANGS, type SiteLang } from '../../../consts';
+import { buildCollectionPath, byCategory, byTag, getLocalizedCollection, getTaxonomy } from '../../../lib/content';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as SiteLang;
+
+if (!LANGS.includes(lang)) {
+  throw new Error('Invalid route params');
+}
+
+const entries = await getLocalizedCollection('pages', lang);
+const otherLang: SiteLang = lang === 'en' ? 'ko' : 'en';
+const taxonomy = getTaxonomy(entries);
+const categoryLinks = taxonomy.categories.map((item) => ({
+  ...item,
+  count: byCategory(entries, item.slug).length
+}));
+const tagLinks = taxonomy.tags.map((item) => ({
+  ...item,
+  count: byTag(entries, item.slug).length
+}));
+---
+<BaseLayout
+  title={lang === 'ko' ? '페이지' : 'Pages'}
+  description={lang === 'ko' ? '자유 형식 랜딩 페이지 목록' : 'Free-form landing pages'}
+  lang={lang}
+  languageToggleHref={`/${otherLang}/pages/`}
+  canonicalPath={`/${lang}/pages/`}
+  alternates={[
+    { lang: 'en', href: '/en/pages/' },
+    { lang: 'ko', href: '/ko/pages/' }
+  ]}
+>
+  <section class="section">
+    <div class="container">
+      <header class="page-head">
+        <h1>{lang === 'ko' ? '페이지' : 'Pages'}</h1>
+        <p>{lang === 'ko' ? 'CMS에서 편집 가능한 랜딩 페이지입니다.' : 'Landing pages editable in the CMS.'}</p>
+      </header>
+
+      {categoryLinks.length > 0 && (
+        <div class="taxonomy-list" aria-label={lang === 'ko' ? '카테고리' : 'Categories'}>
+          {categoryLinks.map((item) => (
+            <a class="taxonomy-link" href={`/${lang}/pages/category/${item.slug}/`}>
+              {item.label} ({item.count})
+            </a>
+          ))}
+        </div>
+      )}
+
+      {tagLinks.length > 0 && (
+        <div class="taxonomy-list" aria-label={lang === 'ko' ? '태그' : 'Tags'}>
+          {tagLinks.map((item) => (
+            <a class="taxonomy-link" href={`/${lang}/pages/tag/${item.slug}/`}>
+              #{item.label} ({item.count})
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div class="grid editorial-grid">
+        {
+          entries.map((entry) => (
+            <EntryCard
+              title={entry.data.title}
+              description={entry.data.description}
+              href={buildCollectionPath(lang, 'pages', entry.data.slug)}
+              image={entry.data.cardImage}
+              meta={[entry.data.category ?? '', ...(entry.data.tags ?? []).slice(0, 2)].filter(Boolean)}
+              ctaLabel={lang === 'ko' ? '보기' : 'View'}
+            />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>

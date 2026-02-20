@@ -1,0 +1,199 @@
+backend:
+  name: github
+  repo: garmlegarmle/utility-box
+  branch: main
+
+media_folder: public/uploads
+public_folder: /uploads
+
+site_url: https://utility-box.org
+logo_url: /uploads/blog-grid.svg
+publish_mode: simple
+local_backend: true
+
+collections:
+  - name: blog_en
+    label: Blog (EN)
+    folder: src/content/en/blog
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: en
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - { label: Body, name: body, widget: markdown }
+
+  - name: blog_ko
+    label: Blog (KO)
+    folder: src/content/ko/blog
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: ko
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - { label: Body, name: body, widget: markdown }
+
+  - name: pages_en
+    label: Pages (EN)
+    folder: src/content/en/pages
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields: &shared_fields
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: en
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - { label: Body, name: body, widget: markdown }
+
+  - name: pages_ko
+    label: Pages (KO)
+    folder: src/content/ko/pages
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: ko
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - { label: Body, name: body, widget: markdown }
+
+  - name: tools_en
+    label: Tools (EN)
+    folder: src/content/en/tools
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields: *shared_fields
+
+  - name: tools_ko
+    label: Tools (KO)
+    folder: src/content/ko/tools
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: ko
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - { label: Body, name: body, widget: markdown }
+
+  - name: games_en
+    label: Games (EN)
+    folder: src/content/en/games
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields: *shared_fields
+
+  - name: games_ko
+    label: Games (KO)
+    folder: src/content/ko/games
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: '{{slug}}'
+    fields:
+      - { label: Title, name: title, widget: string }
+      - { label: Description, name: description, widget: text }
+      - { label: Slug, name: slug, widget: string }
+      - label: Lang
+        name: lang
+        widget: select
+        options: [en, ko]
+        default: ko
+      - { label: Date, name: date, widget: datetime, format: YYYY-MM-DD, time_format: false, required: false }
+      - label: Tags
+        name: tags
+        widget: list
+        required: false
+        field: { label: Tag, name: tag, widget: string }
+      - { label: Category, name: category, widget: string, required: false }
+      - { label: Hero Image, name: heroImage, widget: image, required: false }
+      - { label: Card Image, name: cardImage, widget: image, required: false }
+      - { label: Pair Slug, name: pairSlug, widget: string, required: false }
+      - { label: Body, name: body, widget: markdown }

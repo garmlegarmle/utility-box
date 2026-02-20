@@ -1,0 +1,22 @@
+---
+import type { SiteLang } from '../../consts';
+
+interface Props {
+  lang: SiteLang;
+}
+
+const { lang } = Astro.props;
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <p class="footer-meta">&copy; {year} Utility Box. {lang === 'ko' ? '실용적인 도구와 가이드.' : 'Practical tools and guides.'}</p>
+    </div>
+    <div class="footer-links">
+      <a class="text-link" href={`/${lang}/pages/privacy-policy/`}>Privacy Policy</a>
+      <a class="text-link" href={`/${lang}/pages/about/`}>{lang === 'ko' ? '소개' : 'About'}</a>
+      <a class="text-link" href={`/${lang}/pages/contact/`}>{lang === 'ko' ? '문의' : 'Contact'}</a>
+    </div>
+  </div>
+</footer>

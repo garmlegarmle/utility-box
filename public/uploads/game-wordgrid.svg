@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Word grid game</title>
+  <desc id="desc">Simple tile grid for game card.</desc>
+  <rect width="1200" height="900" fill="#f8f6f1" />
+  <rect x="260" y="110" width="680" height="680" fill="#ffffff" stroke="rgba(0,0,0,0.12)" />
+  <g stroke="rgba(0,0,0,0.12)">
+    <line x1="430" y1="110" x2="430" y2="790" />
+    <line x1="600" y1="110" x2="600" y2="790" />
+    <line x1="770" y1="110" x2="770" y2="790" />
+    <line x1="260" y1="280" x2="940" y2="280" />
+    <line x1="260" y1="450" x2="940" y2="450" />
+    <line x1="260" y1="620" x2="940" y2="620" />
+  </g>
+</svg>

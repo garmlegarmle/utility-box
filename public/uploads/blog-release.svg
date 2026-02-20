@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Release notes blog cover</title>
+  <desc id="desc">Document-themed image for release post.</desc>
+  <rect width="1200" height="900" fill="#f8f6f1" />
+  <rect x="270" y="110" width="660" height="680" fill="#ffffff" stroke="rgba(0,0,0,0.12)" />
+  <rect x="340" y="220" width="520" height="28" fill="rgba(0,0,0,0.16)" />
+  <rect x="340" y="288" width="470" height="18" fill="rgba(0,0,0,0.1)" />
+  <rect x="340" y="332" width="500" height="18" fill="rgba(0,0,0,0.1)" />
+  <rect x="340" y="376" width="460" height="18" fill="rgba(0,0,0,0.1)" />
+</svg>

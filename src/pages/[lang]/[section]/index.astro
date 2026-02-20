@@ -1,0 +1,131 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import EntryCard from '../../../components/site/EntryCard.astro';
+import { LANGS, type SiteLang } from '../../../consts';
+import {
+  SECTION_COLLECTIONS,
+  type SectionKey,
+  buildCollectionPath,
+  byCategory,
+  byTag,
+  formatDate,
+  getLocalizedCollection,
+  getTaxonomy
+} from '../../../lib/content';
+
+export async function getStaticPaths() {
+  const paths = [];
+
+  for (const lang of LANGS) {
+    for (const section of SECTION_COLLECTIONS) {
+      paths.push({ params: { lang, section } });
+    }
+  }
+
+  return paths;
+}
+
+const lang = Astro.params.lang as SiteLang;
+const section = Astro.params.section as SectionKey;
+
+if (!LANGS.includes(lang) || !SECTION_COLLECTIONS.includes(section)) {
+  throw new Error('Invalid route params');
+}
+
+const entries = await getLocalizedCollection(section, lang);
+const taxonomy = getTaxonomy(entries);
+
+const otherLang: SiteLang = lang === 'en' ? 'ko' : 'en';
+
+const labels = {
+  blog: {
+    en: { title: 'Blog', intro: 'Editorial posts and practical guides.', cta: 'Read' },
+    ko: { title: '블로그', intro: '실무 중심 가이드와 에디토리얼 콘텐츠.', cta: '읽기' }
+  },
+  tools: {
+    en: { title: 'Tools', intro: 'Tool pages with optional links into app routes.', cta: 'Open' },
+    ko: { title: '도구', intro: '도구 설명과 기능 링크를 함께 관리합니다.', cta: '열기' }
+  },
+  games: {
+    en: { title: 'Games', intro: 'Game pages with optional launch links and guides.', cta: 'View' },
+    ko: { title: '게임', intro: '게임 설명과 실행 링크를 함께 제공합니다.', cta: '보기' }
+  }
+} as const;
+
+const text = labels[section][lang];
+const locale = lang === 'ko' ? 'ko-KR' : 'en-US';
+
+const categoryLinks = taxonomy.categories.map((item) => ({
+  ...item,
+  count: byCategory(entries, item.slug).length
+}));
+
+const tagLinks = taxonomy.tags.map((item) => ({
+  ...item,
+  count: byTag(entries, item.slug).length
+}));
+---
+<BaseLayout
+  title={text.title}
+  description={text.intro}
+  lang={lang}
+  activeNav={section}
+  languageToggleHref={`/${otherLang}/${section}/`}
+  canonicalPath={`/${lang}/${section}/`}
+  alternates={[
+    { lang: 'en', href: `/en/${section}/` },
+    { lang: 'ko', href: `/ko/${section}/` }
+  ]}
+>
+  <section class="section">
+    <div class="container">
+      <header class="page-head">
+        <h1>{text.title}</h1>
+        <p>{text.intro}</p>
+      </header>
+
+      {categoryLinks.length > 0 && (
+        <div class="taxonomy-list" aria-label={lang === 'ko' ? '카테고리' : 'Categories'}>
+          {categoryLinks.map((item) => (
+            <a class="taxonomy-link" href={`/${lang}/${section}/category/${item.slug}/`}>
+              {item.label} ({item.count})
+            </a>
+          ))}
+        </div>
+      )}
+
+      {tagLinks.length > 0 && (
+        <div class="taxonomy-list" aria-label={lang === 'ko' ? '태그' : 'Tags'}>
+          {tagLinks.map((item) => (
+            <a class="taxonomy-link" href={`/${lang}/${section}/tag/${item.slug}/`}>
+              #{item.label} ({item.count})
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div class="grid editorial-grid">
+        {
+          entries.map((entry) => {
+            const meta = [
+              entry.data.date ? formatDate(entry.data.date, locale) : '',
+              entry.data.category ?? '',
+              ...(entry.data.tags ?? []).slice(0, 2)
+            ].filter(Boolean);
+
+            return (
+              <EntryCard
+                title={entry.data.title}
+                description={entry.data.description}
+                href={buildCollectionPath(lang, section, entry.data.slug)}
+                image={entry.data.cardImage}
+                meta={meta}
+                ctaLabel={text.cta}
+              />
+            );
+          })
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>

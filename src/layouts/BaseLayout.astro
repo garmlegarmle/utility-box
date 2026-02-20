@@ -1,0 +1,66 @@
+---
+import Header from '../components/site/Header.astro';
+import Footer from '../components/site/Footer.astro';
+import { SITE_NAME, SITE_URL, type SiteLang } from '../consts';
+
+interface AlternateLink {
+  lang: SiteLang;
+  href: string;
+}
+
+interface Props {
+  title: string;
+  description?: string;
+  lang: SiteLang;
+  activeNav?: 'home' | 'blog' | 'tools' | 'games';
+  languageToggleHref?: string;
+  canonicalPath?: string;
+  alternates?: AlternateLink[];
+}
+
+const {
+  title,
+  description,
+  lang,
+  activeNav,
+  languageToggleHref,
+  canonicalPath = `/${lang}/`,
+  alternates = [
+    { lang: 'en', href: '/en/' },
+    { lang: 'ko', href: '/ko/' }
+  ]
+} = Astro.props;
+
+const canonicalUrl = new URL(canonicalPath, SITE_URL).toString();
+const langToggleHref = languageToggleHref ?? (lang === 'en' ? '/ko/' : '/en/');
+const pageTitle = `${title} | ${SITE_NAME}`;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{pageTitle}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonicalUrl} />
+    {
+      alternates.map((alt) => (
+        <link rel="alternate" hreflang={alt.lang} href={new URL(alt.href, SITE_URL).toString()} />
+      ))
+    }
+    <link rel="alternate" hreflang="x-default" href={new URL('/en/', SITE_URL).toString()} />
+  </head>
+  <body>
+    <div class="site-shell">
+      <Header lang={lang} active={activeNav} languageToggleHref={langToggleHref} />
+      <main>
+        <slot />
+      </main>
+      <Footer lang={lang} />
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>
