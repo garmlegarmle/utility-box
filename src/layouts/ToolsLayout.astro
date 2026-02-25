@@ -1,0 +1,38 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import type { SiteLang } from '../consts';
+import { getOtherLang } from '../lib/content';
+
+interface Props {
+  lang: SiteLang;
+  title: string;
+  tagLine?: string;
+}
+
+const { lang, title, tagLine } = Astro.props;
+const otherLang = getOtherLang(lang);
+---
+<BaseLayout
+  title={title}
+  description={title}
+  lang={lang}
+  activeNav="tools"
+  languageToggleHref={`/${otherLang}/tools/`}
+  canonicalPath={`/${lang}/tools/`}
+  alternates={[
+    { lang: 'en', href: '/en/tools/' },
+    { lang: 'ko', href: '/ko/tools/' }
+  ]}
+>
+  <section class="page-section">
+    <div class="container">
+      <header class="list-head">
+        <h1>{title}</h1>
+        {tagLine && <p class="list-tags">{tagLine}</p>}
+      </header>
+      <div class="listing-grid listing-grid--four">
+        <slot />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

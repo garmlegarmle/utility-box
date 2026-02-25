@@ -1,34 +1,26 @@
 ---
-import BaseLayout from '../../../layouts/BaseLayout.astro';
 import EntryCard from '../../../components/site/EntryCard.astro';
-import { LANGS, type SiteLang } from '../../../consts';
-import { buildCollectionPath, byCategory, byTag, getLocalizedCollection, getTaxonomy } from '../../../lib/content';
+import { LANGS } from '../../../consts';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { buildCollectionPath, getLocalizedCollection, getOtherLang, isSupportedLang } from '../../../lib/content';
 
 export function getStaticPaths() {
   return LANGS.map((lang) => ({ params: { lang } }));
 }
 
-const lang = Astro.params.lang as SiteLang;
-
-if (!LANGS.includes(lang)) {
+const lang = Astro.params.lang as string;
+if (!isSupportedLang(lang)) {
   throw new Error('Invalid route params');
 }
 
 const entries = await getLocalizedCollection('pages', lang);
-const otherLang: SiteLang = lang === 'en' ? 'ko' : 'en';
-const taxonomy = getTaxonomy(entries);
-const categoryLinks = taxonomy.categories.map((item) => ({
-  ...item,
-  count: byCategory(entries, item.slug).length
-}));
-const tagLinks = taxonomy.tags.map((item) => ({
-  ...item,
-  count: byTag(entries, item.slug).length
-}));
+const otherLang = getOtherLang(lang);
+const tags = [...new Set(entries.flatMap((entry) => entry.data.tags ?? []))].slice(0, 8);
+const tagLine = tags.length > 0 ? `tag list ${tags.join(' · ')}` : 'tag list';
 ---
 <BaseLayout
-  title={lang === 'ko' ? '페이지' : 'Pages'}
-  description={lang === 'ko' ? '자유 형식 랜딩 페이지 목록' : 'Free-form landing pages'}
+  title="Page"
+  description="Generic pages"
   lang={lang}
   languageToggleHref={`/${otherLang}/pages/`}
   canonicalPath={`/${lang}/pages/`}
@@ -37,43 +29,22 @@ const tagLinks = taxonomy.tags.map((item) => ({
     { lang: 'ko', href: '/ko/pages/' }
   ]}
 >
-  <section class="section">
+  <section class="page-section">
     <div class="container">
-      <header class="page-head">
-        <h1>{lang === 'ko' ? '페이지' : 'Pages'}</h1>
-        <p>{lang === 'ko' ? 'CMS에서 편집 가능한 랜딩 페이지입니다.' : 'Landing pages editable in the CMS.'}</p>
+      <header class="list-head">
+        <h1>Page</h1>
+        <p class="list-tags">{tagLine}</p>
       </header>
-
-      {categoryLinks.length > 0 && (
-        <div class="taxonomy-list" aria-label={lang === 'ko' ? '카테고리' : 'Categories'}>
-          {categoryLinks.map((item) => (
-            <a class="taxonomy-link" href={`/${lang}/pages/category/${item.slug}/`}>
-              {item.label} ({item.count})
-            </a>
-          ))}
-        </div>
-      )}
-
-      {tagLinks.length > 0 && (
-        <div class="taxonomy-list" aria-label={lang === 'ko' ? '태그' : 'Tags'}>
-          {tagLinks.map((item) => (
-            <a class="taxonomy-link" href={`/${lang}/pages/tag/${item.slug}/`}>
-              #{item.label} ({item.count})
-            </a>
-          ))}
-        </div>
-      )}
-
-      <div class="grid editorial-grid">
+      <div class="listing-grid listing-grid--four">
         {
           entries.map((entry) => (
             <EntryCard
               title={entry.data.title}
               description={entry.data.description}
               href={buildCollectionPath(lang, 'pages', entry.data.slug)}
-              image={entry.data.cardImage}
-              meta={[entry.data.category ?? '', ...(entry.data.tags ?? []).slice(0, 2)].filter(Boolean)}
-              ctaLabel={lang === 'ko' ? '보기' : 'View'}
+              image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
+              category={entry.data.category}
+              tag={entry.data.tags?.[0]}
             />
           ))
         }

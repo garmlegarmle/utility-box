@@ -2,5 +2,3 @@
 node_modules
 .astro
 dist
-public/internal-routes.en.json
-public/internal-routes.ko.json

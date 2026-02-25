@@ -1,0 +1,33 @@
+---
+import EntryCard from '../../../components/site/EntryCard.astro';
+import { LANGS } from '../../../consts';
+import ToolsLayout from '../../../layouts/ToolsLayout.astro';
+import { buildCollectionPath, getLocalizedCollection, isSupportedLang } from '../../../lib/content';
+
+export function getStaticPaths() {
+  return LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as string;
+if (!isSupportedLang(lang)) {
+  throw new Error('Invalid route params');
+}
+
+const entries = await getLocalizedCollection('tools', lang);
+const uniqueTags = [...new Set(entries.flatMap((entry) => entry.data.tags ?? []))].slice(0, 8);
+const tagLine = uniqueTags.length > 0 ? `tag list ${uniqueTags.join(' · ')}` : 'tag list';
+---
+<ToolsLayout lang={lang} title="Tool" tagLine={tagLine}>
+  {
+    entries.map((entry) => (
+      <EntryCard
+        title={entry.data.title}
+        description={entry.data.description}
+        href={buildCollectionPath(lang, 'tools', entry.data.slug)}
+        image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
+        category={entry.data.category}
+        tag={entry.data.tags?.[0]}
+      />
+    ))
+  }
+</ToolsLayout>

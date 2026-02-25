@@ -1,134 +1,113 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { LANGS, findContentFiles, isExternalHref, normalizeInternalHref, readFrontmatter, relativeFromCwd } from './route-utils.mjs';
+import matter from 'gray-matter';
 
 const cwd = process.cwd();
+const LANGS = ['en', 'ko'];
+const COLLECTIONS = ['blog', 'tools', 'games', 'pages'];
 
+const routeSet = new Set(['/', '/rss.xml/', '/sitemap.xml/']);
 const errors = [];
 
-function addError(message) {
-  errors.push(message);
+function normalizePath(href) {
+  if (!href || typeof href !== 'string') return '';
+  if (!href.startsWith('/')) return '';
+  if (href.startsWith('//')) return '';
+
+  const clean = href.split('#')[0]?.split('?')[0] ?? '';
+  if (!clean) return '';
+
+  if (/\.[a-z0-9]{2,5}$/i.test(clean)) return '';
+  if (clean.startsWith('/uploads/')) return '';
+
+  return clean.endsWith('/') ? clean : `${clean}/`;
 }
 
-function validateInternalRoute(route, routeSet, context) {
-  const normalized = normalizeInternalHref(route);
-  if (!normalized) {
-    addError(`${context}: missing internal route`);
-    return;
-  }
+async function findContentFiles(dir) {
+  const out = [];
 
-  if (isExternalHref(normalized)) {
-    addError(`${context}: expected internal route but got external URL (${normalized})`);
-    return;
-  }
-
-  if (!routeSet.has(normalized)) {
-    addError(`${context}: broken internal route ${normalized}`);
-  }
-}
-
-function validateLink(link, routeSet, context) {
-  if (!link || typeof link !== 'object') {
-    addError(`${context}: link item is invalid`);
-    return;
-  }
-
-  const kind = link.kind ?? (link.externalUrl ? 'external' : 'internal');
-
-  if (kind === 'external') {
-    const externalUrl = String(link.externalUrl ?? link.href ?? '').trim();
-    if (!externalUrl) {
-      addError(`${context}: external link missing externalUrl`);
+  async function walk(current) {
+    let entries = [];
+    try {
+      entries = await fs.readdir(current, { withFileTypes: true });
+    } catch {
       return;
     }
 
-    if (!isExternalHref(externalUrl)) {
-      addError(`${context}: external link must be absolute URL/mailto (${externalUrl})`);
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (/\.(md|mdx)$/i.test(entry.name)) {
+        out.push(full);
+      }
     }
-
-    return;
   }
 
-  const internalRoute = String(link.internalRoute ?? link.href ?? '').trim();
-  validateInternalRoute(internalRoute, routeSet, context);
+  await walk(dir);
+  return out;
 }
 
-async function validateLang(lang) {
-  const routeIndexPath = path.join(cwd, 'public', `internal-routes.${lang}.json`);
-  const routeIndexRaw = await fs.readFile(routeIndexPath, 'utf8').catch(() => '');
+function collectLinks(body) {
+  const links = [];
 
-  if (!routeIndexRaw) {
-    addError(`missing route index file: ${path.relative(cwd, routeIndexPath)} (run generate-internal-routes)`);
-    return;
+  const markdownPattern = /\[[^\]]+\]\((\/[^)\s]+)\)/g;
+  const htmlPattern = /href=["'](\/[^"']+)["']/g;
+
+  let match;
+  while ((match = markdownPattern.exec(body)) !== null) {
+    links.push(match[1]);
   }
 
-  let routeIndex = [];
-  try {
-    routeIndex = JSON.parse(routeIndexRaw);
-  } catch (error) {
-    addError(`invalid JSON in ${path.relative(cwd, routeIndexPath)}: ${error.message}`);
-    return;
+  while ((match = htmlPattern.exec(body)) !== null) {
+    links.push(match[1]);
   }
 
-  const routeSet = new Set(routeIndex.map((item) => normalizeInternalHref(item.href)));
-  const pageDir = path.join(cwd, 'src', 'content', 'pages', lang);
-  const pageFiles = await findContentFiles(pageDir);
-
-  for (const file of pageFiles) {
-    const data = await readFrontmatter(file);
-    const sections = data.sections ?? [];
-    const fileLabel = relativeFromCwd(file);
-
-    if (!Array.isArray(sections)) {
-      addError(`${fileLabel}: sections must be an array`);
-      continue;
-    }
-
-    sections.forEach((section, index) => {
-      const sectionType = section?.type ?? 'Unknown';
-      const sectionId = section?.id ?? `index-${index}`;
-      const contextBase = `${fileLabel} [${sectionType}:${sectionId}]`;
-
-      if (!section || typeof section !== 'object') {
-        addError(`${contextBase}: section is not an object`);
-        return;
-      }
-
-      if (sectionType === 'Hero') {
-        const links = Array.isArray(section.links) ? section.links : [];
-        links.forEach((link, linkIndex) => {
-          validateLink(link, routeSet, `${contextBase} Hero.links[${linkIndex}]`);
-        });
-      }
-
-      if (sectionType === 'ToolEmbed' || sectionType === 'GameEmbed') {
-        validateInternalRoute(String(section.route ?? '').trim(), routeSet, `${contextBase} ${sectionType}.route`);
-      }
-
-      if (sectionType === 'LinkList') {
-        const items = Array.isArray(section.items) ? section.items : [];
-        items.forEach((link, linkIndex) => {
-          validateLink(link, routeSet, `${contextBase} LinkList.items[${linkIndex}]`);
-        });
-      }
-
-      if (sectionType === 'CardGrid') {
-        const items = Array.isArray(section.items) ? section.items : [];
-        items.forEach((item, itemIndex) => {
-          validateLink(item, routeSet, `${contextBase} CardGrid.items[${itemIndex}]`);
-        });
-      }
-    });
-  }
+  return links;
 }
 
 for (const lang of LANGS) {
-  await validateLang(lang);
+  routeSet.add(`/${lang}/`);
+  routeSet.add(`/${lang}/blog/`);
+  routeSet.add(`/${lang}/tools/`);
+  routeSet.add(`/${lang}/games/`);
+  routeSet.add(`/${lang}/pages/`);
+}
+
+const allFiles = [];
+
+for (const collection of COLLECTIONS) {
+  for (const lang of LANGS) {
+    const dir = path.join(cwd, 'src', 'content', collection, lang);
+    const files = await findContentFiles(dir);
+    allFiles.push(...files);
+
+    for (const file of files) {
+      const raw = await fs.readFile(file, 'utf8');
+      const parsed = matter(raw);
+      const slug = String(parsed.data.slug ?? path.basename(file).replace(/\.[^.]+$/u, '')).trim();
+      routeSet.add(`/${lang}/${collection}/${slug}/`);
+    }
+  }
+}
+
+for (const file of allFiles) {
+  const raw = await fs.readFile(file, 'utf8');
+  const parsed = matter(raw);
+  const links = collectLinks(parsed.content);
+
+  for (const href of links) {
+    const normalized = normalizePath(href);
+    if (!normalized) continue;
+    if (!routeSet.has(normalized)) {
+      errors.push(`${path.relative(cwd, file)}: broken internal link ${href}`);
+    }
+  }
 }
 
 if (errors.length > 0) {
   console.error('\nInternal link validation failed:\n');
-  errors.forEach((line) => console.error(`- ${line}`));
+  errors.forEach((error) => console.error(`- ${error}`));
   process.exit(1);
 }
 

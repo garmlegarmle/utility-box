@@ -3,10 +3,10 @@ import { getCollection, render } from 'astro:content';
 import { mdxComponents } from '../../../components/mdx';
 import { LANGS } from '../../../consts';
 import DetailLayout from '../../../layouts/DetailLayout.astro';
-import { buildLangHomePath, buildCollectionPath, getEntryBySlug, getOtherLang, getPairedEntry, isSupportedLang } from '../../../lib/content';
+import { buildCollectionPath, buildSectionPath, getEntryBySlug, getOtherLang, getPairedEntry, isSupportedLang } from '../../../lib/content';
 
 export async function getStaticPaths() {
-  const entries = await getCollection('pages');
+  const entries = await getCollection('blog');
   return entries.map((entry) => ({
     params: {
       lang: entry.data.lang,
@@ -22,27 +22,27 @@ if (!isSupportedLang(lang) || !slug || !LANGS.includes(lang)) {
   throw new Error('Invalid route params');
 }
 
-const entry = await getEntryBySlug('pages', lang, slug);
+const entry = await getEntryBySlug('blog', lang, slug);
 if (!entry) {
   throw new Error('Entry not found');
 }
 
-const paired = await getPairedEntry('pages', entry);
+const paired = await getPairedEntry('blog', entry);
 const otherLang = getOtherLang(lang);
 const { Content } = await render(entry);
 
 const languageToggleHref = paired
-  ? buildCollectionPath(otherLang, 'pages', paired.data.slug)
-  : buildLangHomePath(otherLang);
+  ? buildCollectionPath(otherLang, 'blog', paired.data.slug)
+  : buildSectionPath(otherLang, 'blog');
 
 const alternates = paired
   ? [
-      { lang, href: buildCollectionPath(lang, 'pages', entry.data.slug) },
-      { lang: otherLang, href: buildCollectionPath(otherLang, 'pages', paired.data.slug) }
+      { lang, href: buildCollectionPath(lang, 'blog', entry.data.slug) },
+      { lang: otherLang, href: buildCollectionPath(otherLang, 'blog', paired.data.slug) }
     ]
   : [
-      { lang, href: buildCollectionPath(lang, 'pages', entry.data.slug) },
-      { lang: otherLang, href: buildLangHomePath(otherLang) }
+      { lang, href: buildCollectionPath(lang, 'blog', entry.data.slug) },
+      { lang: otherLang, href: buildSectionPath(otherLang, 'blog') }
     ];
 
 const leadTag = entry.data.tags?.[0] ?? entry.data.category ?? 'tag';
@@ -51,10 +51,11 @@ const leadTag = entry.data.tags?.[0] ?? entry.data.category ?? 'tag';
   lang={lang}
   title={entry.data.title}
   description={entry.data.description}
-  canonicalPath={buildCollectionPath(lang, 'pages', entry.data.slug)}
+  canonicalPath={buildCollectionPath(lang, 'blog', entry.data.slug)}
   languageToggleHref={languageToggleHref}
   alternates={alternates}
   leadTag={leadTag}
+  activeNav="blog"
 >
   <Content components={mdxComponents} />
 </DetailLayout>
