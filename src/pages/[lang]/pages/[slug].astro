@@ -55,6 +55,7 @@ const leadTag = entry.data.tags?.[0] ?? entry.data.category ?? 'tag';
   languageToggleHref={languageToggleHref}
   alternates={alternates}
   leadTag={leadTag}
+  contentFile={`src/content/${entry.id}`}
 >
   <Content components={mdxComponents} />
 </DetailLayout>

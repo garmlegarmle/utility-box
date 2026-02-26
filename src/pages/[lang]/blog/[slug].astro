@@ -56,6 +56,7 @@ const leadTag = entry.data.tags?.[0] ?? entry.data.category ?? 'tag';
   alternates={alternates}
   leadTag={leadTag}
   activeNav="blog"
+  contentFile={`src/content/${entry.id}`}
 >
   <Content components={mdxComponents} />
 </DetailLayout>

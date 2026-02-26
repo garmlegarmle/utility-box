@@ -27,6 +27,7 @@ const tagLine = uniqueTags.length > 0 ? `tag list ${uniqueTags.join(' · ')}` : 
         image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
         category={entry.data.category}
         tag={entry.data.tags?.[0]}
+        contentFile={`src/content/${entry.id}`}
       />
     ))
   }

@@ -45,6 +45,7 @@ const tagLine = tags.length > 0 ? `tag list ${tags.join(' · ')}` : 'tag list';
               image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
               category={entry.data.category}
               tag={entry.data.tags?.[0]}
+              contentFile={`src/content/${entry.id}`}
             />
           ))
         }

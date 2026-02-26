@@ -60,6 +60,7 @@ const programSrc = entry.data.heroImage ?? entry.data.image ?? entry.data.cardIm
   programSrc={programSrc}
   programAlt={entry.data.title}
   activeNav="tools"
+  contentFile={`src/content/${entry.id}`}
 >
   <Content components={mdxComponents} />
 </DetailLayout>

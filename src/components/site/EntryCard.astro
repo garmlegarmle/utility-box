@@ -10,6 +10,7 @@ interface Props {
   rankLabel?: string;
   meta?: string[];
   ctaLabel?: string;
+  contentFile?: string;
 }
 
 const {
@@ -20,28 +21,43 @@ const {
   category,
   tag,
   rankLabel = '#1',
-  meta = []
+  meta = [],
+  contentFile
 } = Astro.props;
 
 const categoryText = (category ?? meta[0] ?? 'Category').trim();
 const tagText = (tag ?? meta[1] ?? 'Tag').trim();
 ---
-<a class="entry-card" href={href}>
-  <div class="entry-card__media">
-    {image ? (
-      <img class="entry-card__image" src={image} alt={imageAlt ?? title} loading="lazy" decoding="async" />
-    ) : (
-      <div class="entry-card__placeholder">이미지 혹은 숫자</div>
-    )}
-  </div>
-  <div class="entry-card__info">
-    <p class="entry-card__meta">
-      <span>{categoryText}</span>
-      <span>{tagText}</span>
-    </p>
-    <p class="entry-card__title-row">
-      <span class="entry-card__title">{title}</span>
-      <span class="entry-card__rank">{rankLabel}</span>
-    </p>
-  </div>
-</a>
+<article class="entry-card">
+  <a class="entry-card__link" href={href}>
+    <div class="entry-card__media">
+      {image ? (
+        <img class="entry-card__image" src={image} alt={imageAlt ?? title} loading="lazy" decoding="async" />
+      ) : (
+        <div class="entry-card__placeholder">이미지 혹은 숫자</div>
+      )}
+    </div>
+    <div class="entry-card__info">
+      <p class="entry-card__meta">
+        <span>{categoryText}</span>
+        <span>{tagText}</span>
+      </p>
+      <p class="entry-card__title-row">
+        <span class="entry-card__title">{title}</span>
+        <span class="entry-card__rank">{rankLabel}</span>
+      </p>
+    </div>
+  </a>
+  {
+    contentFile && (
+      <button
+        type="button"
+        class="admin-edit-trigger"
+        data-admin-file={contentFile}
+        aria-label={`Edit ${title}`}
+      >
+        +
+      </button>
+    )
+  }
+</article>

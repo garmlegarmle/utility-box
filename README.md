@@ -58,3 +58,29 @@ Build pipeline includes a simple internal link check (`npm run validate:links`).
 - Build command: `npm run build`
 - Build output directory: `dist`
 - Root directory: repository root (`/`)
+
+## Admin Inline Editing (No CMS)
+Admin editing is handled by Cloudflare Pages Functions + GitHub OAuth.
+
+### Required environment variables (Cloudflare Pages)
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- `ADMIN_SESSION_SECRET` (random long string)
+- `ADMIN_GITHUB_USERS` (comma-separated GitHub usernames allowed to edit)
+
+Optional:
+- `GITHUB_REPO` (default: `garmlegarmle/utility-box`)
+- `GITHUB_BRANCH` (default: `main`)
+- `GITHUB_OAUTH_SCOPE` (default: `repo`)
+
+### GitHub OAuth App setup
+- Authorization callback URL: `https://www.utility-box.org/api/callback`
+
+### How to use as admin
+1. Open any page with `?admin=1` (example: `/en/?admin=1`).
+2. Click `Admin Login`.
+3. After GitHub login, a `+` button appears (admin only).
+4. Use `+` menu to:
+   - edit current content page
+   - add blog/tool/game/page entries
+5. Use each card's `+` to edit that specific content file.

@@ -19,6 +19,7 @@ interface Props {
   programAlt?: string;
   showProgramSlot?: boolean;
   activeNav?: 'home' | 'blog' | 'tools' | 'games';
+  contentFile?: string;
 }
 
 const {
@@ -32,7 +33,8 @@ const {
   programSrc,
   programAlt,
   showProgramSlot = false,
-  activeNav
+  activeNav,
+  contentFile
 } = Astro.props;
 ---
 <BaseLayout
@@ -44,11 +46,25 @@ const {
   canonicalPath={canonicalPath}
   alternates={alternates}
 >
-  <article class="page-section">
+  <article class="page-section" data-admin-page-file={contentFile}>
     <div class="container detail-layout">
       <header class="detail-layout__head">
         {leadTag && <p class="detail-layout__tag">{leadTag}</p>}
-        <h1>{title}</h1>
+        <div class="detail-layout__title-row">
+          <h1>{title}</h1>
+          {
+            contentFile && (
+              <button
+                type="button"
+                class="admin-edit-trigger admin-edit-trigger--page"
+                data-admin-file={contentFile}
+                aria-label={`Edit ${title}`}
+              >
+                +
+              </button>
+            )
+          }
+        </div>
       </header>
 
       {
