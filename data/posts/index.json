@@ -1,6 +1,27 @@
 {
   "posts": [
     {
+      "id": "test-p_mm5jwvsq25091d70f1c3",
+      "title": "test",
+      "lang": "ko",
+      "category": "blog",
+      "tag": "test",
+      "tags": [
+        "test"
+      ],
+      "card": {
+        "title": "tsdgsdggggfdsdsfffgsssf",
+        "category": "blog",
+        "tag": "test",
+        "image": "",
+        "rank": "#24"
+      },
+      "views": 0,
+      "createdAt": "2026-02-27T23:56:39.290Z",
+      "updatedAt": "2026-02-27T23:56:39.290Z",
+      "imageCount": 0
+    },
+    {
       "id": "test-p_mm5imyxjaca301d7d658",
       "title": "test",
       "category": "tool",
