@@ -1,5 +1,6 @@
 (() => {
   const COLLECTIONS = ['blog', 'tools', 'games', 'pages'];
+  const WRITABLE_POST_COLLECTIONS = ['blog', 'tools', 'games'];
 
   function parseRoute() {
     const segments = window.location.pathname.split('/').filter(Boolean);
@@ -12,6 +13,13 @@
   function shouldShowLoginButton() {
     const url = new URL(window.location.href);
     return url.searchParams.get('admin') === '1';
+  }
+
+  function mapCollectionToPostCategory(collection) {
+    if (collection === 'blog') return 'blog';
+    if (collection === 'tools') return 'tool';
+    if (collection === 'games') return 'game';
+    return '';
   }
 
   function slugify(value) {
@@ -126,6 +134,29 @@
     const redirect = `${window.location.pathname}${window.location.search || '?admin=1'}`;
     const authUrl = `/api/auth?redirect=${encodeURIComponent(redirect)}`;
     window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
+  }
+
+  function openNoticeWriter(lang, category) {
+    const safeLang = lang === 'ko' ? 'ko' : 'en';
+    const safeCategory = ['blog', 'tool', 'game'].includes(category) ? category : '';
+    const isNoticePage = /^\/(en|ko)\/notice\/?$/i.test(window.location.pathname);
+
+    if (isNoticePage) {
+      window.dispatchEvent(
+        new CustomEvent('ub:open-notice-editor', {
+          detail: safeCategory ? { category: safeCategory } : {}
+        })
+      );
+      return;
+    }
+
+    const url = new URL(`/${safeLang}/notice/`, window.location.origin);
+    url.searchParams.set('admin', '1');
+    url.searchParams.set('write', '1');
+    if (safeCategory) {
+      url.searchParams.set('category', safeCategory);
+    }
+    window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
   }
 
   function resolvePathCandidates(path) {
@@ -736,10 +767,11 @@
       <div class="admin-menu" hidden>
         <p class="admin-menu__user">${session.username}</p>
         <button type="button" data-action="edit-page">Edit current content</button>
+        <button type="button" data-action="write-notice">Write post (new editor)</button>
         <button type="button" data-action="add-current">Add in this section</button>
-        <button type="button" data-action="add-blog">Add blog post</button>
-        <button type="button" data-action="add-tools">Add tool card</button>
-        <button type="button" data-action="add-games">Add game card</button>
+        <button type="button" data-action="add-blog">Write in Blog</button>
+        <button type="button" data-action="add-tools">Write in Tool</button>
+        <button type="button" data-action="add-games">Write in Game</button>
         <button type="button" data-action="add-pages">Add page</button>
         <button type="button" data-action="logout">Logout</button>
       </div>
@@ -777,11 +809,22 @@
           return;
         }
 
+        if (action === 'write-notice') {
+          openNoticeWriter(route.lang, '');
+          return;
+        }
+
         if (action === 'add-current') {
           if (!route.collection) {
-            showToast('Open a list page first (blog/tools/games/pages).', true);
+            openNoticeWriter(route.lang, '');
             return;
           }
+
+          if (WRITABLE_POST_COLLECTIONS.includes(route.collection)) {
+            openNoticeWriter(route.lang, mapCollectionToPostCategory(route.collection));
+            return;
+          }
+
           openCreateDialog(route.collection, route.lang);
           return;
         }
@@ -789,6 +832,10 @@
         if (action?.startsWith('add-')) {
           const collection = action.replace('add-', '');
           if (COLLECTIONS.includes(collection)) {
+            if (WRITABLE_POST_COLLECTIONS.includes(collection)) {
+              openNoticeWriter(route.lang, mapCollectionToPostCategory(collection));
+              return;
+            }
             openCreateDialog(collection, route.lang);
           }
         }

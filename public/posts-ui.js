@@ -96,6 +96,11 @@
     tagPool: []
   };
 
+  function normalizeCategory(value) {
+    const category = String(value || '').toLowerCase().trim();
+    return CATEGORY_OPTIONS.includes(category) ? category : 'blog';
+  }
+
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (char) => {
       if (char === '&') return '&amp;';
@@ -640,14 +645,16 @@
     }
   }
 
-  function openEditor(mode, post) {
+  function openEditor(mode, post, options = {}) {
     const isEdit = mode === 'edit';
     const modal = createOverlay(isEdit ? labels.edit : labels.write);
     const images = Array.isArray(post?.images) ? post.images : [];
     const initialTags = isEdit ? getPostTags(post) : [];
-    const selectedCategory = isEdit && CATEGORY_OPTIONS.includes(String(post.category || '').toLowerCase())
-      ? String(post.category).toLowerCase()
-      : 'blog';
+    const selectedCategory = options.initialCategory
+      ? normalizeCategory(options.initialCategory)
+      : isEdit
+        ? normalizeCategory(post?.category)
+        : 'blog';
 
     modal.body.innerHTML = `
       <div class="admin-compose notice-compose">
@@ -778,12 +785,27 @@
   async function init() {
     await fetchSession();
 
+    window.addEventListener('ub:open-notice-editor', (event) => {
+      if (!state.isAdmin) return;
+      const category = normalizeCategory(event?.detail?.category);
+      openEditor('create', null, { initialCategory: category });
+    });
+
     createBtn?.addEventListener('click', () => openEditor('create'));
 
     try {
       await loadPosts();
     } catch (error) {
       listStateEl.textContent = error.message || 'Failed to load';
+    }
+
+    const url = new URL(window.location.href);
+    if (state.isAdmin && url.searchParams.get('write') === '1') {
+      const category = normalizeCategory(url.searchParams.get('category'));
+      openEditor('create', null, { initialCategory: category });
+      url.searchParams.delete('write');
+      url.searchParams.delete('category');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}`);
     }
   }
 
