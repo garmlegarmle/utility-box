@@ -6,6 +6,20 @@ function getFormString(formData, key) {
   return typeof value === 'string' ? value : '';
 }
 
+function parseTags(formData) {
+  const multi = formData
+    .getAll('tags')
+    .flatMap((value) => (typeof value === 'string' ? [value] : []))
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (multi.length > 0) return multi;
+
+  const single = getFormString(formData, 'tag');
+  return single ? single.split(',').map((value) => value.trim()).filter(Boolean) : [];
+}
+
 function getPollPayload(formData) {
   const question = getFormString(formData, 'pollQuestion');
   const options = formData
@@ -81,7 +95,7 @@ export async function onRequestPost(context) {
 
     const title = getFormString(formData, 'title');
     const category = getFormString(formData, 'Category') || getFormString(formData, 'category');
-    const tag = getFormString(formData, 'tag');
+    const tags = parseTags(formData);
     const body = getFormString(formData, 'body');
     const poll = getPollPayload(formData);
     const files = formData
@@ -91,7 +105,7 @@ export async function onRequestPost(context) {
     const draft = createPostPayload({
       title,
       category,
-      tag,
+      tags,
       body,
       poll,
       author: session.username,

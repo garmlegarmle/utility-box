@@ -586,6 +586,59 @@ main {
   line-height: 1.2;
 }
 
+.notice-tag-builder {
+  border: 1px solid var(--border);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.notice-tag-builder__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.notice-tag-chip {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.notice-tag-builder__input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.notice-tag-builder__label {
+  margin: 0;
+  font-size: 12px;
+}
+
+.notice-tag-builder__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.notice-tag-suggestion {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
 .notice-detail__head {
   display: flex;
   justify-content: space-between;
@@ -860,11 +913,29 @@ body.admin-mode .admin-edit-trigger {
 
 .admin-editor__toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid var(--border);
   padding: 10px 12px;
+}
+
+.admin-editor__group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-editor__group--image-tools {
+  border-top: 1px dashed var(--border);
+  width: 100%;
+  padding-top: 8px;
+}
+
+.admin-editor__label {
+  font-size: 12px;
+  line-height: 1;
 }
 
 .admin-editor__select,
@@ -882,6 +953,11 @@ body.admin-mode .admin-edit-trigger {
 .admin-editor__tool {
   min-width: 34px;
   cursor: pointer;
+}
+
+.admin-editor__range {
+  width: 120px;
+  accent-color: var(--text);
 }
 
 .admin-editor__textarea {
@@ -906,6 +982,11 @@ body.admin-mode .admin-edit-trigger {
   max-width: 100%;
   height: auto;
   border: 1px solid var(--border);
+}
+
+.notice-rich-editor img.notice-editor-image.is-selected {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
 }
 
 .notice-compose__keep-images {
@@ -1046,6 +1127,18 @@ body.admin-mode .admin-edit-trigger {
 
   .notice-image-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .notice-tag-builder__input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-editor__group--image-tools {
+    row-gap: 8px;
+  }
+
+  .admin-editor__range {
+    width: 100%;
   }
 
   .container {

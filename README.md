@@ -100,6 +100,13 @@ This project also includes a runtime notice board API via Cloudflare Pages Funct
 - `POST /posts/{post_id}/poll/vote`
 - `GET /posts/{post_id}/poll/voters` (admin only)
 
+### Post fields
+- `title` (required)
+- `category` (required, one of `blog`, `tool`, `game`)
+- `tags` (required, custom multiple tags)
+- `body` (required, rich text HTML)
+- `images` (optional, up to 6 files, each <= 10MB, image types only)
+
 ### Storage note
 - Post data and uploaded files are saved to the GitHub repository through API calls.
 - For visitor read on private repositories and for visitor write operations (view count / vote), set:

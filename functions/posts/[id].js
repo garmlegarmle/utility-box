@@ -18,6 +18,22 @@ function getFormString(formData, key) {
   return typeof value === 'string' ? value : '';
 }
 
+function parseTags(formData, fallback = []) {
+  const multi = formData
+    .getAll('tags')
+    .flatMap((value) => (typeof value === 'string' ? [value] : []))
+    .flatMap((value) => value.split(','))
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (multi.length > 0) return multi;
+
+  const single = getFormString(formData, 'tag');
+  if (single) return single.split(',').map((value) => value.trim()).filter(Boolean);
+
+  return fallback;
+}
+
 function parseKeepImageIds(formData) {
   const values = formData
     .getAll('keepImageIds')
@@ -105,11 +121,13 @@ export async function onRequestGet(context) {
     }
 
     const viewResult = applyUniqueView(postFile.data, postId, context.request);
-    let post = viewResult.post;
+    let post = postFile.data;
+    let viewCookie = null;
 
     if (viewResult.incremented) {
       const writeToken = getServiceToken(context.env);
       if (writeToken) {
+        post = viewResult.post;
         const index = await getPostsIndex(writeToken, context.env);
         await savePostAndIndex(
           writeToken,
@@ -121,6 +139,7 @@ export async function onRequestGet(context) {
           index.sha,
           'Increment post view'
         );
+        viewCookie = viewResult.cookie;
       }
     }
 
@@ -132,11 +151,11 @@ export async function onRequestGet(context) {
       }
     };
 
-    if (!viewResult.cookie) {
+    if (!viewCookie) {
       return jsonResponse(payload);
     }
 
-    return jsonResponse(payload, 200, { 'Set-Cookie': viewResult.cookie });
+    return jsonResponse(payload, 200, { 'Set-Cookie': viewCookie });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || 'Failed to fetch post' }, 500);
   }
@@ -178,10 +197,11 @@ export async function onRequestPut(context) {
     }
 
     const poll = parsePollPayload(formData, existing.poll);
+    const existingTags = Array.isArray(existing.tags) ? existing.tags : existing.tag ? [existing.tag] : [];
     const patched = patchPostPayload(existing, {
       title: getFormString(formData, 'title') || existing.title,
       category: getFormString(formData, 'Category') || getFormString(formData, 'category') || existing.category,
-      tag: getFormString(formData, 'tag') || existing.tag,
+      tags: parseTags(formData, existingTags),
       body: getFormString(formData, 'body') || existing.body,
       images,
       poll,

@@ -11,6 +11,7 @@ import { parseCookie } from './session.js';
 
 const MAX_IMAGES = 6;
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_TAGS = 20;
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -18,6 +19,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/gif',
   'image/avif'
 ]);
+const ALLOWED_CATEGORIES = new Set(['blog', 'tool', 'game']);
 
 const VIEW_COOKIE = 'ub_post_views';
 const VOTE_COOKIE = 'ub_post_votes';
@@ -92,12 +94,50 @@ function requireText(value, fieldName) {
   return normalized;
 }
 
+function normalizeCategory(value) {
+  const raw = requireText(value, 'Category').toLowerCase();
+  const aliasMap = {
+    tools: 'tool',
+    games: 'game'
+  };
+  const category = aliasMap[raw] || raw;
+  if (!ALLOWED_CATEGORIES.has(category)) {
+    throw new Error('Category must be one of: blog, tool, game');
+  }
+  return category;
+}
+
+function normalizeTags(input) {
+  const list = (Array.isArray(input) ? input : [input])
+    .flatMap((entry) => String(entry || '').split(','))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const deduped = [];
+  const seen = new Set();
+
+  for (const tag of list) {
+    const key = tag.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(tag);
+  }
+
+  if (deduped.length === 0) {
+    throw new Error('tag is required');
+  }
+
+  return deduped.slice(0, MAX_TAGS);
+}
+
 function makeSummary(post) {
+  const tags = Array.isArray(post.tags) ? post.tags : post.tag ? [post.tag] : [];
   return {
     id: post.id,
     title: post.title,
     category: post.category,
-    tag: post.tag,
+    tag: tags[0] || '',
+    tags,
     views: Number(post.views || 0),
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
@@ -405,8 +445,8 @@ export async function deleteImageFiles(token, env, images, messagePrefix) {
 
 export function createPostPayload(input) {
   const title = requireText(input.title, 'title');
-  const category = requireText(input.category, 'Category');
-  const tag = requireText(input.tag, 'tag');
+  const category = normalizeCategory(input.category);
+  const tags = normalizeTags(input.tags ?? input.tag);
   const body = requireText(input.body, 'body');
   const createdAt = nowIso();
   const updatedAt = createdAt;
@@ -416,7 +456,8 @@ export function createPostPayload(input) {
     id,
     title,
     category,
-    tag,
+    tag: tags[0],
+    tags,
     body,
     images: Array.isArray(input.images) ? input.images : [],
     poll: input.poll || null,
@@ -430,15 +471,17 @@ export function createPostPayload(input) {
 
 export function patchPostPayload(existing, patch) {
   const title = requireText(patch.title ?? existing.title, 'title');
-  const category = requireText(patch.category ?? existing.category, 'Category');
-  const tag = requireText(patch.tag ?? existing.tag, 'tag');
+  const category = normalizeCategory(patch.category ?? existing.category);
+  const existingTags = Array.isArray(existing.tags) ? existing.tags : existing.tag ? [existing.tag] : [];
+  const tags = normalizeTags(patch.tags ?? patch.tag ?? existingTags);
   const body = requireText(patch.body ?? existing.body, 'body');
 
   return {
     ...existing,
     title,
     category,
-    tag,
+    tag: tags[0],
+    tags,
     body,
     images: Array.isArray(patch.images) ? patch.images : existing.images || [],
     poll: patch.poll === undefined ? existing.poll || null : patch.poll,
@@ -548,4 +591,3 @@ export function getPollResults(post) {
     options
   };
 }
-
