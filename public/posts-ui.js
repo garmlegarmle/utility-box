@@ -177,6 +177,36 @@
     return !text && !hasMedia;
   }
 
+  function normalizeMediaSrc(src) {
+    const raw = String(src || '').trim();
+    if (!raw) return raw;
+
+    const assetMatch = raw.match(/\/uploads\/posts\/assets\/(asset_[a-z0-9_]+)-[^/?#]+/i);
+    if (assetMatch?.[1]) {
+      return `/posts/assets/${assetMatch[1]}`;
+    }
+
+    const imageMatch = raw.match(/\/uploads\/posts\/images\/([^/]+)\/(img_[a-z0-9_]+)-[^/?#]+/i);
+    if (imageMatch?.[1] && imageMatch?.[2]) {
+      return `/posts/${imageMatch[1]}/images/${imageMatch[2]}`;
+    }
+
+    return raw;
+  }
+
+  function normalizeBodyHtmlAssets(html) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html || '';
+    wrapper.querySelectorAll('img[src]').forEach((img) => {
+      const current = img.getAttribute('src') || '';
+      const normalized = normalizeMediaSrc(current);
+      if (normalized && normalized !== current) {
+        img.setAttribute('src', normalized);
+      }
+    });
+    return wrapper.innerHTML;
+  }
+
   function getPreviewImage(post) {
     const image = Array.isArray(post?.images) ? post.images[0] : null;
     if (image?.id && post?.id) {
@@ -186,7 +216,7 @@
     const wrapper = document.createElement('div');
     wrapper.innerHTML = post?.body || '';
     const img = wrapper.querySelector('img[src]');
-    return img ? String(img.getAttribute('src') || '').trim() : '';
+    return img ? normalizeMediaSrc(String(img.getAttribute('src') || '').trim()) : '';
   }
 
   async function fetchSession() {
@@ -323,7 +353,7 @@
 
     const bodyEl = detailEl.querySelector('[data-role="detail-body"]');
     if (bodyEl) {
-      bodyEl.innerHTML = post.body || '';
+      bodyEl.innerHTML = normalizeBodyHtmlAssets(post.body || '');
     }
 
     if (state.isAdmin) {
@@ -434,7 +464,7 @@
       modal.body.innerHTML = buildDetailHtml(post, state.isAdmin);
       const bodyEl = modal.body.querySelector('[data-role="detail-body"]');
       if (bodyEl) {
-        bodyEl.innerHTML = post.body || '';
+        bodyEl.innerHTML = normalizeBodyHtmlAssets(post.body || '');
       }
 
       if (state.isAdmin) {
@@ -817,7 +847,7 @@
     const category = formRoot.querySelector('select[name="category"]')?.value.trim() || '';
     const tags = tagBuilder.getTags();
     const editor = formRoot.querySelector('[data-role="rich-editor"]');
-    const body = editor?.innerHTML.trim() || '';
+    const body = normalizeBodyHtmlAssets(editor?.innerHTML.trim() || '');
 
     if (!title || !category || tags.length === 0 || isBodyEmpty(body)) {
       showToast(labels.requiredError, true);
@@ -984,7 +1014,7 @@
     `;
 
     const editor = modal.body.querySelector('[data-role="rich-editor"]');
-    editor.innerHTML = isEdit ? post.body || '<p></p>' : '<p></p>';
+    editor.innerHTML = isEdit ? normalizeBodyHtmlAssets(post.body || '<p></p>') : '<p></p>';
 
     const tagBuilder = setupTagBuilder(modal.body.querySelector('[data-role="tag-builder"]'), initialTags);
     bindEditorTools(modal.body, editor);
@@ -1054,6 +1084,16 @@
       } else if (state.isAdmin) {
         showToast(error.message || 'Failed to load posts', true);
       }
+    }
+
+    const url = new URL(window.location.href);
+    if (state.isAdmin && (url.searchParams.get('compose') === '1' || url.searchParams.get('write') === '1')) {
+      const category = normalizeCategory(url.searchParams.get('category') || routeCategory || 'blog');
+      openEditor('create', null, { initialCategory: category });
+      url.searchParams.delete('compose');
+      url.searchParams.delete('write');
+      url.searchParams.delete('category');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}`);
     }
   }
 

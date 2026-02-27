@@ -29,7 +29,6 @@ const labels = lang === 'ko' ? { blog: 'Blog', tools: 'Tool', games: 'Game' } : 
       image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
       category={entry.data.category}
       tag={entry.data.tags?.[0]}
-      contentFile={`src/content/${entry.id}`}
     />
   ))}
 
@@ -42,7 +41,6 @@ const labels = lang === 'ko' ? { blog: 'Blog', tools: 'Tool', games: 'Game' } : 
       image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
       category={entry.data.category}
       tag={entry.data.tags?.[0]}
-      contentFile={`src/content/${entry.id}`}
     />
   ))}
 
@@ -55,7 +53,6 @@ const labels = lang === 'ko' ? { blog: 'Blog', tools: 'Tool', games: 'Game' } : 
       image={entry.data.cardImage ?? entry.data.image ?? entry.data.heroImage}
       category={entry.data.category}
       tag={entry.data.tags?.[0]}
-      contentFile={`src/content/${entry.id}`}
     />
   ))}
 </HomeLayout>

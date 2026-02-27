@@ -34,6 +34,7 @@ const {
 const canonicalUrl = new URL(canonicalPath, SITE_URL).toString();
 const langToggleHref = languageToggleHref ?? (lang === 'en' ? '/ko/' : '/en/');
 const pageTitle = `${title} | ${SITE_NAME}`;
+const uiVersion = '20260227b';
 ---
 <!doctype html>
 <html lang={lang}>
@@ -58,8 +59,8 @@ const pageTitle = `${title} | ${SITE_NAME}`;
       </main>
       <Footer lang={lang} />
     </div>
-    <script src="/admin-ui.js" defer></script>
-    <script src="/posts-ui.js" defer></script>
+    <script src={`/admin-ui.js?v=${uiVersion}`} defer></script>
+    <script src={`/posts-ui.js?v=${uiVersion}`} defer></script>
   </body>
 </html>
 

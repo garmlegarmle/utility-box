@@ -152,7 +152,14 @@
     );
 
     if (!detail.opened) {
-      showToast('Post editor did not load on this page.', true);
+      const section =
+        safeCategory === 'tool' ? 'tools' : safeCategory === 'game' ? 'games' : 'blog';
+      const fallbackCategory = safeCategory || 'blog';
+      const url = new URL(`/${safeLang}/${section}/`, window.location.origin);
+      url.searchParams.set('admin', '1');
+      url.searchParams.set('compose', '1');
+      url.searchParams.set('category', fallbackCategory);
+      window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
     }
   }
 
