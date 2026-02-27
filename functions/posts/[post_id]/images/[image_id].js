@@ -1,4 +1,4 @@
-import { base64ToUint8Array, getRepoFileRaw, parseRepo } from '../../../_lib/github.js';
+import { base64ToUint8Array, getRepoDirectoryEntries, getRepoFileRaw, parseRepo } from '../../../_lib/github.js';
 import { findPostImage, getPostById, getServiceToken } from '../../../_lib/posts.js';
 import { getAdminSession, jsonResponse } from '../../../_lib/session.js';
 
@@ -26,12 +26,32 @@ export async function onRequestGet(context) {
     }
 
     const image = findPostImage(postFile.data, imageId);
-    if (!image) {
+    const { owner, repo, branch } = parseRepo(context.env);
+    let filePath = image?.path || '';
+    let mimeType = image?.mimeType || 'application/octet-stream';
+
+    if (!filePath) {
+      const entries = await getRepoDirectoryEntries(token, owner, repo, branch, `public/uploads/posts/images/${postId}`);
+      const match = entries.find((entry) => {
+        return entry?.type === 'file' && String(entry.name || '').startsWith(`${imageId}-`);
+      });
+      if (!match?.path) {
+        return jsonResponse({ ok: false, error: 'Image not found' }, 404);
+      }
+      filePath = String(match.path);
+      const name = String(match.name || '').toLowerCase();
+      if (name.endsWith('.jpg') || name.endsWith('.jpeg')) mimeType = 'image/jpeg';
+      if (name.endsWith('.png')) mimeType = 'image/png';
+      if (name.endsWith('.webp')) mimeType = 'image/webp';
+      if (name.endsWith('.gif')) mimeType = 'image/gif';
+      if (name.endsWith('.avif')) mimeType = 'image/avif';
+    }
+
+    if (!filePath) {
       return jsonResponse({ ok: false, error: 'Image not found' }, 404);
     }
 
-    const { owner, repo, branch } = parseRepo(context.env);
-    const rawFile = await getRepoFileRaw(token, owner, repo, branch, image.path);
+    const rawFile = await getRepoFileRaw(token, owner, repo, branch, filePath);
     if (!rawFile?.contentBase64) {
       return jsonResponse({ ok: false, error: 'Image file not found' }, 404);
     }
@@ -40,7 +60,7 @@ export async function onRequestGet(context) {
     return new Response(bytes, {
       status: 200,
       headers: {
-        'Content-Type': image.mimeType || 'application/octet-stream',
+        'Content-Type': mimeType,
         'Content-Length': String(bytes.byteLength),
         'Cache-Control': 'public, max-age=31536000, immutable'
       }

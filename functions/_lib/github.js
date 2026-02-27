@@ -123,6 +123,22 @@ export async function getRepoFileRaw(token, owner, repo, branch, path) {
   };
 }
 
+export async function getRepoDirectoryEntries(token, owner, repo, branch, path) {
+  const contentPath = encodeContentPath(path);
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${contentPath}?ref=${encodeURIComponent(branch)}`;
+  const response = await githubRequest(token, url);
+
+  if (response.status === 404) {
+    return [];
+  }
+
+  if (!response.ok || !Array.isArray(response.data)) {
+    throw new Error(`Failed to fetch directory: ${response.status}`);
+  }
+
+  return response.data;
+}
+
 export async function upsertRepoFile(token, owner, repo, branch, path, content, message, sha) {
   const contentPath = encodeContentPath(path);
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${contentPath}`;

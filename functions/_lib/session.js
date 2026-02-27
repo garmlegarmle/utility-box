@@ -93,13 +93,23 @@ export function jsonResponse(body, status = 200, extraHeaders = {}) {
 }
 
 export function isAllowedAdmin(username, env) {
-  const raw = env.ADMIN_GITHUB_USERS || '';
-  const allowlist = raw
+  const raw = env.ADMIN_GITHUB_USERS || env.ADMIN_GITHUB_USER || '';
+  let allowlist = raw
     .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter(Boolean);
 
-  if (allowlist.length === 0) return true;
+  if (allowlist.length === 0) {
+    const repoOwner = String(env.GITHUB_REPO || 'garmlegarmle/utility-box')
+      .split('/')[0]
+      .trim()
+      .toLowerCase();
+    if (repoOwner) {
+      allowlist = [repoOwner];
+    }
+  }
+
+  if (allowlist.length === 0) return false;
   return allowlist.includes(String(username || '').toLowerCase());
 }
 

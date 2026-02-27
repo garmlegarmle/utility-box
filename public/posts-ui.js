@@ -483,6 +483,7 @@
 
   function ensureEditorImageStyle(img) {
     img.classList.add('notice-editor-image');
+    img.setAttribute('draggable', 'false');
     img.style.display = 'block';
     img.style.maxWidth = '100%';
     if (!img.style.width) img.style.width = '100%';
@@ -579,9 +580,11 @@
 
   function getResizeEdge(event, img) {
     const rect = img.getBoundingClientRect();
-    const threshold = Math.min(14, Math.max(8, rect.width * 0.18));
+    const threshold = Math.min(20, Math.max(10, rect.width * 0.2));
     const leftDistance = Math.abs(event.clientX - rect.left);
     const rightDistance = Math.abs(rect.right - event.clientX);
+    const bottomDistance = Math.abs(rect.bottom - event.clientY);
+    if (rightDistance <= threshold && bottomDistance <= threshold) return 'corner';
     if (leftDistance <= threshold) return 'left';
     if (rightDistance <= threshold) return 'right';
     return '';
@@ -668,14 +671,18 @@
       }
     });
 
-    editor.addEventListener('mousemove', (event) => {
+    editor.addEventListener('pointermove', (event) => {
       const target = event.target;
       if (!(target instanceof HTMLImageElement) || !target.classList.contains('notice-editor-image')) return;
       const edge = getResizeEdge(event, target);
-      target.style.cursor = edge ? 'ew-resize' : 'pointer';
+      if (edge === 'corner') {
+        target.style.cursor = 'nwse-resize';
+      } else {
+        target.style.cursor = edge ? 'ew-resize' : 'pointer';
+      }
     });
 
-    editor.addEventListener('mousedown', (event) => {
+    editor.addEventListener('pointerdown', (event) => {
       const target = event.target;
       if (!(target instanceof HTMLImageElement) || !target.classList.contains('notice-editor-image')) return;
 
@@ -689,10 +696,11 @@
       const startX = event.clientX;
       const startWidth = target.getBoundingClientRect().width;
       const maxWidth = Math.max(60, editor.getBoundingClientRect().width - 8);
+      document.body.classList.add('is-resizing-editor-image');
 
       const onMove = (moveEvent) => {
         const delta = moveEvent.clientX - startX;
-        const nextWidth = edge === 'right' ? startWidth + delta : startWidth - delta;
+        const nextWidth = edge === 'left' ? startWidth - delta : startWidth + delta;
         const clamped = Math.max(60, Math.min(maxWidth, nextWidth));
         const percent = (clamped / maxWidth) * 100;
         applyImageWidth(controls, percent);
@@ -700,10 +708,15 @@
 
       const onUp = () => {
         target.classList.remove('is-resizing');
+        document.body.classList.remove('is-resizing-editor-image');
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
       };
 
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     });

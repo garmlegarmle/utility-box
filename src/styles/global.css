@@ -894,7 +894,7 @@ body.admin-mode .admin-edit-trigger {
 
 .admin-compose {
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 12px;
   padding: 18px;
 }
 
@@ -906,18 +906,18 @@ body.admin-mode .admin-edit-trigger {
 
 .admin-editor {
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   background: var(--bg);
 }
 
 .admin-editor__toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   border-bottom: 1px solid var(--border);
-  padding: 10px 12px;
+  padding: 10px 14px;
 }
 
 .admin-editor__group {
@@ -928,9 +928,9 @@ body.admin-mode .admin-edit-trigger {
 }
 
 .admin-editor__group--image-tools {
-  border-top: 1px dashed var(--border);
+  border-top: 1px solid var(--border);
   width: 100%;
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
 .admin-editor__label {
@@ -943,11 +943,11 @@ body.admin-mode .admin-edit-trigger {
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: 6px;
   height: 34px;
-  padding: 0 10px;
+  padding: 0 9px;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .admin-editor__tool {
@@ -967,10 +967,10 @@ body.admin-mode .admin-edit-trigger {
 }
 
 .notice-rich-editor {
-  min-height: 320px;
-  padding: 12px;
-  font-size: 15px;
-  line-height: 1.55;
+  min-height: 360px;
+  padding: 14px;
+  font-size: 14px;
+  line-height: 1.6;
   outline: none;
 }
 
@@ -992,6 +992,11 @@ body.admin-mode .admin-edit-trigger {
 .notice-rich-editor img.notice-editor-image.is-resizing {
   cursor: ew-resize;
   user-select: none;
+}
+
+body.is-resizing-editor-image {
+  user-select: none;
+  cursor: ew-resize;
 }
 
 .runtime-post-card {
