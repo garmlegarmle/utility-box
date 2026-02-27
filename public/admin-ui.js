@@ -23,6 +23,25 @@
       .replace(/-+/g, '-');
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => {
+      switch (char) {
+        case '&':
+          return '&amp;';
+        case '<':
+          return '&lt;';
+        case '>':
+          return '&gt;';
+        case '"':
+          return '&quot;';
+        case "'":
+          return '&#39;';
+        default:
+          return char;
+      }
+    });
+  }
+
   async function apiGet(url) {
     const response = await fetch(url, { credentials: 'same-origin' });
     const data = await response.json().catch(() => ({}));
@@ -62,9 +81,7 @@
 
   function clearHost() {
     const host = document.querySelector('.admin-host');
-    if (host) {
-      host.innerHTML = '';
-    }
+    if (host) host.innerHTML = '';
   }
 
   function closeModal() {
@@ -82,9 +99,9 @@
     modal.className = 'admin-modal';
     modal.innerHTML = `
       <div class="admin-modal__backdrop" data-close="1"></div>
-      <div class="admin-modal__panel" role="dialog" aria-modal="true" aria-label="${title}">
+      <div class="admin-modal__panel" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
         <div class="admin-modal__header">
-          <h2>${title}</h2>
+          <h2>${escapeHtml(title)}</h2>
           <button type="button" class="admin-modal__close" aria-label="Close">x</button>
         </div>
         <div class="admin-modal__body"></div>
@@ -92,9 +109,7 @@
     `;
 
     const onEsc = (event) => {
-      if (event.key === 'Escape') {
-        closeModal();
-      }
+      if (event.key === 'Escape') closeModal();
     };
 
     modal.__onEsc = onEsc;
@@ -141,40 +156,152 @@
     return JSON.stringify(String(value ?? ''));
   }
 
-  function buildEntryTemplate(collection, values) {
-    const title = values.title || 'Untitled';
-    const description = values.description || 'Description';
-    const slug = values.slug;
-    const lang = values.lang;
-    const category = values.category || '';
-    const tags = values.tags
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+  function unquoteYaml(value) {
+    const raw = String(value ?? '').trim();
+    if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+      return raw.slice(1, -1);
+    }
+    return raw;
+  }
 
-    const lines = [
-      '---',
-      `title: ${yamlQuote(title)}`,
-      `description: ${yamlQuote(description)}`,
-      `slug: ${yamlQuote(slug)}`,
-      `lang: ${yamlQuote(lang)}`
+  function parseTagsInput(value) {
+    return String(value || '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }
+
+  function splitFrontmatter(content) {
+    const match = String(content || '').match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+    if (!match) return null;
+
+    return {
+      frontmatter: match[1],
+      body: match[2]
+    };
+  }
+
+  function parseFrontmatterText(frontmatterText) {
+    const meta = {};
+    const lines = String(frontmatterText || '').split('\n');
+    let listKey = null;
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      const listItem = line.match(/^\s*-\s*(.+)\s*$/);
+      if (listItem && listKey) {
+        if (!Array.isArray(meta[listKey])) meta[listKey] = [];
+        meta[listKey].push(unquoteYaml(listItem[1]));
+        continue;
+      }
+
+      const keyMatch = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/);
+      if (!keyMatch) {
+        listKey = null;
+        continue;
+      }
+
+      const key = keyMatch[1];
+      const rawValue = keyMatch[2].trim();
+
+      if (!rawValue) {
+        if (key === 'tags') {
+          meta[key] = [];
+          listKey = key;
+        } else {
+          meta[key] = '';
+          listKey = null;
+        }
+        continue;
+      }
+
+      if (rawValue.startsWith('[') && rawValue.endsWith(']')) {
+        meta[key] = rawValue
+          .slice(1, -1)
+          .split(',')
+          .map((item) => unquoteYaml(item))
+          .filter(Boolean);
+      } else {
+        meta[key] = unquoteYaml(rawValue);
+      }
+
+      listKey = null;
+    }
+
+    return meta;
+  }
+
+  function buildFrontmatterDocument(meta, body) {
+    const required = {
+      title: meta.title || 'Untitled',
+      description: meta.description || meta.title || 'Description',
+      slug: meta.slug || slugify(meta.title || 'untitled'),
+      lang: meta.lang || 'en'
+    };
+
+    const merged = { ...meta, ...required };
+    const preferredOrder = [
+      'title',
+      'description',
+      'slug',
+      'lang',
+      'date',
+      'category',
+      'tags',
+      'pairSlug',
+      'heroImage',
+      'cardImage',
+      'image'
     ];
 
-    if (collection === 'blog') {
-      lines.push(`date: ${new Date().toISOString().slice(0, 10)}`);
+    const allKeys = Object.keys(merged);
+    const orderedKeys = [
+      ...preferredOrder.filter((key) => allKeys.includes(key)),
+      ...allKeys.filter((key) => !preferredOrder.includes(key))
+    ];
+
+    const lines = ['---'];
+
+    for (const key of orderedKeys) {
+      const value = merged[key];
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) continue;
+        lines.push(`${key}:`);
+        value.forEach((item) => lines.push(`  - ${yamlQuote(item)}`));
+        continue;
+      }
+
+      if (value === undefined || value === null) continue;
+      const text = String(value).trim();
+      if (!text) continue;
+
+      if (key === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        lines.push(`${key}: ${text}`);
+      } else {
+        lines.push(`${key}: ${yamlQuote(text)}`);
+      }
     }
 
-    if (category) {
-      lines.push(`category: ${yamlQuote(category)}`);
-    }
-
-    if (tags.length > 0) {
-      lines.push('tags:');
-      tags.forEach((tag) => lines.push(`  - ${yamlQuote(tag)}`));
-    }
-
-    lines.push('---', '', values.body || 'Write your content here.');
+    const normalizedBody = String(body || '').replace(/^\n+/, '');
+    lines.push('---', '', normalizedBody);
     return `${lines.join('\n')}\n`;
+  }
+
+  function buildEntryTemplate(collection, values) {
+    const tags = parseTagsInput(values.tags || '');
+    const meta = {
+      title: values.title || 'Untitled',
+      description: values.description || 'Description',
+      slug: values.slug,
+      lang: values.lang,
+      ...(collection === 'blog' ? { date: new Date().toISOString().slice(0, 10) } : {}),
+      ...(values.category ? { category: values.category } : {}),
+      ...(tags.length > 0 ? { tags } : {})
+    };
+
+    return buildFrontmatterDocument(meta, values.body || 'Write your content here.');
   }
 
   function showToast(message, isError = false) {
@@ -185,37 +312,294 @@
     setTimeout(() => toast.remove(), 2600);
   }
 
-  async function openEditor(path) {
-    try {
-      const file = await loadContentFile(path);
-      const body = createModal(`Edit ${file.path}`);
-      if (!body) return;
+  function replaceSelection(textarea, replacement, selectionStart, selectionEnd) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const current = textarea.value;
 
-      body.innerHTML = `
+    textarea.value = `${current.slice(0, start)}${replacement}${current.slice(end)}`;
+    textarea.focus();
+
+    const nextStart = selectionStart ?? start + replacement.length;
+    const nextEnd = selectionEnd ?? nextStart;
+    textarea.setSelectionRange(nextStart, nextEnd);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function wrapSelection(textarea, prefix, suffix, fallback = '텍스트') {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = textarea.value.slice(start, end) || fallback;
+    const replacement = `${prefix}${selected}${suffix}`;
+
+    replaceSelection(textarea, replacement, start + prefix.length, start + prefix.length + selected.length);
+  }
+
+  function applyList(textarea, ordered = false) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const blockStart = value.lastIndexOf('\n', start - 1) + 1;
+    const blockEndIndex = value.indexOf('\n', end);
+    const blockEnd = blockEndIndex === -1 ? value.length : blockEndIndex;
+
+    const block = value.slice(blockStart, blockEnd);
+    const lines = block.split('\n');
+
+    const replaced = lines
+      .map((line, index) => {
+        const clean = line.replace(/^\s*(?:[-*+]\s+|\d+\.\s+)/, '');
+        return ordered ? `${index + 1}. ${clean}` : `- ${clean}`;
+      })
+      .join('\n');
+
+    const next = `${value.slice(0, blockStart)}${replaced}${value.slice(blockEnd)}`;
+    textarea.value = next;
+    textarea.focus();
+    textarea.setSelectionRange(blockStart, blockStart + replaced.length);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function applyBlockStyle(textarea, style) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    const blockStart = value.lastIndexOf('\n', start - 1) + 1;
+    const blockEndIndex = value.indexOf('\n', end);
+    const blockEnd = blockEndIndex === -1 ? value.length : blockEndIndex;
+
+    const block = value.slice(blockStart, blockEnd);
+    const lines = block.split('\n');
+
+    const prefixMap = {
+      normal: '',
+      h2: '## ',
+      h3: '### ',
+      quote: '> '
+    };
+
+    const prefix = prefixMap[style] ?? '';
+
+    const replaced = lines
+      .map((line) => {
+        const clean = line.replace(/^\s*(?:#{1,6}\s+|>\s+)/, '');
+        return prefix ? `${prefix}${clean}` : clean;
+      })
+      .join('\n');
+
+    const next = `${value.slice(0, blockStart)}${replaced}${value.slice(blockEnd)}`;
+    textarea.value = next;
+    textarea.focus();
+    textarea.setSelectionRange(blockStart, blockStart + replaced.length);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function stripBasicMarkdown(text) {
+    return String(text || '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/~~(.*?)~~/g, '$1')
+      .replace(/<u>(.*?)<\/u>/g, '$1')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1');
+  }
+
+  function applyMarkdownAction(textarea, action) {
+    if (!textarea) return;
+
+    if (action === 'bold') return wrapSelection(textarea, '**', '**');
+    if (action === 'italic') return wrapSelection(textarea, '*', '*');
+    if (action === 'underline') return wrapSelection(textarea, '<u>', '</u>');
+    if (action === 'strike') return wrapSelection(textarea, '~~', '~~');
+    if (action === 'ul') return applyList(textarea, false);
+    if (action === 'ol') return applyList(textarea, true);
+
+    if (action === 'link') {
+      const selected = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd) || '링크 텍스트';
+      const href = window.prompt('링크 주소를 입력하세요.', 'https://');
+      if (!href) return;
+      return replaceSelection(textarea, `[${selected}](${href.trim()})`);
+    }
+
+    if (action === 'image') {
+      const src = window.prompt('이미지 주소를 입력하세요. (예: /uploads/image.png)', '/uploads/');
+      if (!src) return;
+      const alt = window.prompt('이미지 설명(alt)을 입력하세요.', 'image') || 'image';
+      return replaceSelection(textarea, `\n![${alt.trim()}](${src.trim()})\n`);
+    }
+
+    if (action === 'clear') {
+      const selected = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
+      if (!selected) return;
+      const clean = stripBasicMarkdown(selected);
+      return replaceSelection(textarea, clean);
+    }
+  }
+
+  function renderEditorMarkup(name, placeholder) {
+    return `
+      <div class="admin-editor" data-markdown-editor>
+        <div class="admin-editor__toolbar">
+          <select class="admin-editor__select" data-md-block aria-label="Text style">
+            <option value="normal">Normal</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+            <option value="quote">Quote</option>
+          </select>
+          <button type="button" class="admin-editor__tool" data-md-action="bold" aria-label="Bold"><strong>B</strong></button>
+          <button type="button" class="admin-editor__tool" data-md-action="italic" aria-label="Italic"><em>I</em></button>
+          <button type="button" class="admin-editor__tool" data-md-action="underline" aria-label="Underline"><u>U</u></button>
+          <button type="button" class="admin-editor__tool" data-md-action="strike" aria-label="Strike">S</button>
+          <button type="button" class="admin-editor__tool" data-md-action="ul" aria-label="Bulleted list">-</button>
+          <button type="button" class="admin-editor__tool" data-md-action="ol" aria-label="Numbered list">1.</button>
+          <button type="button" class="admin-editor__tool" data-md-action="link" aria-label="Insert link">Link</button>
+          <button type="button" class="admin-editor__tool" data-md-action="image" aria-label="Insert image">Img</button>
+          <button type="button" class="admin-editor__tool" data-md-action="clear" aria-label="Clear formatting">Tx</button>
+        </div>
+        <textarea class="admin-textarea admin-editor__textarea" name="${name}" placeholder="${escapeHtml(placeholder)}"></textarea>
+      </div>
+    `;
+  }
+
+  function attachMarkdownEditors(scope) {
+    scope.querySelectorAll('[data-markdown-editor]').forEach((editor) => {
+      if (editor.dataset.bound) return;
+      editor.dataset.bound = '1';
+
+      const textarea = editor.querySelector('textarea');
+      if (!textarea) return;
+
+      editor.querySelectorAll('[data-md-action]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const action = button.getAttribute('data-md-action');
+          if (action) applyMarkdownAction(textarea, action);
+        });
+      });
+
+      const select = editor.querySelector('[data-md-block]');
+      select?.addEventListener('change', () => {
+        const value = select.value;
+        applyBlockStyle(textarea, value);
+        select.value = 'normal';
+      });
+    });
+  }
+
+  async function openRawEditor(file) {
+    const body = createModal(`Edit ${file.path}`);
+    if (!body) return;
+
+    body.innerHTML = `
+      <div class="admin-compose">
+        <h3 class="admin-compose__title">원본 편집</h3>
         <label class="admin-field">
           <span>Commit message</span>
-          <input type="text" class="admin-input" value="Edit ${file.path}" />
+          <input type="text" class="admin-input" name="message" value="Edit ${escapeHtml(file.path)}" />
         </label>
-        <label class="admin-field">
-          <span>Content</span>
-          <textarea class="admin-textarea"></textarea>
-        </label>
+        ${renderEditorMarkup('rawBody', '내용을 작성해주세요.')}
         <div class="admin-actions">
           <button type="button" class="admin-btn admin-btn--secondary" data-cancel>Cancel</button>
           <button type="button" class="admin-btn" data-save>Save</button>
         </div>
-      `;
+      </div>
+    `;
 
-      const textarea = body.querySelector('.admin-textarea');
-      if (textarea) {
-        textarea.value = file.content || '';
+    const textarea = body.querySelector('textarea[name="rawBody"]');
+    if (textarea) textarea.value = file.content || '';
+
+    attachMarkdownEditors(body);
+
+    body.querySelector('[data-cancel]')?.addEventListener('click', closeModal);
+    body.querySelector('[data-save]')?.addEventListener('click', async () => {
+      const message = body.querySelector('input[name="message"]')?.value.trim() || `Edit ${file.path}`;
+      const content = textarea?.value ?? '';
+
+      try {
+        await apiPost('/api/content', { path: file.path, message, content });
+        closeModal();
+        showToast('Saved. The site will redeploy shortly.');
+        setTimeout(() => window.location.reload(), 800);
+      } catch (error) {
+        showToast(error.message || 'Save failed', true);
+      }
+    });
+  }
+
+  async function openEditor(path) {
+    try {
+      const file = await loadContentFile(path);
+      const parsed = splitFrontmatter(file.content || '');
+
+      if (!parsed) {
+        await openRawEditor(file);
+        return;
       }
 
-      body.querySelector('[data-cancel]')?.addEventListener('click', closeModal);
+      const meta = parseFrontmatterText(parsed.frontmatter);
+      const tags = Array.isArray(meta.tags) ? meta.tags.join(', ') : '';
 
+      const body = createModal(`글 편집: ${file.path}`);
+      if (!body) return;
+
+      body.innerHTML = `
+        <div class="admin-compose">
+          <h3 class="admin-compose__title">글 편집</h3>
+          <label class="admin-field">
+            <span>제목</span>
+            <input class="admin-input" name="title" type="text" value="${escapeHtml(meta.title || '')}" />
+          </label>
+          <label class="admin-field">
+            <span>설명</span>
+            <input class="admin-input" name="description" type="text" value="${escapeHtml(meta.description || '')}" />
+          </label>
+          <label class="admin-field">
+            <span>카테고리 (선택)</span>
+            <input class="admin-input" name="category" type="text" value="${escapeHtml(meta.category || '')}" />
+          </label>
+          <label class="admin-field">
+            <span>태그 (쉼표로 구분)</span>
+            <input class="admin-input" name="tags" type="text" value="${escapeHtml(tags)}" />
+          </label>
+          <label class="admin-field">
+            <span>내용</span>
+          </label>
+          ${renderEditorMarkup('body', '글을 작성해주세요.')}
+          <label class="admin-field">
+            <span>Commit message</span>
+            <input class="admin-input" name="message" type="text" value="Edit ${escapeHtml(file.path)}" />
+          </label>
+          <div class="admin-actions">
+            <button type="button" class="admin-btn admin-btn--secondary" data-cancel>Cancel</button>
+            <button type="button" class="admin-btn" data-save>Save</button>
+          </div>
+        </div>
+      `;
+
+      const textarea = body.querySelector('textarea[name="body"]');
+      if (textarea) textarea.value = parsed.body || '';
+
+      attachMarkdownEditors(body);
+
+      body.querySelector('[data-cancel]')?.addEventListener('click', closeModal);
       body.querySelector('[data-save]')?.addEventListener('click', async () => {
-        const message = body.querySelector('.admin-input')?.value.trim() || `Edit ${file.path}`;
-        const content = textarea?.value ?? '';
+        const title = body.querySelector('input[name="title"]')?.value.trim() || meta.title || 'Untitled';
+        const description =
+          body.querySelector('input[name="description"]')?.value.trim() || meta.description || title;
+        const category = body.querySelector('input[name="category"]')?.value.trim() || '';
+        const tagInput = body.querySelector('input[name="tags"]')?.value || '';
+        const message = body.querySelector('input[name="message"]')?.value.trim() || `Edit ${file.path}`;
+
+        const nextMeta = { ...meta, title, description };
+        const nextTags = parseTagsInput(tagInput);
+
+        if (nextTags.length > 0) nextMeta.tags = nextTags;
+        else delete nextMeta.tags;
+
+        if (category) nextMeta.category = category;
+        else delete nextMeta.category;
+
+        const content = buildFrontmatterDocument(nextMeta, textarea?.value || '');
 
         try {
           await apiPost('/api/content', { path: file.path, message, content });
@@ -232,42 +616,49 @@
   }
 
   function openCreateDialog(collection, lang) {
-    const body = createModal(`Add ${collection}`);
+    const body = createModal(`새 글 작성 (${collection})`);
     if (!body) return;
 
     body.innerHTML = `
-      <label class="admin-field">
-        <span>Title</span>
-        <input class="admin-input" name="title" type="text" />
-      </label>
-      <label class="admin-field">
-        <span>Slug</span>
-        <input class="admin-input" name="slug" type="text" />
-      </label>
-      <label class="admin-field">
-        <span>Description</span>
-        <input class="admin-input" name="description" type="text" />
-      </label>
-      <label class="admin-field">
-        <span>Category (optional)</span>
-        <input class="admin-input" name="category" type="text" />
-      </label>
-      <label class="admin-field">
-        <span>Tags (comma separated, optional)</span>
-        <input class="admin-input" name="tags" type="text" />
-      </label>
-      <label class="admin-field">
-        <span>Body</span>
-        <textarea class="admin-textarea" name="body">Write your content here.</textarea>
-      </label>
-      <div class="admin-actions">
-        <button type="button" class="admin-btn admin-btn--secondary" data-cancel>Cancel</button>
-        <button type="button" class="admin-btn" data-save>Create</button>
+      <div class="admin-compose">
+        <h3 class="admin-compose__title">새 글</h3>
+        <label class="admin-field">
+          <span>제목</span>
+          <input class="admin-input" name="title" type="text" placeholder="제목" />
+        </label>
+        <label class="admin-field">
+          <span>슬러그</span>
+          <input class="admin-input" name="slug" type="text" placeholder="new-post" />
+        </label>
+        <label class="admin-field">
+          <span>설명</span>
+          <input class="admin-input" name="description" type="text" placeholder="설명" />
+        </label>
+        <label class="admin-field">
+          <span>카테고리 (선택)</span>
+          <input class="admin-input" name="category" type="text" />
+        </label>
+        <label class="admin-field">
+          <span>태그 (쉼표로 구분)</span>
+          <input class="admin-input" name="tags" type="text" />
+        </label>
+        <label class="admin-field">
+          <span>내용</span>
+        </label>
+        ${renderEditorMarkup('body', '글을 작성해주세요.')}
+        <div class="admin-actions">
+          <button type="button" class="admin-btn admin-btn--secondary" data-cancel>Cancel</button>
+          <button type="button" class="admin-btn" data-save>Create</button>
+        </div>
       </div>
     `;
 
     const titleInput = body.querySelector('input[name="title"]');
     const slugInput = body.querySelector('input[name="slug"]');
+    const textarea = body.querySelector('textarea[name="body"]');
+
+    if (textarea) textarea.value = 'Write your content here.';
+    attachMarkdownEditors(body);
 
     titleInput?.addEventListener('input', () => {
       if (!slugInput.dataset.touched) {
@@ -327,9 +718,7 @@
         event.preventDefault();
         event.stopPropagation();
         const path = button.getAttribute('data-admin-file');
-        if (path) {
-          openEditor(path);
-        }
+        if (path) openEditor(path);
       });
     });
   }

@@ -12,6 +12,22 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     { lang: 'ko', href: '/ko/' }
   ]}
 >
+  <script is:inline>
+    (() => {
+      if (typeof window === 'undefined') return;
+      if (window.location.pathname !== '/') return;
+
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('manual') === '1') return;
+
+      const preferred = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
+      const isKorean = preferred.toLowerCase().startsWith('ko');
+      const destination = isKorean ? '/ko/' : '/en/';
+      const query = window.location.search || '';
+
+      window.location.replace(`${destination}${query}`);
+    })();
+  </script>
   <section class="page-section">
     <div class="container">
       <div class="page-head">
