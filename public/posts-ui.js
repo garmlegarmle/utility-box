@@ -686,10 +686,11 @@
       const target = event.target;
       if (!(target instanceof HTMLImageElement) || !target.classList.contains('notice-editor-image')) return;
 
-      const edge = getResizeEdge(event, target);
+      const edge = getResizeEdge(event, target) || (target.classList.contains('is-selected') ? 'right' : '');
       if (!edge) return;
 
       event.preventDefault();
+      event.stopPropagation();
       selectEditorImage(editor, target, controls);
       target.classList.add('is-resizing');
 
@@ -723,6 +724,13 @@
 
     editor.addEventListener('input', () => {
       normalizeEditorImages(editor);
+    });
+
+    editor.addEventListener('dragstart', (event) => {
+      const target = event.target;
+      if (target instanceof HTMLImageElement) {
+        event.preventDefault();
+      }
     });
 
     selectEditorImage(editor, null, controls);

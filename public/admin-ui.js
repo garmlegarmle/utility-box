@@ -1,6 +1,7 @@
 (() => {
   const COLLECTIONS = ['blog', 'tools', 'games', 'pages'];
   const WRITABLE_POST_COLLECTIONS = ['blog', 'tools', 'games'];
+  const ADMIN_MODE_KEY = 'ub_admin_mode';
 
   function parseRoute() {
     const segments = window.location.pathname.split('/').filter(Boolean);
@@ -13,6 +14,27 @@
   function shouldShowLoginButton() {
     const url = new URL(window.location.href);
     return url.searchParams.get('admin') === '1';
+  }
+
+  function isAdminModeRequested() {
+    try {
+      if (shouldShowLoginButton()) return true;
+      return window.localStorage.getItem(ADMIN_MODE_KEY) === '1';
+    } catch {
+      return shouldShowLoginButton();
+    }
+  }
+
+  function setAdminMode(enabled) {
+    try {
+      if (enabled) {
+        window.localStorage.setItem(ADMIN_MODE_KEY, '1');
+      } else {
+        window.localStorage.removeItem(ADMIN_MODE_KEY);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   function mapCollectionToPostCategory(collection) {
@@ -131,7 +153,9 @@
   }
 
   function openAuthPopup() {
-    const redirect = `${window.location.pathname}${window.location.search || '?admin=1'}`;
+    const url = new URL(window.location.href);
+    url.searchParams.set('admin', '1');
+    const redirect = `${url.pathname}${url.search}`;
     const authUrl = `/api/auth?redirect=${encodeURIComponent(redirect)}`;
     window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
   }
@@ -161,6 +185,28 @@
       url.searchParams.set('category', fallbackCategory);
       window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
     }
+  }
+
+  function openLoginDialog() {
+    const body = createModal('Admin Login');
+    if (!body) return;
+
+    body.innerHTML = `
+      <div class="admin-compose">
+        <h3 class="admin-compose__title">관리자 로그인</h3>
+        <p class="notice-board__state">GitHub 계정으로 로그인 후 관리자 권한이 허용된 계정만 편집할 수 있습니다.</p>
+        <div class="admin-actions">
+          <button type="button" class="admin-btn admin-btn--secondary" data-action="cancel">Cancel</button>
+          <button type="button" class="admin-btn" data-action="login">Login with GitHub</button>
+        </div>
+      </div>
+    `;
+
+    body.querySelector('[data-action="cancel"]')?.addEventListener('click', closeModal);
+    body.querySelector('[data-action="login"]')?.addEventListener('click', () => {
+      closeModal();
+      openAuthPopup();
+    });
   }
 
   function resolvePathCandidates(path) {
@@ -777,6 +823,7 @@
         <button type="button" data-action="add-tools">Write in Tool</button>
         <button type="button" data-action="add-games">Write in Game</button>
         <button type="button" data-action="add-pages">Add page</button>
+        <button type="button" data-action="exit-admin">Exit admin mode</button>
         <button type="button" data-action="logout">Logout</button>
       </div>
     `;
@@ -796,10 +843,19 @@
         if (action === 'logout') {
           try {
             await apiPost('/api/logout', {});
+            setAdminMode(false);
             window.location.reload();
           } catch (error) {
             showToast(error.message || 'Logout failed', true);
           }
+          return;
+        }
+
+        if (action === 'exit-admin') {
+          setAdminMode(false);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('admin');
+          window.location.href = `${url.pathname}${url.search}`;
           return;
         }
 
@@ -857,7 +913,7 @@
     button.className = 'admin-login-btn';
     button.type = 'button';
     button.textContent = 'Admin Login';
-    button.addEventListener('click', openAuthPopup);
+    button.addEventListener('click', openLoginDialog);
 
     host.appendChild(button);
   }
@@ -867,7 +923,10 @@
       if (event.origin !== window.location.origin) return;
       if (!event.data || event.data.type !== 'ub-admin-auth-success') return;
       if (event.data.ok) {
-        window.location.reload();
+        setAdminMode(true);
+        const url = new URL(window.location.href);
+        url.searchParams.set('admin', '1');
+        window.location.href = `${url.pathname}${url.search}`;
       } else {
         showToast(event.data.message || 'Authentication failed', true);
       }
@@ -881,9 +940,11 @@
     }
 
     if (!session.authenticated || !session.isAdmin) {
-      if (shouldShowLoginButton()) {
-        renderLoginButton();
-      }
+      renderLoginButton();
+      return;
+    }
+
+    if (!isAdminModeRequested()) {
       return;
     }
 
