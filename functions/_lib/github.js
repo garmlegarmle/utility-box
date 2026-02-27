@@ -28,6 +28,16 @@ export function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
+export function base64ToUint8Array(contentBase64) {
+  const normalized = String(contentBase64 || '').replace(/\n/g, '');
+  const binary = atob(normalized);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
+}
+
 export function parseRepo(env) {
   const repo = env.GITHUB_REPO || 'garmlegarmle/utility-box';
   const [owner, name] = repo.split('/');

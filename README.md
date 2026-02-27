@@ -85,8 +85,8 @@ Optional:
    - add blog/tool/game/page entries
 5. Use each card's `+` to edit that specific content file.
 
-## Notice Board API (`/posts`)
-This project also includes a runtime notice board API via Cloudflare Pages Functions.
+## Runtime Posts API (`/posts`)
+This project includes a runtime posts API via Cloudflare Pages Functions.
 
 ### Main endpoints
 - `GET /posts`
@@ -112,5 +112,7 @@ This project also includes a runtime notice board API via Cloudflare Pages Funct
 - For visitor read on private repositories and for visitor write operations (view count / vote), set:
   - `POSTS_REPO_TOKEN` (token with repo write access)
 
-### Notice page
-- UI page: `/{lang}/notice/` (e.g., `/en/notice/`, `/ko/notice/`)
+### Admin writer usage
+- Open `/en/blog/`, `/en/tools/`, or `/en/games/` (or Korean equivalents).
+- Login as admin (`?admin=1`) and click `+`.
+- Choose `Write in Blog`, `Write in Tool`, or `Write in Game`.

@@ -73,11 +73,18 @@ export async function onRequestGet(context) {
   try {
     const token = await resolveReadToken(context);
     const index = await getPostsIndex(token, context.env);
+    const url = new URL(context.request.url);
+    const categoryQuery = String(url.searchParams.get('category') || '').toLowerCase();
+    const allowedCategories = new Set(['blog', 'tool', 'game']);
+    const category = allowedCategories.has(categoryQuery) ? categoryQuery : '';
+    const posts = category
+      ? index.data.posts.filter((post) => String(post.category || '').toLowerCase() === category)
+      : index.data.posts;
 
     return jsonResponse({
       ok: true,
-      posts: index.data.posts,
-      total: index.data.posts.length
+      posts,
+      total: posts.length
     });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || 'Failed to fetch posts' }, 500);

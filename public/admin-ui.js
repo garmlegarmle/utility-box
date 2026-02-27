@@ -136,27 +136,24 @@
     window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
   }
 
-  function openNoticeWriter(lang, category) {
+  function openPostWriter(lang, category) {
     const safeLang = lang === 'ko' ? 'ko' : 'en';
     const safeCategory = ['blog', 'tool', 'game'].includes(category) ? category : '';
-    const isNoticePage = /^\/(en|ko)\/notice\/?$/i.test(window.location.pathname);
+    const detail = {
+      lang: safeLang,
+      category: safeCategory,
+      opened: false
+    };
 
-    if (isNoticePage) {
-      window.dispatchEvent(
-        new CustomEvent('ub:open-notice-editor', {
-          detail: safeCategory ? { category: safeCategory } : {}
-        })
-      );
-      return;
-    }
+    window.dispatchEvent(
+      new CustomEvent('ub:open-post-editor', {
+        detail
+      })
+    );
 
-    const url = new URL(`/${safeLang}/notice/`, window.location.origin);
-    url.searchParams.set('admin', '1');
-    url.searchParams.set('write', '1');
-    if (safeCategory) {
-      url.searchParams.set('category', safeCategory);
+    if (!detail.opened) {
+      showToast('Post editor did not load on this page.', true);
     }
-    window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
   }
 
   function resolvePathCandidates(path) {
@@ -767,7 +764,7 @@
       <div class="admin-menu" hidden>
         <p class="admin-menu__user">${session.username}</p>
         <button type="button" data-action="edit-page">Edit current content</button>
-        <button type="button" data-action="write-notice">Write post (new editor)</button>
+        <button type="button" data-action="write-post">Write post</button>
         <button type="button" data-action="add-current">Add in this section</button>
         <button type="button" data-action="add-blog">Write in Blog</button>
         <button type="button" data-action="add-tools">Write in Tool</button>
@@ -809,19 +806,19 @@
           return;
         }
 
-        if (action === 'write-notice') {
-          openNoticeWriter(route.lang, '');
+        if (action === 'write-post') {
+          openPostWriter(route.lang, '');
           return;
         }
 
         if (action === 'add-current') {
           if (!route.collection) {
-            openNoticeWriter(route.lang, '');
+            showToast('Open blog/tools/games/pages first.', true);
             return;
           }
 
           if (WRITABLE_POST_COLLECTIONS.includes(route.collection)) {
-            openNoticeWriter(route.lang, mapCollectionToPostCategory(route.collection));
+            openPostWriter(route.lang, mapCollectionToPostCategory(route.collection));
             return;
           }
 
@@ -833,7 +830,7 @@
           const collection = action.replace('add-', '');
           if (COLLECTIONS.includes(collection)) {
             if (WRITABLE_POST_COLLECTIONS.includes(collection)) {
-              openNoticeWriter(route.lang, mapCollectionToPostCategory(collection));
+              openPostWriter(route.lang, mapCollectionToPostCategory(collection));
               return;
             }
             openCreateDialog(collection, route.lang);

@@ -1,3 +1,4 @@
+import { base64ToUint8Array, getRepoFileRaw, parseRepo } from '../../../_lib/github.js';
 import { findPostImage, getPostById, getServiceToken } from '../../../_lib/posts.js';
 import { getAdminSession, jsonResponse } from '../../../_lib/session.js';
 
@@ -29,8 +30,21 @@ export async function onRequestGet(context) {
       return jsonResponse({ ok: false, error: 'Image not found' }, 404);
     }
 
-    const target = new URL(image.url, context.request.url).toString();
-    return Response.redirect(target, 302);
+    const { owner, repo, branch } = parseRepo(context.env);
+    const rawFile = await getRepoFileRaw(token, owner, repo, branch, image.path);
+    if (!rawFile?.contentBase64) {
+      return jsonResponse({ ok: false, error: 'Image file not found' }, 404);
+    }
+
+    const bytes = base64ToUint8Array(rawFile.contentBase64);
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': image.mimeType || 'application/octet-stream',
+        'Content-Length': String(bytes.byteLength),
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      }
+    });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || 'Failed to fetch image' }, 500);
   }

@@ -1,3 +1,4 @@
+import { base64ToUint8Array, getRepoFileRaw, parseRepo } from '../../_lib/github.js';
 import { getEditorAsset, getServiceToken } from '../../_lib/posts.js';
 import { getAdminSession, jsonResponse } from '../../_lib/session.js';
 
@@ -22,8 +23,21 @@ export async function onRequestGet(context) {
       return jsonResponse({ ok: false, error: 'Asset not found' }, 404);
     }
 
-    const target = new URL(asset.url, context.request.url).toString();
-    return Response.redirect(target, 302);
+    const { owner, repo, branch } = parseRepo(context.env);
+    const rawFile = await getRepoFileRaw(token, owner, repo, branch, asset.path);
+    if (!rawFile?.contentBase64) {
+      return jsonResponse({ ok: false, error: 'Asset file not found' }, 404);
+    }
+
+    const bytes = base64ToUint8Array(rawFile.contentBase64);
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': asset.mimeType || 'application/octet-stream',
+        'Content-Length': String(bytes.byteLength),
+        'Cache-Control': 'public, max-age=31536000, immutable'
+      }
+    });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || 'Failed to fetch asset' }, 500);
   }
