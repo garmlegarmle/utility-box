@@ -1,6 +1,19 @@
 {
   "posts": [
     {
+      "id": "test-p_mm5imyxjaca301d7d658",
+      "title": "test",
+      "category": "tool",
+      "tag": "test",
+      "tags": [
+        "test"
+      ],
+      "views": 0,
+      "createdAt": "2026-02-27T23:20:57.175Z",
+      "updatedAt": "2026-02-27T23:20:57.175Z",
+      "imageCount": 0
+    },
+    {
       "id": "post-p_mm5fe07b47c1f4bcf2a9",
       "title": "ㄴㅇㄹㄴㅁㄹ",
       "category": "blog",
