@@ -1,10 +1,10 @@
 :root {
-  --bg: #ececec;
-  --surface: #ececec;
-  --text: #161616;
-  --muted: #6a6a6a;
-  --border: rgba(0, 0, 0, 0.28);
-  --accent: #111111;
+  --bg: #fbfbfb;
+  --surface: #fbfbfb;
+  --text: #000000;
+  --muted: #000000;
+  --border: #fbfbfb;
+  --accent: #fbfbfb;
   --container: 1280px;
 }
 
@@ -160,7 +160,7 @@ main {
 
 .entry-card__media {
   border-bottom: 1px solid var(--border);
-  background: #ebebeb;
+  background: var(--bg);
   min-height: 300px;
 }
 
@@ -175,7 +175,7 @@ main {
   min-height: 300px;
   display: grid;
   place-items: center;
-  color: #323232;
+  color: var(--text);
   font-size: 30px;
 }
 
@@ -232,8 +232,8 @@ main {
 
 .home-row-arrow {
   border: 0;
-  background: transparent;
-  color: #9c9c9c;
+  background: var(--bg);
+  color: var(--text);
   font-size: 72px;
   line-height: 1;
   padding: 0;
@@ -263,7 +263,7 @@ main {
 }
 
 .home-row-track::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--bg);
 }
 
 .detail-layout {
@@ -290,7 +290,7 @@ main {
 .detail-program {
   border: 1px solid var(--border);
   margin-bottom: 36px;
-  background: #ebebeb;
+  background: var(--bg);
 }
 
 .detail-program img {
@@ -304,7 +304,7 @@ main {
   place-items: center;
   min-height: 420px;
   font-size: 36px;
-  color: #414141;
+  color: var(--text);
 }
 
 .detail-layout__content {
@@ -347,7 +347,7 @@ main {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.86em;
   padding: 0.1em 0.24em;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--bg);
 }
 
 .site-footer {
@@ -517,7 +517,7 @@ main {
 .admin-btn,
 .admin-edit-trigger {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg);
   color: var(--text);
   border-radius: 2px;
   font: inherit;
@@ -548,7 +548,7 @@ main {
   bottom: calc(100% + 8px);
   width: 230px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg);
   padding: 10px;
   display: grid;
   gap: 6px;
@@ -567,7 +567,7 @@ main {
 .admin-menu button {
   text-align: left;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg);
   padding: 6px 8px;
   font: inherit;
   font-size: 13px;
@@ -608,7 +608,7 @@ body.admin-mode .admin-edit-trigger {
 .admin-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--bg);
 }
 
 .admin-modal__panel {
@@ -616,7 +616,7 @@ body.admin-mode .admin-edit-trigger {
   width: min(900px, calc(100% - 30px));
   margin: 32px auto;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg);
   max-height: calc(100dvh - 64px);
   overflow: auto;
 }
@@ -639,7 +639,7 @@ body.admin-mode .admin-edit-trigger {
 
 .admin-modal__close {
   border: 0;
-  background: transparent;
+  background: var(--bg);
   color: var(--text);
   font-size: 20px;
   line-height: 1;
@@ -665,7 +665,7 @@ body.admin-mode .admin-edit-trigger {
 .admin-textarea {
   border: 1px solid var(--border);
   border-radius: 2px;
-  background: #fff;
+  background: var(--bg);
   color: var(--text);
   font: inherit;
   font-size: 14px;
@@ -700,15 +700,15 @@ body.admin-mode .admin-edit-trigger {
   bottom: 16px;
   z-index: 96;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--bg);
   padding: 10px 12px;
   font-size: 13px;
   line-height: 1.3;
 }
 
 .admin-toast.error {
-  border-color: rgba(178, 42, 42, 0.45);
-  color: #7f1a1a;
+  border-color: var(--border);
+  color: var(--text);
 }
 
 @media (max-width: 1400px) {
