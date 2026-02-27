@@ -84,3 +84,26 @@ Optional:
    - edit current content page
    - add blog/tool/game/page entries
 5. Use each card's `+` to edit that specific content file.
+
+## Notice Board API (`/posts`)
+This project also includes a runtime notice board API via Cloudflare Pages Functions.
+
+### Main endpoints
+- `GET /posts`
+- `GET /posts/{id}`
+- `POST /posts` (admin only, multipart)
+- `PUT /posts/{id}` (admin only, multipart)
+- `DELETE /posts/{id}` (admin only)
+- `POST /posts/assets` (admin only)
+- `GET /posts/assets/{asset_id}`
+- `GET /posts/{post_id}/images/{image_id}`
+- `POST /posts/{post_id}/poll/vote`
+- `GET /posts/{post_id}/poll/voters` (admin only)
+
+### Storage note
+- Post data and uploaded files are saved to the GitHub repository through API calls.
+- For visitor read on private repositories and for visitor write operations (view count / vote), set:
+  - `POSTS_REPO_TOKEN` (token with repo write access)
+
+### Notice page
+- UI page: `/{lang}/notice/` (e.g., `/en/notice/`, `/ko/notice/`)
