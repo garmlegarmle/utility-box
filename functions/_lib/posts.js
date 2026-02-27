@@ -20,6 +20,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
   'image/avif'
 ]);
 const ALLOWED_CATEGORIES = new Set(['blog', 'tool', 'game']);
+const ALLOWED_LANGS = new Set(['en', 'ko']);
 
 const VIEW_COOKIE = 'ub_post_views';
 const VOTE_COOKIE = 'ub_post_votes';
@@ -107,6 +108,20 @@ function normalizeCategory(value) {
   return category;
 }
 
+function normalizeLang(value, fallback = 'en') {
+  const raw = String(value || fallback).trim().toLowerCase();
+  const aliasMap = {
+    kr: 'ko',
+    korean: 'ko',
+    english: 'en'
+  };
+  const lang = aliasMap[raw] || raw;
+  if (!ALLOWED_LANGS.has(lang)) {
+    throw new Error('lang must be one of: en, kr');
+  }
+  return lang;
+}
+
 function normalizeTags(input) {
   const list = (Array.isArray(input) ? input : [input])
     .flatMap((entry) => String(entry || '').split(','))
@@ -135,9 +150,11 @@ function makeSummary(post) {
   return {
     id: post.id,
     title: post.title,
+    lang: String(post.lang || ''),
     category: post.category,
     tag: tags[0] || '',
     tags,
+    card: post.card || null,
     views: Number(post.views || 0),
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
@@ -443,21 +460,41 @@ export async function deleteImageFiles(token, env, images, messagePrefix) {
   }
 }
 
+function normalizeCard(input, defaults) {
+  const source = input && typeof input === 'object' ? input : {};
+  const title = String(source.title || defaults.title || '').trim() || defaults.title || 'Untitled';
+  const category = String(source.category || defaults.category || '').trim() || defaults.category || 'Category';
+  const tag = String(source.tag || defaults.tag || '').trim() || defaults.tag || 'Tag';
+  const image = String(source.image || defaults.image || '').trim();
+  const rank = String(source.rank || defaults.rank || '').trim() || '#1';
+  return { title, category, tag, image, rank };
+}
+
 export function createPostPayload(input) {
   const title = requireText(input.title, 'title');
   const category = normalizeCategory(input.category);
+  const lang = normalizeLang(input.lang || 'en');
   const tags = normalizeTags(input.tags ?? input.tag);
   const body = requireText(input.body, 'body');
   const createdAt = nowIso();
   const updatedAt = createdAt;
   const id = input.id || `${slugify(title) || 'post'}-${randomId('p_')}`;
+  const card = normalizeCard(input.card, {
+    title,
+    category,
+    tag: tags[0],
+    image: '',
+    rank: '#1'
+  });
 
   return {
     id,
     title,
+    lang,
     category,
     tag: tags[0],
     tags,
+    card,
     body,
     images: Array.isArray(input.images) ? input.images : [],
     poll: input.poll || null,
@@ -472,16 +509,27 @@ export function createPostPayload(input) {
 export function patchPostPayload(existing, patch) {
   const title = requireText(patch.title ?? existing.title, 'title');
   const category = normalizeCategory(patch.category ?? existing.category);
+  const lang = normalizeLang(patch.lang ?? existing.lang ?? 'en');
   const existingTags = Array.isArray(existing.tags) ? existing.tags : existing.tag ? [existing.tag] : [];
   const tags = normalizeTags(patch.tags ?? patch.tag ?? existingTags);
   const body = requireText(patch.body ?? existing.body, 'body');
+  const cardInput = patch.card === undefined ? existing.card : patch.card;
+  const card = normalizeCard(cardInput, {
+    title,
+    category,
+    tag: tags[0],
+    image: existing.card?.image || '',
+    rank: existing.card?.rank || '#1'
+  });
 
   return {
     ...existing,
     title,
+    lang,
     category,
     tag: tags[0],
     tags,
+    card,
     body,
     images: Array.isArray(patch.images) ? patch.images : existing.images || [],
     poll: patch.poll === undefined ? existing.poll || null : patch.poll,

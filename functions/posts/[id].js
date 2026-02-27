@@ -201,8 +201,16 @@ export async function onRequestPut(context) {
     const patched = patchPostPayload(existing, {
       title: getFormString(formData, 'title') || existing.title,
       category: getFormString(formData, 'Category') || getFormString(formData, 'category') || existing.category,
+      lang: getFormString(formData, 'lang') || existing.lang || 'en',
       tags: parseTags(formData, existingTags),
       body: getFormString(formData, 'body') || existing.body,
+      card: {
+        title: getFormString(formData, 'cardTitle'),
+        category: getFormString(formData, 'cardCategory'),
+        tag: getFormString(formData, 'cardTag'),
+        image: getFormString(formData, 'cardImage'),
+        rank: getFormString(formData, 'cardRank')
+      },
       images,
       poll,
       author: session.username

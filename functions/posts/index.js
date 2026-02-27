@@ -75,16 +75,26 @@ export async function onRequestGet(context) {
     const index = await getPostsIndex(token, context.env);
     const url = new URL(context.request.url);
     const categoryQuery = String(url.searchParams.get('category') || '').toLowerCase();
+    const langQuery = String(url.searchParams.get('lang') || '').toLowerCase();
     const allowedCategories = new Set(['blog', 'tool', 'game']);
+    const allowedLangs = new Set(['en', 'ko', 'kr']);
     const category = allowedCategories.has(categoryQuery) ? categoryQuery : '';
+    const lang = allowedLangs.has(langQuery) ? (langQuery === 'kr' ? 'ko' : langQuery) : '';
     const posts = category
       ? index.data.posts.filter((post) => String(post.category || '').toLowerCase() === category)
       : index.data.posts;
+    const localizedPosts = lang
+      ? posts.filter((post) => {
+          const postLang = String(post.lang || '').toLowerCase();
+          if (!postLang) return lang === 'en';
+          return postLang === lang;
+        })
+      : posts;
 
     return jsonResponse({
       ok: true,
-      posts,
-      total: posts.length
+      posts: localizedPosts,
+      total: localizedPosts.length
     });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || 'Failed to fetch posts' }, 500);
@@ -102,9 +112,17 @@ export async function onRequestPost(context) {
 
     const title = getFormString(formData, 'title');
     const category = getFormString(formData, 'Category') || getFormString(formData, 'category');
+    const lang = getFormString(formData, 'lang') || 'en';
     const tags = parseTags(formData);
     const body = getFormString(formData, 'body');
     const poll = getPollPayload(formData);
+    const card = {
+      title: getFormString(formData, 'cardTitle'),
+      category: getFormString(formData, 'cardCategory'),
+      tag: getFormString(formData, 'cardTag'),
+      image: getFormString(formData, 'cardImage'),
+      rank: getFormString(formData, 'cardRank')
+    };
     const files = formData
       .getAll('images')
       .filter((value) => value && typeof value.arrayBuffer === 'function' && Number(value.size || 0) > 0);
@@ -112,9 +130,11 @@ export async function onRequestPost(context) {
     const draft = createPostPayload({
       title,
       category,
+      lang,
       tags,
       body,
       poll,
+      card,
       author: session.username,
       images: []
     });

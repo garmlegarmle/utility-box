@@ -9,6 +9,7 @@
   };
   const routeCategory = routeCategoryMap[section] || '';
   const pageCategory = segments.length === 2 ? routeCategory : '';
+  const pageLang = lang === 'ko' ? 'ko' : 'en';
 
   const boardRoot = document.querySelector('[data-notice-board]');
   const hasBoard = Boolean(boardRoot);
@@ -19,6 +20,8 @@
 
   const listingGrid = !hasBoard && pageCategory ? document.querySelector('.listing-grid') : null;
   const hasFeed = Boolean(listingGrid);
+  const homeTracks = !hasBoard ? [...document.querySelectorAll('.home-row-track')] : [];
+  const hasHomeRows = homeTracks.length >= 3;
 
   const labels = {
     ko: {
@@ -31,6 +34,7 @@
       cancel: '취소',
       title: '제목',
       category: '카테고리',
+      language: '언어',
       tag: '태그',
       body: '내용',
       attach: '첨부 이미지 (최대 6장, 파일당 10MB)',
@@ -41,6 +45,15 @@
       categoryBlog: 'blog',
       categoryTool: 'tool',
       categoryGame: 'game',
+      langEn: 'en',
+      langKr: 'kr',
+      cardSettings: '카드 설정',
+      cardSettingsTitle: '카드 설정',
+      cardTitle: '카드 제목',
+      cardCategory: '카드 카테고리',
+      cardTag: '카드 태그',
+      cardImage: '카드 이미지 URL (선택)',
+      cardRank: '카드 순위 라벨',
       imageTools: '이미지 편집',
       imageWidth: '크기',
       imageAlign: '정렬',
@@ -70,6 +83,7 @@
       cancel: 'Cancel',
       title: 'Title',
       category: 'Category',
+      language: 'Language',
       tag: 'Tag',
       body: 'Body',
       attach: 'Attached images (max 6, up to 10MB each)',
@@ -80,6 +94,15 @@
       categoryBlog: 'blog',
       categoryTool: 'tool',
       categoryGame: 'game',
+      langEn: 'en',
+      langKr: 'kr',
+      cardSettings: 'Card settings',
+      cardSettingsTitle: 'Card settings',
+      cardTitle: 'Card title',
+      cardCategory: 'Card category',
+      cardTag: 'Card tag',
+      cardImage: 'Card image URL (optional)',
+      cardRank: 'Card rank label',
       imageTools: 'Image tools',
       imageWidth: 'Size',
       imageAlign: 'Align',
@@ -115,6 +138,17 @@
   function normalizeCategory(value) {
     const category = String(value || '').toLowerCase().trim();
     return CATEGORY_OPTIONS.includes(category) ? category : 'blog';
+  }
+
+  function normalizePostLang(value, fallback = pageLang) {
+    const raw = String(value || fallback).trim().toLowerCase();
+    if (raw === 'kr') return 'ko';
+    if (raw === 'ko') return 'ko';
+    return 'en';
+  }
+
+  function toEditorLangValue(value) {
+    return normalizePostLang(value, pageLang) === 'ko' ? 'kr' : 'en';
   }
 
   function escapeHtml(value) {
@@ -208,6 +242,9 @@
   }
 
   function getPreviewImage(post) {
+    const cardImage = String(post?.card?.image || '').trim();
+    if (cardImage) return normalizeMediaSrc(cardImage);
+
     const image = Array.isArray(post?.images) ? post.images[0] : null;
     if (image?.id && post?.id) {
       return `/posts/${post.id}/images/${image.id}`;
@@ -217,6 +254,16 @@
     wrapper.innerHTML = post?.body || '';
     const img = wrapper.querySelector('img[src]');
     return img ? normalizeMediaSrc(String(img.getAttribute('src') || '').trim()) : '';
+  }
+
+  function getCardData(post, index) {
+    const tags = getPostTags(post);
+    return {
+      title: String(post?.card?.title || post?.title || '').trim() || 'Untitled',
+      category: String(post?.card?.category || post?.category || 'Category').trim() || 'Category',
+      tag: String(post?.card?.tag || tags[0] || 'Tag').trim() || 'Tag',
+      rank: String(post?.card?.rank || `#${index + 1}`).trim() || `#${index + 1}`
+    };
   }
 
   async function fetchSession() {
@@ -381,70 +428,96 @@
     }
   }
 
-  function renderRuntimeCards() {
-    if (!hasFeed || !listingGrid) return;
+  function createRuntimeCard(post, index) {
+    const previewImage = getPreviewImage(post);
+    const cardData = getCardData(post, index);
 
-    listingGrid.querySelectorAll('[data-runtime-post="1"]').forEach((node) => node.remove());
+    const card = document.createElement('article');
+    card.className = 'entry-card runtime-post-card';
+    card.setAttribute('data-runtime-post', '1');
+    card.innerHTML = `
+      <a class="entry-card__link" href="#post-${escapeHtml(post.id)}" data-action="open-post" data-post-id="${escapeHtml(post.id)}">
+        <div class="entry-card__media">
+          ${
+            previewImage
+              ? `<img class="entry-card__image" src="${escapeHtml(previewImage)}" alt="${escapeHtml(cardData.title)}" loading="lazy" decoding="async" />`
+              : '<div class="entry-card__placeholder">이미지 혹은 숫자</div>'
+          }
+        </div>
+        <div class="entry-card__info">
+          <p class="entry-card__meta">
+            <span>${escapeHtml(cardData.category)}</span>
+            <span>${escapeHtml(cardData.tag)}</span>
+          </p>
+          <p class="entry-card__title-row">
+            <span class="entry-card__title">${escapeHtml(cardData.title)}</span>
+            <span class="entry-card__rank">${escapeHtml(cardData.rank)}</span>
+          </p>
+        </div>
+      </a>
+      ${
+        state.isAdmin
+          ? `<button type="button" class="admin-edit-trigger" data-action="edit-post" data-post-id="${escapeHtml(post.id)}" aria-label="Edit ${
+              escapeHtml(cardData.title)
+            }">+</button>`
+          : ''
+      }
+    `;
 
-    const posts = pageCategory ? state.posts.filter((post) => normalizeCategory(post.category) === pageCategory) : state.posts;
-    if (posts.length === 0) {
-      return;
-    }
-
-    const fragment = document.createDocumentFragment();
-
-    posts.forEach((post, index) => {
-      const previewImage = getPreviewImage(post);
-      const tags = getPostTags(post);
-
-      const card = document.createElement('article');
-      card.className = 'entry-card runtime-post-card';
-      card.setAttribute('data-runtime-post', '1');
-      card.innerHTML = `
-        <a class="entry-card__link" href="#post-${escapeHtml(post.id)}" data-action="open-post" data-post-id="${escapeHtml(post.id)}">
-          <div class="entry-card__media">
-            ${
-              previewImage
-                ? `<img class="entry-card__image" src="${escapeHtml(previewImage)}" alt="${escapeHtml(post.title)}" loading="lazy" decoding="async" />`
-                : '<div class="entry-card__placeholder">이미지 혹은 숫자</div>'
-            }
-          </div>
-          <div class="entry-card__info">
-            <p class="entry-card__meta">
-              <span>${escapeHtml(post.category || 'Category')}</span>
-              <span>${escapeHtml(tags[0] || 'Tag')}</span>
-            </p>
-            <p class="entry-card__title-row">
-              <span class="entry-card__title">${escapeHtml(post.title)}</span>
-              <span class="entry-card__rank">#${index + 1}</span>
-            </p>
-          </div>
-        </a>
-        ${
-          state.isAdmin
-            ? `<button type="button" class="admin-edit-trigger" data-action="edit-post" data-post-id="${escapeHtml(post.id)}" aria-label="Edit ${
-                escapeHtml(post.title)
-              }">+</button>`
-            : ''
-        }
-      `;
-
-      card.querySelector('[data-action="open-post"]')?.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openPostModal(post.id);
-      });
-
-      card.querySelector('[data-action="edit-post"]')?.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openPostModal(post.id, true);
-      });
-
-      fragment.appendChild(card);
+    card.querySelector('[data-action="open-post"]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openPostModal(post.id);
     });
 
-    listingGrid.prepend(fragment);
+    card.querySelector('[data-action="edit-post"]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openPostModal(post.id, true);
+    });
+
+    return card;
+  }
+
+  function renderRuntimeCards() {
+    if (!hasFeed && !hasHomeRows) return;
+
+    if (hasFeed && listingGrid) {
+      listingGrid.querySelectorAll('[data-runtime-post="1"]').forEach((node) => node.remove());
+      const posts = pageCategory
+        ? state.posts.filter((post) => normalizeCategory(post.category) === pageCategory)
+        : state.posts;
+      if (posts.length > 0) {
+        const fragment = document.createDocumentFragment();
+        posts.forEach((post, index) => {
+          fragment.appendChild(createRuntimeCard(post, index));
+        });
+        listingGrid.prepend(fragment);
+      }
+    }
+
+    if (!hasHomeRows) return;
+
+    homeTracks.forEach((track) => track.querySelectorAll('[data-runtime-post="1"]').forEach((node) => node.remove()));
+
+    const map = {
+      blog: homeTracks[0],
+      tool: homeTracks[1],
+      game: homeTracks[2]
+    };
+
+    ['blog', 'tool', 'game'].forEach((category) => {
+      const track = map[category];
+      if (!track) return;
+      const posts = state.posts.filter((post) => normalizeCategory(post.category) === category).slice(0, 8);
+      if (posts.length === 0) return;
+
+      const fragment = document.createDocumentFragment();
+      posts.forEach((post, index) => {
+        fragment.appendChild(createRuntimeCard(post, index));
+      });
+      track.prepend(fragment);
+    });
   }
 
   async function openPostModal(postId, openEditDirectly = false) {
@@ -454,6 +527,8 @@
     try {
       const response = await apiJson(`/posts/${postId}`);
       const post = response.post;
+      state.selectedPost = post;
+      state.selectedId = post?.id || state.selectedId;
 
       if (openEditDirectly && state.isAdmin) {
         modal.close();
@@ -829,13 +904,77 @@
       .filter(Boolean);
   }
 
+  function makeCardDraft(post, title, category, tags) {
+    return {
+      title: String(post?.card?.title || title || '').trim(),
+      category: String(post?.card?.category || category || '').trim(),
+      tag: String(post?.card?.tag || tags?.[0] || '').trim(),
+      image: String(post?.card?.image || '').trim(),
+      rank: String(post?.card?.rank || '#1').trim() || '#1'
+    };
+  }
+
+  function openCardSettings(cardDraft, onSave) {
+    const modal = createOverlay(labels.cardSettingsTitle);
+    modal.body.innerHTML = `
+      <div class="admin-compose notice-compose">
+        <label class="admin-field">
+          <span>${labels.cardTitle}</span>
+          <input class="admin-input" name="cardTitle" type="text" value="${escapeHtml(cardDraft.title)}" />
+        </label>
+        <label class="admin-field">
+          <span>${labels.cardCategory}</span>
+          <input class="admin-input" name="cardCategory" type="text" value="${escapeHtml(cardDraft.category)}" />
+        </label>
+        <label class="admin-field">
+          <span>${labels.cardTag}</span>
+          <input class="admin-input" name="cardTag" type="text" value="${escapeHtml(cardDraft.tag)}" />
+        </label>
+        <label class="admin-field">
+          <span>${labels.cardImage}</span>
+          <input class="admin-input" name="cardImage" type="text" value="${escapeHtml(cardDraft.image)}" />
+        </label>
+        <label class="admin-field">
+          <span>${labels.cardRank}</span>
+          <input class="admin-input" name="cardRank" type="text" value="${escapeHtml(cardDraft.rank)}" />
+        </label>
+        <div class="admin-actions">
+          <button type="button" class="admin-btn admin-btn--secondary" data-action="cancel">${labels.cancel}</button>
+          <button type="button" class="admin-btn" data-action="save">${labels.save}</button>
+        </div>
+      </div>
+    `;
+
+    modal.body.querySelector('[data-action="cancel"]')?.addEventListener('click', modal.close);
+    modal.body.querySelector('[data-action="save"]')?.addEventListener('click', () => {
+      const next = {
+        title: modal.body.querySelector('input[name="cardTitle"]')?.value.trim() || cardDraft.title || 'Untitled',
+        category:
+          modal.body.querySelector('input[name="cardCategory"]')?.value.trim() || cardDraft.category || 'Category',
+        tag: modal.body.querySelector('input[name="cardTag"]')?.value.trim() || cardDraft.tag || 'Tag',
+        image: modal.body.querySelector('input[name="cardImage"]')?.value.trim() || '',
+        rank: modal.body.querySelector('input[name="cardRank"]')?.value.trim() || cardDraft.rank || '#1'
+      };
+      onSave(next);
+      modal.close();
+    });
+  }
+
   async function refreshPosts(selectedId) {
-    const query = hasFeed && pageCategory ? `?category=${encodeURIComponent(pageCategory)}` : '';
-    const response = await apiJson(`/posts${query}`);
+    const search = new URLSearchParams();
+    search.set('lang', pageLang);
+    if (hasFeed && pageCategory) {
+      search.set('category', pageCategory);
+    } else if (!hasFeed && routeCategory) {
+      search.set('category', routeCategory);
+    }
+
+    const query = search.toString();
+    const response = await apiJson(`/posts${query ? `?${query}` : ''}`);
     state.posts = Array.isArray(response.posts) ? response.posts : [];
     state.tagPool = collectTagPool(state.posts);
 
-    if (hasFeed) {
+    if (hasFeed || hasHomeRows) {
       renderRuntimeCards();
     }
 
@@ -863,9 +1002,11 @@
     }
   }
 
-  async function submitPost(mode, postId, formRoot, tagBuilder, close) {
+  async function submitPost(mode, postId, formRoot, tagBuilder, cardState, close) {
     const title = formRoot.querySelector('input[name="title"]')?.value.trim() || '';
     const category = formRoot.querySelector('select[name="category"]')?.value.trim() || '';
+    const editorLangRaw = formRoot.querySelector('select[name="lang"]')?.value.trim() || 'en';
+    const editorLang = editorLangRaw.toLowerCase() === 'kr' ? 'kr' : 'en';
     const tags = tagBuilder.getTags();
     const editor = formRoot.querySelector('[data-role="rich-editor"]');
     const body = normalizeBodyHtmlAssets(editor?.innerHTML.trim() || '');
@@ -878,9 +1019,15 @@
     const formData = new FormData();
     formData.append('title', title);
     formData.append('Category', category);
+    formData.append('lang', editorLang);
     formData.append('tag', tags[0]);
     tags.forEach((tag) => formData.append('tags', tag));
     formData.append('body', body);
+    formData.append('cardTitle', cardState?.title || title);
+    formData.append('cardCategory', cardState?.category || category);
+    formData.append('cardTag', cardState?.tag || tags[0]);
+    formData.append('cardImage', cardState?.image || '');
+    formData.append('cardRank', cardState?.rank || '#1');
 
     if (mode === 'edit') {
       gatherKeptImages(formRoot).forEach((id) => formData.append('keepImageIds', id));
@@ -931,6 +1078,10 @@
       : isEdit
         ? normalizeCategory(post?.category)
         : normalizeCategory(routeCategory || 'blog');
+    const selectedLang = isEdit
+      ? toEditorLangValue(post?.lang || pageLang)
+      : toEditorLangValue(options.initialLang || pageLang);
+    let cardState = makeCardDraft(post, post?.title, selectedCategory, initialTags);
 
     modal.body.innerHTML = `
       <div class="admin-compose notice-compose">
@@ -945,6 +1096,14 @@
             <option value="blog" ${selectedCategory === 'blog' ? 'selected' : ''}>${labels.categoryBlog}</option>
             <option value="tool" ${selectedCategory === 'tool' ? 'selected' : ''}>${labels.categoryTool}</option>
             <option value="game" ${selectedCategory === 'game' ? 'selected' : ''}>${labels.categoryGame}</option>
+          </select>
+        </label>
+
+        <label class="admin-field">
+          <span>${labels.language}</span>
+          <select class="admin-input" name="lang">
+            <option value="en" ${selectedLang === 'en' ? 'selected' : ''}>${labels.langEn}</option>
+            <option value="kr" ${selectedLang === 'kr' ? 'selected' : ''}>${labels.langKr}</option>
           </select>
         </label>
 
@@ -1028,6 +1187,7 @@
         </label>
 
         <div class="admin-actions">
+          <button type="button" class="admin-btn admin-btn--secondary" data-action="card-settings">${labels.cardSettings}</button>
           ${
             isEdit
               ? `<button type="button" class="admin-btn admin-btn--secondary" data-action="delete">${labels.remove}</button>`
@@ -1043,16 +1203,49 @@
     editor.innerHTML = isEdit ? normalizeBodyHtmlAssets(post.body || '<p></p>') : '<p></p>';
 
     const tagBuilder = setupTagBuilder(modal.body.querySelector('[data-role="tag-builder"]'), initialTags);
+    const titleInput = modal.body.querySelector('input[name="title"]');
+    const categoryInput = modal.body.querySelector('select[name="category"]');
     bindEditorTools(modal.body, editor);
 
+    function syncCardWithMainFields() {
+      const tags = tagBuilder.getTags();
+      const nextTitle = titleInput?.value.trim() || cardState.title;
+      const nextCategory = categoryInput?.value.trim() || cardState.category;
+      cardState = {
+        ...cardState,
+        title: cardState.title || nextTitle || 'Untitled',
+        category: cardState.category || nextCategory || 'Category',
+        tag: cardState.tag || tags[0] || 'Tag'
+      };
+    }
+
+    titleInput?.addEventListener('input', () => {
+      if (!cardState.title || cardState.title === 'Untitled') {
+        cardState.title = titleInput.value.trim() || 'Untitled';
+      }
+    });
+
+    categoryInput?.addEventListener('change', () => {
+      if (!cardState.category || cardState.category === 'Category') {
+        cardState.category = categoryInput.value.trim() || 'Category';
+      }
+    });
+
     modal.body.querySelector('[data-action="cancel"]')?.addEventListener('click', modal.close);
+    modal.body.querySelector('[data-action="card-settings"]')?.addEventListener('click', () => {
+      syncCardWithMainFields();
+      openCardSettings(cardState, (next) => {
+        cardState = next;
+      });
+    });
     modal.body.querySelector('[data-action="delete"]')?.addEventListener('click', async () => {
       if (!post?.id) return;
       await deletePost(post.id, () => modal.close());
     });
-    modal.body.querySelector('[data-action="save"]')?.addEventListener('click', () =>
-      submitPost(mode, post?.id, modal.body, tagBuilder, modal.close)
-    );
+    modal.body.querySelector('[data-action="save"]')?.addEventListener('click', () => {
+      syncCardWithMainFields();
+      submitPost(mode, post?.id, modal.body, tagBuilder, cardState, modal.close);
+    });
   }
 
   async function deletePost(postId, afterDelete) {
@@ -1084,7 +1277,8 @@
         detail.opened = true;
       }
       const category = normalizeCategory(detail.category || routeCategory || 'blog');
-      openEditor('create', null, { initialCategory: category });
+      const initialLang = normalizePostLang(detail.lang || pageLang);
+      openEditor('create', null, { initialCategory: category, initialLang });
     };
 
     window.addEventListener('ub:open-post-editor', openFromEvent);
@@ -1097,16 +1291,19 @@
       if (!state.isAdmin) return;
 
       const detail = event?.detail || {};
-      const category = normalizeCategory(detail.category || routeCategory || 'blog');
+      const categoryRaw = String(detail.category || routeCategory || '').trim().toLowerCase();
+      const category = CATEGORY_OPTIONS.includes(categoryRaw) ? categoryRaw : '';
 
       if (state.posts.length === 0) {
         await refreshPosts();
       }
 
       let target =
-        state.selectedPost && normalizeCategory(state.selectedPost.category) === category
+        state.selectedPost && (!category || normalizeCategory(state.selectedPost.category) === category)
           ? state.selectedPost
-          : state.posts.find((post) => normalizeCategory(post.category) === category);
+          : category
+            ? state.posts.find((post) => normalizeCategory(post.category) === category)
+            : state.posts[0];
 
       if (!target && state.selectedPost) target = state.selectedPost;
       if (!target && state.posts[0]) target = state.posts[0];
@@ -1134,7 +1331,7 @@
       createBtn.addEventListener('click', () => openEditor('create', null, { initialCategory: routeCategory || 'blog' }));
     }
 
-    if (!hasBoard && !hasFeed && !state.isAdmin) {
+    if (!hasBoard && !hasFeed && !hasHomeRows && !state.isAdmin) {
       return;
     }
 

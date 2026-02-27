@@ -1,6 +1,7 @@
 (() => {
   const COLLECTIONS = ['blog', 'tools', 'games', 'pages'];
   const WRITABLE_POST_COLLECTIONS = ['blog', 'tools', 'games'];
+  const ADMIN_MODE_KEY = 'ub_admin_mode';
 
   function parseRoute() {
     const segments = window.location.pathname.split('/').filter(Boolean);
@@ -16,7 +17,21 @@
   }
 
   function isAdminModeRequested() {
-    return shouldShowLoginButton();
+    try {
+      if (shouldShowLoginButton()) return true;
+      return window.localStorage.getItem(ADMIN_MODE_KEY) === '1';
+    } catch {
+      return shouldShowLoginButton();
+    }
+  }
+
+  function setAdminMode(enabled) {
+    try {
+      if (enabled) window.localStorage.setItem(ADMIN_MODE_KEY, '1');
+      else window.localStorage.removeItem(ADMIN_MODE_KEY);
+    } catch {
+      // ignore
+    }
   }
 
   function mapCollectionToPostCategory(collection) {
@@ -819,6 +834,7 @@
         if (action === 'logout') {
           try {
             await apiPost('/api/logout', {});
+            setAdminMode(false);
             window.location.reload();
           } catch (error) {
             showToast(error.message || 'Logout failed', true);
@@ -870,6 +886,7 @@
       if (event.origin !== window.location.origin) return;
       if (!event.data || event.data.type !== 'ub-admin-auth-success') return;
       if (event.data.ok) {
+        setAdminMode(true);
         const url = new URL(window.location.href);
         url.searchParams.set('admin', '8722');
         window.location.href = `${url.pathname}${url.search}`;
@@ -890,6 +907,10 @@
         renderLoginButton();
       }
       return;
+    }
+
+    if (shouldShowLoginButton()) {
+      setAdminMode(true);
     }
 
     if (!isAdminModeRequested()) {
