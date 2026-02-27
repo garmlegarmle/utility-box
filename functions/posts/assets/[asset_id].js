@@ -1,4 +1,4 @@
-import { base64ToUint8Array, getRepoDirectoryEntries, getRepoFileRaw, parseRepo } from '../../_lib/github.js';
+import { getRepoDirectoryEntries, getRepoFileBytes, parseRepo } from '../../_lib/github.js';
 import { getEditorAsset, getServiceToken } from '../../_lib/posts.js';
 import { getAdminSession, jsonResponse } from '../../_lib/session.js';
 
@@ -41,16 +41,16 @@ export async function onRequestGet(context) {
       if (name.endsWith('.avif')) mimeType = 'image/avif';
     }
 
-    const rawFile = await getRepoFileRaw(token, owner, repo, branch, filePath);
-    if (!rawFile?.contentBase64) {
+    const rawFile = await getRepoFileBytes(token, owner, repo, branch, filePath);
+    if (!rawFile?.bytes || rawFile.bytes.byteLength === 0) {
       return jsonResponse({ ok: false, error: 'Asset file not found' }, 404);
     }
 
-    const bytes = base64ToUint8Array(rawFile.contentBase64);
+    const bytes = rawFile.bytes;
     return new Response(bytes, {
       status: 200,
       headers: {
-        'Content-Type': mimeType,
+        'Content-Type': mimeType || rawFile.contentType || 'application/octet-stream',
         'Content-Length': String(bytes.byteLength),
         'Cache-Control': 'public, max-age=31536000, immutable'
       }

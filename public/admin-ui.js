@@ -1,7 +1,6 @@
 (() => {
   const COLLECTIONS = ['blog', 'tools', 'games', 'pages'];
   const WRITABLE_POST_COLLECTIONS = ['blog', 'tools', 'games'];
-  const ADMIN_MODE_KEY = 'ub_admin_mode';
 
   function parseRoute() {
     const segments = window.location.pathname.split('/').filter(Boolean);
@@ -13,28 +12,11 @@
 
   function shouldShowLoginButton() {
     const url = new URL(window.location.href);
-    return url.searchParams.get('admin') === '1';
+    return url.searchParams.get('admin') === '8722';
   }
 
   function isAdminModeRequested() {
-    try {
-      if (shouldShowLoginButton()) return true;
-      return window.localStorage.getItem(ADMIN_MODE_KEY) === '1';
-    } catch {
-      return shouldShowLoginButton();
-    }
-  }
-
-  function setAdminMode(enabled) {
-    try {
-      if (enabled) {
-        window.localStorage.setItem(ADMIN_MODE_KEY, '1');
-      } else {
-        window.localStorage.removeItem(ADMIN_MODE_KEY);
-      }
-    } catch {
-      // ignore
-    }
+    return shouldShowLoginButton();
   }
 
   function mapCollectionToPostCategory(collection) {
@@ -154,7 +136,7 @@
 
   function openAuthPopup() {
     const url = new URL(window.location.href);
-    url.searchParams.set('admin', '1');
+    url.searchParams.set('admin', '8722');
     const redirect = `${url.pathname}${url.search}`;
     const authUrl = `/api/auth?redirect=${encodeURIComponent(redirect)}`;
     window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
@@ -180,7 +162,7 @@
         safeCategory === 'tool' ? 'tools' : safeCategory === 'game' ? 'games' : 'blog';
       const fallbackCategory = safeCategory || 'blog';
       const url = new URL(`/${safeLang}/${section}/`, window.location.origin);
-      url.searchParams.set('admin', '1');
+      url.searchParams.set('admin', '8722');
       url.searchParams.set('compose', '1');
       url.searchParams.set('category', fallbackCategory);
       window.location.href = `${url.pathname}?${url.searchParams.toString()}`;
@@ -816,14 +798,8 @@
       <button type="button" class="admin-fab" aria-label="Admin menu">+</button>
       <div class="admin-menu" hidden>
         <p class="admin-menu__user">${session.username}</p>
-        <button type="button" data-action="edit-page">Edit current content</button>
+        <button type="button" data-action="edit-current-post">Edit current post</button>
         <button type="button" data-action="write-post">Write post</button>
-        <button type="button" data-action="add-current">Add in this section</button>
-        <button type="button" data-action="add-blog">Write in Blog</button>
-        <button type="button" data-action="add-tools">Write in Tool</button>
-        <button type="button" data-action="add-games">Write in Game</button>
-        <button type="button" data-action="add-pages">Add page</button>
-        <button type="button" data-action="exit-admin">Exit admin mode</button>
         <button type="button" data-action="logout">Logout</button>
       </div>
     `;
@@ -843,7 +819,6 @@
         if (action === 'logout') {
           try {
             await apiPost('/api/logout', {});
-            setAdminMode(false);
             window.location.reload();
           } catch (error) {
             showToast(error.message || 'Logout failed', true);
@@ -851,53 +826,25 @@
           return;
         }
 
-        if (action === 'exit-admin') {
-          setAdminMode(false);
-          const url = new URL(window.location.href);
-          url.searchParams.delete('admin');
-          window.location.href = `${url.pathname}${url.search}`;
-          return;
-        }
-
-        if (action === 'edit-page') {
-          const direct = document.querySelector('[data-admin-page-file]')?.getAttribute('data-admin-page-file');
-          if (direct) {
-            openEditor(direct);
-          } else {
-            showToast('This page is a generated listing. Use card edit buttons.', true);
+        if (action === 'edit-current-post') {
+          const category =
+            route.collection && WRITABLE_POST_COLLECTIONS.includes(route.collection)
+              ? mapCollectionToPostCategory(route.collection)
+              : '';
+          const detail = { category, opened: false };
+          window.dispatchEvent(new CustomEvent('ub:edit-current-post', { detail }));
+          if (!detail.opened) {
+            showToast('No editable post found on this page.', true);
           }
           return;
         }
 
         if (action === 'write-post') {
-          openPostWriter(route.lang, '');
-          return;
-        }
-
-        if (action === 'add-current') {
-          if (!route.collection) {
-            showToast('Open blog/tools/games/pages first.', true);
-            return;
-          }
-
-          if (WRITABLE_POST_COLLECTIONS.includes(route.collection)) {
-            openPostWriter(route.lang, mapCollectionToPostCategory(route.collection));
-            return;
-          }
-
-          openCreateDialog(route.collection, route.lang);
-          return;
-        }
-
-        if (action?.startsWith('add-')) {
-          const collection = action.replace('add-', '');
-          if (COLLECTIONS.includes(collection)) {
-            if (WRITABLE_POST_COLLECTIONS.includes(collection)) {
-              openPostWriter(route.lang, mapCollectionToPostCategory(collection));
-              return;
-            }
-            openCreateDialog(collection, route.lang);
-          }
+          const category =
+            route.collection && WRITABLE_POST_COLLECTIONS.includes(route.collection)
+              ? mapCollectionToPostCategory(route.collection)
+              : '';
+          openPostWriter(route.lang, category);
         }
       });
     });
@@ -923,9 +870,8 @@
       if (event.origin !== window.location.origin) return;
       if (!event.data || event.data.type !== 'ub-admin-auth-success') return;
       if (event.data.ok) {
-        setAdminMode(true);
         const url = new URL(window.location.href);
-        url.searchParams.set('admin', '1');
+        url.searchParams.set('admin', '8722');
         window.location.href = `${url.pathname}${url.search}`;
       } else {
         showToast(event.data.message || 'Authentication failed', true);
@@ -940,7 +886,9 @@
     }
 
     if (!session.authenticated || !session.isAdmin) {
-      renderLoginButton();
+      if (shouldShowLoginButton()) {
+        renderLoginButton();
+      }
       return;
     }
 

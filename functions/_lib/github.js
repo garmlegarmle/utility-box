@@ -139,6 +139,36 @@ export async function getRepoDirectoryEntries(token, owner, repo, branch, path) 
   return response.data;
 }
 
+export async function getRepoFileBytes(token, owner, repo, branch, path) {
+  const contentPath = encodeContentPath(path);
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${contentPath}?ref=${encodeURIComponent(branch)}`;
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/vnd.github.raw',
+      'User-Agent': 'utility-box-admin-ui',
+      ...authHeader
+    }
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Failed to fetch raw file: ${response.status} ${text}`);
+  }
+
+  const buffer = await response.arrayBuffer();
+  return {
+    bytes: new Uint8Array(buffer),
+    contentType: response.headers.get('content-type') || 'application/octet-stream'
+  };
+}
+
 export async function upsertRepoFile(token, owner, repo, branch, path, content, message, sha) {
   const contentPath = encodeContentPath(path);
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${contentPath}`;

@@ -1028,6 +1028,11 @@
         </label>
 
         <div class="admin-actions">
+          ${
+            isEdit
+              ? `<button type="button" class="admin-btn admin-btn--secondary" data-action="delete">${labels.remove}</button>`
+              : ''
+          }
           <button type="button" class="admin-btn admin-btn--secondary" data-action="cancel">${labels.cancel}</button>
           <button type="button" class="admin-btn" data-action="save">${labels.save}</button>
         </div>
@@ -1041,6 +1046,10 @@
     bindEditorTools(modal.body, editor);
 
     modal.body.querySelector('[data-action="cancel"]')?.addEventListener('click', modal.close);
+    modal.body.querySelector('[data-action="delete"]')?.addEventListener('click', async () => {
+      if (!post?.id) return;
+      await deletePost(post.id, () => modal.close());
+    });
     modal.body.querySelector('[data-action="save"]')?.addEventListener('click', () =>
       submitPost(mode, post?.id, modal.body, tagBuilder, modal.close)
     );
@@ -1080,6 +1089,41 @@
 
     window.addEventListener('ub:open-post-editor', openFromEvent);
     window.addEventListener('ub:open-notice-editor', openFromEvent);
+
+    const editFromEvent = async (event) => {
+      if (!state.isAdmin) {
+        await fetchSession();
+      }
+      if (!state.isAdmin) return;
+
+      const detail = event?.detail || {};
+      const category = normalizeCategory(detail.category || routeCategory || 'blog');
+
+      if (state.posts.length === 0) {
+        await refreshPosts();
+      }
+
+      let target =
+        state.selectedPost && normalizeCategory(state.selectedPost.category) === category
+          ? state.selectedPost
+          : state.posts.find((post) => normalizeCategory(post.category) === category);
+
+      if (!target && state.selectedPost) target = state.selectedPost;
+      if (!target && state.posts[0]) target = state.posts[0];
+      if (!target) return;
+
+      const response = await apiJson(`/posts/${target.id}`);
+      if (detail && typeof detail === 'object') {
+        detail.opened = true;
+      }
+      openEditor('edit', response.post, { initialCategory: normalizeCategory(response.post.category) });
+    };
+
+    window.addEventListener('ub:edit-current-post', (event) => {
+      editFromEvent(event).catch((error) => {
+        showToast(error.message || 'Failed to open editor', true);
+      });
+    });
   }
 
   async function init() {
