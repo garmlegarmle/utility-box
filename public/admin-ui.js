@@ -137,6 +137,10 @@
     throw new Error('File not found');
   }
 
+  function yamlQuote(value) {
+    return JSON.stringify(String(value ?? ''));
+  }
+
   function buildEntryTemplate(collection, values) {
     const title = values.title || 'Untitled';
     const description = values.description || 'Description';
@@ -148,19 +152,25 @@
       .map((item) => item.trim())
       .filter(Boolean);
 
-    const lines = ['---', `title: ${title}`, `description: ${description}`, `slug: ${slug}`, `lang: ${lang}`];
+    const lines = [
+      '---',
+      `title: ${yamlQuote(title)}`,
+      `description: ${yamlQuote(description)}`,
+      `slug: ${yamlQuote(slug)}`,
+      `lang: ${yamlQuote(lang)}`
+    ];
 
     if (collection === 'blog') {
       lines.push(`date: ${new Date().toISOString().slice(0, 10)}`);
     }
 
     if (category) {
-      lines.push(`category: ${category}`);
+      lines.push(`category: ${yamlQuote(category)}`);
     }
 
     if (tags.length > 0) {
       lines.push('tags:');
-      tags.forEach((tag) => lines.push(`  - ${tag}`));
+      tags.forEach((tag) => lines.push(`  - ${yamlQuote(tag)}`));
     }
 
     lines.push('---', '', values.body || 'Write your content here.');

@@ -11,8 +11,8 @@ const sharedSchema = z.object({
   image: z.string().optional(),
   heroImage: z.string().optional(),
   cardImage: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  category: z.string().optional(),
+  tags: z.array(z.coerce.string()).optional(),
+  category: z.coerce.string().optional(),
   pairSlug: z.string().optional()
 });
 
