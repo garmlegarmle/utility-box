@@ -1,0 +1,21 @@
+name = "utility-box-api"
+main = "worker/src/index.ts"
+compatibility_date = "2026-02-28"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://www.utility-box.org,https://utility-box.org,http://localhost:5173"
+GITHUB_OAUTH_SCOPE = "read:user"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "utility-box-db"
+database_id = "REPLACE_WITH_REAL_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "utility-box-media"
+
+# Optional if you expose R2 via custom public domain.
+# [vars]
+# MEDIA_PUBLIC_BASE_URL = "https://media.utility-box.org"

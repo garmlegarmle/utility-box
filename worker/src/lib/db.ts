@@ -1,0 +1,85 @@
+import type { Env } from '../types';
+import { slugify } from './validators';
+
+export interface MediaRecord {
+  id: number;
+  r2_key: string;
+  kind: string;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+  created_at: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+}
+
+export interface VariantRecord {
+  id: number;
+  media_id: number;
+  variant: string;
+  r2_key: string;
+  width: number | null;
+  height: number | null;
+  format: string | null;
+  created_at: string;
+}
+
+export async function upsertTags(env: Env, tags: string[]): Promise<number[]> {
+  const out: number[] = [];
+
+  for (const tag of tags) {
+    const name = tag.trim();
+    if (!name) continue;
+    const slug = slugify(name);
+    if (!slug) continue;
+
+    await env.DB.prepare(
+      `INSERT INTO tags (name, slug)
+       VALUES (?, ?)
+       ON CONFLICT(slug) DO UPDATE SET name = excluded.name`
+    )
+      .bind(name, slug)
+      .run();
+
+    const found = await env.DB.prepare('SELECT id FROM tags WHERE slug = ? LIMIT 1').bind(slug).first<{ id: number }>();
+    if (found?.id) out.push(found.id);
+  }
+
+  return out;
+}
+
+export async function replacePostTags(env: Env, postId: number, tags: string[]): Promise<void> {
+  const tagIds = await upsertTags(env, tags);
+
+  await env.DB.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(postId).run();
+
+  for (const tagId of tagIds) {
+    await env.DB.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)').bind(postId, tagId).run();
+  }
+}
+
+export async function getPostTags(env: Env, postId: number): Promise<string[]> {
+  const rows = await env.DB.prepare(
+    `SELECT t.name
+     FROM tags t
+     INNER JOIN post_tags pt ON pt.tag_id = t.id
+     WHERE pt.post_id = ?
+     ORDER BY t.name ASC`
+  )
+    .bind(postId)
+    .all<{ name: string }>();
+
+  return (rows.results || []).map((row) => row.name);
+}
+
+export async function getMediaById(env: Env, mediaId: number): Promise<MediaRecord | null> {
+  const media = await env.DB.prepare('SELECT * FROM media WHERE id = ? LIMIT 1').bind(mediaId).first<MediaRecord>();
+  return media || null;
+}
+
+export async function getMediaVariants(env: Env, mediaId: number): Promise<VariantRecord[]> {
+  const rows = await env.DB.prepare('SELECT * FROM media_variants WHERE media_id = ? ORDER BY id ASC')
+    .bind(mediaId)
+    .all<VariantRecord>();
+  return rows.results || [];
+}
