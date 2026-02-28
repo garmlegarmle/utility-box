@@ -53,7 +53,7 @@
       cardTitle: '카드 제목',
       cardCategory: '카드 카테고리',
       cardTag: '카드 태그',
-      cardImage: '카드 이미지 URL (선택)',
+      cardImage: '카드 이미지 (URL 또는 업로드)',
       cardRank: '포스트 번호',
       imageTools: '이미지 편집',
       imageWidth: '크기',
@@ -102,7 +102,7 @@
       cardTitle: 'Card title',
       cardCategory: 'Card category',
       cardTag: 'Card tag',
-      cardImage: 'Card image URL (optional)',
+      cardImage: 'Card image (URL or upload)',
       cardRank: 'Post number',
       imageTools: 'Image tools',
       imageWidth: 'Size',
@@ -683,18 +683,22 @@
 
     if (!img) {
       controls.selectedImage = null;
-      controls.width.disabled = true;
-      controls.width.value = '100';
+      if (controls.width) {
+        controls.width.disabled = true;
+        controls.width.value = '100';
+      }
       return;
     }
 
     ensureEditorImageStyle(img);
     img.classList.add('is-selected');
     controls.selectedImage = img;
-    controls.width.disabled = false;
+    if (controls.width) controls.width.disabled = false;
 
     const widthValue = Number.parseInt(img.style.width, 10);
-    controls.width.value = Number.isFinite(widthValue) ? String(Math.max(10, Math.min(100, widthValue))) : '100';
+    if (controls.width) {
+      controls.width.value = Number.isFinite(widthValue) ? String(Math.max(10, Math.min(100, widthValue))) : '100';
+    }
   }
 
   function applyImageWidth(controls, percent) {
@@ -703,7 +707,7 @@
     controls.selectedImage.style.width = `${value}%`;
     controls.selectedImage.style.maxWidth = '100%';
     controls.selectedImage.style.height = 'auto';
-    controls.width.value = String(value);
+    if (controls.width) controls.width.value = String(value);
   }
 
   function applyImageAlign(controls, align) {
@@ -1038,7 +1042,11 @@
         </label>
         <label class="admin-field">
           <span>${labels.cardImage}</span>
-          <input class="admin-input" name="cardImage" type="text" value="${escapeHtml(cardDraft.image)}" />
+          <div class="notice-tag-builder__input-row">
+            <input class="admin-input" name="cardImage" type="text" value="${escapeHtml(cardDraft.image)}" />
+            <button type="button" class="admin-btn" data-action="upload-card-image">${labels.insertImage}</button>
+          </div>
+          <input type="file" data-role="card-image-picker" accept="image/*" hidden />
         </label>
         <label class="admin-field">
           <span>${labels.cardRank}</span>
@@ -1052,6 +1060,25 @@
     `;
 
     modal.body.querySelector('[data-action="cancel"]')?.addEventListener('click', modal.close);
+    modal.body.querySelector('[data-action="upload-card-image"]')?.addEventListener('click', () => {
+      modal.body.querySelector('[data-role="card-image-picker"]')?.click();
+    });
+    modal.body.querySelector('[data-role="card-image-picker"]')?.addEventListener('change', async (event) => {
+      const picker = event.currentTarget;
+      const file = picker?.files?.[0];
+      if (!file) return;
+      try {
+        const url = await uploadInlineImage(file);
+        if (!url) throw new Error('카드 이미지 업로드 실패');
+        const input = modal.body.querySelector('input[name="cardImage"]');
+        if (input) input.value = url;
+        showToast('card image uploaded');
+      } catch (error) {
+        showToast(error.message || 'card image upload failed', true);
+      } finally {
+        if (picker) picker.value = '';
+      }
+    });
     modal.body.querySelector('[data-action="save"]')?.addEventListener('click', () => {
       const parsedNumber = parsePostNumber(modal.body.querySelector('input[name="cardRank"]')?.value.trim() || '');
       const next = {
@@ -1248,24 +1275,15 @@
               <button type="button" class="admin-editor__tool" data-editor-cmd="strikeThrough">S</button>
               <button type="button" class="admin-editor__tool" data-editor-cmd="insertUnorderedList">-</button>
               <button type="button" class="admin-editor__tool" data-editor-cmd="insertOrderedList">1.</button>
+              <button type="button" class="admin-editor__tool" data-editor-cmd="justifyLeft">좌</button>
+              <button type="button" class="admin-editor__tool" data-editor-cmd="justifyCenter">중</button>
+              <button type="button" class="admin-editor__tool" data-editor-cmd="justifyRight">우</button>
               <button type="button" class="admin-editor__tool" data-editor-cmd="link">Link</button>
               <button type="button" class="admin-editor__tool" data-editor-cmd="removeFormat">Tx</button>
             </div>
             <div class="admin-editor__group">
               <button type="button" class="admin-editor__tool" data-action="insert-inline-image">${labels.insertImage}</button>
               <input type="file" data-role="inline-image-picker" accept="image/*" hidden />
-            </div>
-            <div class="admin-editor__group admin-editor__group--image-tools">
-              <span class="admin-editor__label">${labels.imageTools}</span>
-              <button type="button" class="admin-editor__tool" data-image-preset="25">${labels.imageSmall}</button>
-              <button type="button" class="admin-editor__tool" data-image-preset="50">${labels.imageMedium}</button>
-              <button type="button" class="admin-editor__tool" data-image-preset="75">${labels.imageLarge}</button>
-              <button type="button" class="admin-editor__tool" data-image-preset="100">${labels.imageFull}</button>
-              <input class="admin-editor__range" data-role="image-width" type="range" min="10" max="100" value="100" disabled />
-              <button type="button" class="admin-editor__tool" data-image-align="left">${labels.alignLeft}</button>
-              <button type="button" class="admin-editor__tool" data-image-align="center">${labels.alignCenter}</button>
-              <button type="button" class="admin-editor__tool" data-image-align="right">${labels.alignRight}</button>
-              <button type="button" class="admin-editor__tool" data-action="remove-image">${labels.imageDelete}</button>
             </div>
           </div>
           <div class="notice-rich-editor" contenteditable="true" data-role="rich-editor"></div>

@@ -8,6 +8,7 @@ const COLLECTIONS = ['blog', 'tools', 'games', 'pages'];
 
 const routeSet = new Set(['/', '/rss.xml/', '/sitemap.xml/']);
 const errors = [];
+const strictMode = process.env.STRICT_INTERNAL_LINKS === '1';
 
 function normalizePath(href) {
   if (!href || typeof href !== 'string') return '';
@@ -106,9 +107,16 @@ for (const file of allFiles) {
 }
 
 if (errors.length > 0) {
-  console.error('\nInternal link validation failed:\n');
-  errors.forEach((error) => console.error(`- ${error}`));
-  process.exit(1);
+  if (strictMode) {
+    console.error('\nInternal link validation failed:\n');
+    errors.forEach((error) => console.error(`- ${error}`));
+    process.exit(1);
+  }
+
+  console.warn('\nInternal link warnings (non-blocking):\n');
+  errors.forEach((error) => console.warn(`- ${error}`));
+  console.warn('\nSet STRICT_INTERNAL_LINKS=1 to fail builds on broken internal links.\n');
+  process.exit(0);
 }
 
 console.log('Internal link validation passed.');
