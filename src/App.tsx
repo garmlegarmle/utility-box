@@ -85,21 +85,31 @@ function HomePage({
   const [blogPosts, setBlogPosts] = useState<PostItem[]>([]);
   const [toolPosts, setToolPosts] = useState<PostItem[]>([]);
   const [gamePosts, setGamePosts] = useState<PostItem[]>([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let canceled = false;
 
     async function load() {
-      const [blog, tools, games] = await Promise.all([
-        listPosts({ lang, section: 'blog', status: 'published', limit: 12 }),
-        listPosts({ lang, section: 'tools', status: 'published', limit: 12 }),
-        listPosts({ lang, section: 'games', status: 'published', limit: 12 })
-      ]);
+      setError('');
+      try {
+        const [blog, tools, games] = await Promise.all([
+          listPosts({ lang, section: 'blog', status: 'published', limit: 12 }),
+          listPosts({ lang, section: 'tools', status: 'published', limit: 12 }),
+          listPosts({ lang, section: 'games', status: 'published', limit: 12 })
+        ]);
 
-      if (canceled) return;
-      setBlogPosts(blog.items);
-      setToolPosts(tools.items);
-      setGamePosts(games.items);
+        if (canceled) return;
+        setBlogPosts(Array.isArray(blog.items) ? blog.items : []);
+        setToolPosts(Array.isArray(tools.items) ? tools.items : []);
+        setGamePosts(Array.isArray(games.items) ? games.items : []);
+      } catch (err) {
+        if (canceled) return;
+        setBlogPosts([]);
+        setToolPosts([]);
+        setGamePosts([]);
+        setError(err instanceof Error ? err.message : 'Failed to load home feeds');
+      }
     }
 
     void load();
@@ -159,6 +169,14 @@ function HomePage({
           </div>
         </div>
       </section>
+
+      {error ? (
+        <section className="page-section">
+          <div className="container">
+            <p className="list-tags">{error}</p>
+          </div>
+        </section>
+      ) : null}
 
       <AdminDock
         showLogin={showLogin}
@@ -346,7 +364,7 @@ function DetailPage({
           {!loading && !error && post ? (
             <>
               <header className="detail-layout__head">
-                <p className="detail-layout__tag">{post.tags[0] || 'tag'}</p>
+                <p className="detail-layout__tag">{Array.isArray(post.tags) && post.tags[0] ? post.tags[0] : 'tag'}</p>
                 <div className="detail-layout__title-row">
                   <h1>{post.title}</h1>
                 </div>

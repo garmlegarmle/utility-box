@@ -16,6 +16,7 @@ function rankText(post: PostItem, fallback: number): string {
 export function EntryCard({ post, href, lang }: EntryCardProps) {
   const targetHref = href || `/${lang}/${post.section}/${post.slug}/`;
   const cardTitle = post.card.title || post.title;
+  const tags = Array.isArray(post.tags) ? post.tags : [];
   const titleClass = cardTitle.length >= 18 ? 'entry-card__title entry-card__title--compact' : 'entry-card__title';
   const rank = rankText(post, 1);
   const rankDigits = rank.replace(/\D/g, '').length;
@@ -35,7 +36,7 @@ export function EntryCard({ post, href, lang }: EntryCardProps) {
         <div className="entry-card__info">
           <p className="entry-card__meta">
             <span>{post.card.category || post.section}</span>
-            <span>{post.card.tag || post.tags[0] || 'Tag'}</span>
+            <span>{post.card.tag || tags[0] || 'Tag'}</span>
           </p>
           <p className="entry-card__title-row">
             <span className={titleClass}>{cardTitle}</span>

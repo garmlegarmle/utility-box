@@ -9,7 +9,11 @@ function buildUrl(path: string): string {
 }
 
 async function parseJson(response: Response): Promise<unknown> {
-  return response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('application/json')) {
+    return { __nonJson: true };
+  }
+  return response.json().catch(() => ({ __parseError: true }));
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -22,6 +26,14 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   });
 
   const data = await parseJson(response);
+
+  if (typeof data === 'object' && data !== null && '__nonJson' in data) {
+    throw new Error(`API returned non-JSON response for ${path}. Check VITE_API_BASE and Worker routing.`);
+  }
+
+  if (typeof data === 'object' && data !== null && '__parseError' in data) {
+    throw new Error(`API JSON parse failed for ${path}.`);
+  }
 
   if (!response.ok || (typeof data === 'object' && data !== null && 'ok' in data && (data as { ok?: boolean }).ok === false)) {
     const message =
@@ -54,12 +66,36 @@ export async function listPosts(params: ListPostsParams): Promise<PostListRespon
   if (params.lang) query.set('lang', params.lang);
   if (params.section) query.set('section', params.section);
 
-  return apiFetch<PostListResponse>(`/api/posts?${query.toString()}`);
+  const data = await apiFetch<Partial<PostListResponse>>(`/api/posts?${query.toString()}`);
+
+  if (!Array.isArray(data.items)) {
+    throw new Error('Invalid posts response: items is not an array');
+  }
+
+  return {
+    ok: true,
+    items: data.items,
+    page: Number(data.page || 1),
+    limit: Number(data.limit || params.limit || 12),
+    total: Number(data.total || data.items.length)
+  };
 }
 
 export async function getPostBySlug(slug: string, lang: 'en' | 'ko', section: string): Promise<PostDetailResponse> {
   const query = new URLSearchParams({ lang, section });
-  return apiFetch<PostDetailResponse>(`/api/posts/${encodeURIComponent(slug)}?${query.toString()}`);
+  const data = await apiFetch<Partial<PostDetailResponse>>(`/api/posts/${encodeURIComponent(slug)}?${query.toString()}`);
+
+  if (!data.post || typeof data.post !== 'object') {
+    throw new Error('Invalid post response: post is missing');
+  }
+
+  return {
+    ok: true,
+    post: data.post as PostDetailResponse['post'],
+    tags: Array.isArray(data.tags) ? data.tags : [],
+    cover: (data.cover as PostDetailResponse['cover']) || null,
+    media: Array.isArray(data.media) ? data.media : []
+  };
 }
 
 export async function createPost(body: unknown): Promise<{ ok: true; id: number; slug: string }> {
