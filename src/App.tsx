@@ -462,6 +462,13 @@ function AppInner() {
     const onMessage = (event: MessageEvent) => {
       const payload = event.data as { type?: string; ok?: boolean; message?: string; redirectPath?: string };
       if (!payload || payload.type !== 'ub-admin-auth-success') return;
+
+      if (payload.ok === false) {
+        const message = payload.message || 'Authentication failed';
+        window.alert(`Admin login failed: ${message}`);
+        return;
+      }
+
       void refresh();
       if (payload.ok && payload.redirectPath && typeof payload.redirectPath === 'string') {
         navigate(payload.redirectPath, { replace: true });
