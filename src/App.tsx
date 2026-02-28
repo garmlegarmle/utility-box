@@ -475,8 +475,33 @@ function AppInner() {
   const requestAdmin = useCallback(() => {
     const redirectPath = `${location.pathname}${location.search}`;
     const authUrl = buildAuthUrl(redirectPath);
-    window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
-  }, [location.pathname, location.search]);
+    const popup = window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
+
+    if (!popup) {
+      window.alert('Popup was blocked. Please allow popups and try again.');
+      return;
+    }
+
+    let attempts = 0;
+    const timer = window.setInterval(async () => {
+      attempts += 1;
+
+      if (popup.closed || attempts >= 45) {
+        window.clearInterval(timer);
+      }
+
+      try {
+        const session = await getSession();
+        if (session.authenticated && session.isAdmin) {
+          window.clearInterval(timer);
+          await refresh();
+          if (!popup.closed) popup.close();
+        }
+      } catch {
+        // ignore polling errors and continue until timeout
+      }
+    }, 1000);
+  }, [location.pathname, location.search, refresh]);
 
   const openCreate = useCallback(
     (section: SiteSection, post?: PostItem) => {
