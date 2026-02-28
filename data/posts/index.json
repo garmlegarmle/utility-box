@@ -4,7 +4,7 @@
       "id": "test-p_mm5jwvsq25091d70f1c3",
       "title": "test",
       "lang": "ko",
-      "category": "blog",
+      "category": "tool",
       "tag": "test",
       "tags": [
         "test"
@@ -14,11 +14,11 @@
         "category": "blog",
         "tag": "test",
         "image": "",
-        "rank": "#24"
+        "rank": "24"
       },
       "views": 0,
       "createdAt": "2026-02-27T23:56:39.290Z",
-      "updatedAt": "2026-02-27T23:56:59.160Z",
+      "updatedAt": "2026-02-28T17:36:10.671Z",
       "imageCount": 0
     },
     {
