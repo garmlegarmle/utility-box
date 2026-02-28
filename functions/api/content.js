@@ -1,4 +1,4 @@
-import { getRepoFile, parseRepo, upsertRepoFile } from '../_lib/github.js';
+import { deleteRepoFile, getRepoFile, parseRepo, upsertRepoFile } from '../_lib/github.js';
 import { getAdminSession, jsonResponse } from '../_lib/session.js';
 
 function isAllowedPath(path) {
@@ -85,5 +85,41 @@ export async function onRequestPost(context) {
     });
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || 'Failed to save file' }, 500);
+  }
+}
+
+export async function onRequestDelete(context) {
+  try {
+    const session = await getAdminSession(context.request, context.env);
+    if (!session) {
+      return jsonResponse({ ok: false, error: 'Unauthorized' }, 401);
+    }
+
+    const payload = await context.request.json().catch(() => null);
+    const path = normalizePath(payload?.path);
+    const message = String(payload?.message || `Delete ${path}`).trim();
+
+    if (!isAllowedPath(path)) {
+      return jsonResponse({ ok: false, error: 'Invalid path' }, 400);
+    }
+
+    if (!message) {
+      return jsonResponse({ ok: false, error: 'Commit message is required' }, 400);
+    }
+
+    const { owner, repo, branch } = parseRepo(context.env);
+    const current = await getRepoFile(session.token, owner, repo, branch, path);
+    if (!current?.sha) {
+      return jsonResponse({ ok: false, error: 'File not found' }, 404);
+    }
+
+    const result = await deleteRepoFile(session.token, owner, repo, branch, path, message, current.sha);
+
+    return jsonResponse({
+      ok: true,
+      commit: result?.commit?.sha || null
+    });
+  } catch (error) {
+    return jsonResponse({ ok: false, error: error.message || 'Failed to delete file' }, 500);
   }
 }

@@ -466,7 +466,9 @@ function normalizeCard(input, defaults) {
   const category = String(source.category || defaults.category || '').trim() || defaults.category || 'Category';
   const tag = String(source.tag || defaults.tag || '').trim() || defaults.tag || 'Tag';
   const image = String(source.image || defaults.image || '').trim();
-  const rank = String(source.rank || defaults.rank || '').trim() || '#1';
+  const rankRaw = String(source.rank ?? defaults.rank ?? '').trim();
+  const rankMatch = rankRaw.match(/\d+/);
+  const rank = rankMatch ? String(Number.parseInt(rankMatch[0], 10)) : '';
   return { title, category, tag, image, rank };
 }
 
@@ -484,7 +486,7 @@ export function createPostPayload(input) {
     category,
     tag: tags[0],
     image: '',
-    rank: '#1'
+    rank: ''
   });
 
   return {
@@ -519,7 +521,7 @@ export function patchPostPayload(existing, patch) {
     category,
     tag: tags[0],
     image: existing.card?.image || '',
-    rank: existing.card?.rank || '#1'
+    rank: existing.card?.rank || ''
   });
 
   return {

@@ -96,6 +96,24 @@
     return data;
   }
 
+  async function apiDelete(url, body) {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify(body || {})
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || `Request failed: ${response.status}`);
+    }
+
+    return data;
+  }
+
   function ensureHost() {
     let host = document.querySelector('.admin-host');
     if (host) return host;
@@ -247,6 +265,35 @@
       .split(',')
       .map((tag) => tag.trim())
       .filter(Boolean);
+  }
+
+  function parseContentPath(path) {
+    const normalized = String(path || '').trim().replace(/^\/+/, '');
+    const match = normalized.match(/^src\/content\/(blog|tools|games|pages)\/(en|ko)\/([^/]+)\.(md|mdx)$/i);
+    if (!match) return null;
+    return {
+      collection: match[1],
+      lang: match[2],
+      slug: match[3]
+    };
+  }
+
+  async function deleteContentFile(path) {
+    if (!window.confirm('이 파일을 삭제하시겠습니까?')) return false;
+    await apiDelete('/api/content', {
+      path,
+      message: `Delete ${path}`
+    });
+    return true;
+  }
+
+  function redirectAfterDelete(path) {
+    const info = parseContentPath(path);
+    if (!info) {
+      window.location.reload();
+      return;
+    }
+    window.location.href = `/${info.lang}/${info.collection}/`;
   }
 
   function splitFrontmatter(content) {
@@ -577,6 +624,7 @@
         </label>
         ${renderEditorMarkup('rawBody', '내용을 작성해주세요.')}
         <div class="admin-actions">
+          <button type="button" class="admin-btn admin-btn--secondary" data-delete>Delete</button>
           <button type="button" class="admin-btn admin-btn--secondary" data-cancel>Cancel</button>
           <button type="button" class="admin-btn" data-save>Save</button>
         </div>
@@ -589,6 +637,17 @@
     attachMarkdownEditors(body);
 
     body.querySelector('[data-cancel]')?.addEventListener('click', closeModal);
+    body.querySelector('[data-delete]')?.addEventListener('click', async () => {
+      try {
+        const deleted = await deleteContentFile(file.path);
+        if (!deleted) return;
+        closeModal();
+        showToast('Deleted. The site will redeploy shortly.');
+        setTimeout(() => redirectAfterDelete(file.path), 400);
+      } catch (error) {
+        showToast(error.message || 'Delete failed', true);
+      }
+    });
     body.querySelector('[data-save]')?.addEventListener('click', async () => {
       const message = body.querySelector('input[name="message"]')?.value.trim() || `Edit ${file.path}`;
       const content = textarea?.value ?? '';
@@ -648,6 +707,7 @@
             <input class="admin-input" name="message" type="text" value="Edit ${escapeHtml(file.path)}" />
           </label>
           <div class="admin-actions">
+            <button type="button" class="admin-btn admin-btn--secondary" data-delete>Delete</button>
             <button type="button" class="admin-btn admin-btn--secondary" data-cancel>Cancel</button>
             <button type="button" class="admin-btn" data-save>Save</button>
           </div>
@@ -660,6 +720,17 @@
       attachMarkdownEditors(body);
 
       body.querySelector('[data-cancel]')?.addEventListener('click', closeModal);
+      body.querySelector('[data-delete]')?.addEventListener('click', async () => {
+        try {
+          const deleted = await deleteContentFile(file.path);
+          if (!deleted) return;
+          closeModal();
+          showToast('Deleted. The site will redeploy shortly.');
+          setTimeout(() => redirectAfterDelete(file.path), 400);
+        } catch (error) {
+          showToast(error.message || 'Delete failed', true);
+        }
+      });
       body.querySelector('[data-save]')?.addEventListener('click', async () => {
         const title = body.querySelector('input[name="title"]')?.value.trim() || meta.title || 'Untitled';
         const description =
@@ -850,7 +921,11 @@
           const detail = { category, opened: false };
           window.dispatchEvent(new CustomEvent('ub:edit-current-post', { detail }));
           if (!detail.opened) {
-            showToast('No editable post found on this page.', true);
+            if (route.collection && route.slug) {
+              openEditor(`src/content/${route.collection}/${route.lang}/${route.slug}`);
+            } else {
+              showToast('No editable post found on this page.', true);
+            }
           }
           return;
         }

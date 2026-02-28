@@ -27,6 +27,10 @@ const {
 
 const categoryText = (category ?? meta[0] ?? 'Category').trim();
 const tagText = (tag ?? meta[1] ?? 'Tag').trim();
+const rankText = String(rankLabel || '#1').trim() || '#1';
+const rankDigits = rankText.replace(/\D/g, '').length;
+const titleClass = title.length >= 18 ? 'entry-card__title entry-card__title--compact' : 'entry-card__title';
+const rankClass = rankDigits >= 3 || rankText.length >= 4 ? 'entry-card__rank entry-card__rank--compact' : 'entry-card__rank';
 ---
 <article class="entry-card">
   <a class="entry-card__link" href={href}>
@@ -43,8 +47,8 @@ const tagText = (tag ?? meta[1] ?? 'Tag').trim();
         <span>{tagText}</span>
       </p>
       <p class="entry-card__title-row">
-        <span class="entry-card__title">{title}</span>
-        <span class="entry-card__rank">{rankLabel}</span>
+        <span class={titleClass}>{title}</span>
+        <span class={rankClass}>{rankText}</span>
       </p>
     </div>
   </a>

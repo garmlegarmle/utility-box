@@ -9,6 +9,7 @@
   };
   const routeCategory = routeCategoryMap[section] || '';
   const pageCategory = segments.length === 2 ? routeCategory : '';
+  const isCollectionDetailRoute = Boolean(routeCategory && segments.length >= 3);
   const pageLang = lang === 'ko' ? 'ko' : 'en';
 
   const boardRoot = document.querySelector('[data-notice-board]');
@@ -53,7 +54,7 @@
       cardCategory: '카드 카테고리',
       cardTag: '카드 태그',
       cardImage: '카드 이미지 URL (선택)',
-      cardRank: '카드 순위 라벨',
+      cardRank: '포스트 번호',
       imageTools: '이미지 편집',
       imageWidth: '크기',
       imageAlign: '정렬',
@@ -102,7 +103,7 @@
       cardCategory: 'Card category',
       cardTag: 'Card tag',
       cardImage: 'Card image URL (optional)',
-      cardRank: 'Card rank label',
+      cardRank: 'Post number',
       imageTools: 'Image tools',
       imageWidth: 'Size',
       imageAlign: 'Align',
@@ -149,6 +150,29 @@
 
   function toEditorLangValue(value) {
     return normalizePostLang(value, pageLang) === 'ko' ? 'kr' : 'en';
+  }
+
+  function parsePostNumber(value) {
+    const raw = String(value || '').trim();
+    const matched = raw.match(/\d+/);
+    if (!matched) return null;
+    const num = Number.parseInt(matched[0], 10);
+    if (!Number.isFinite(num) || num <= 0) return null;
+    return num;
+  }
+
+  function sortPostsByNumber(posts) {
+    return [...posts].sort((a, b) => {
+      const left = parsePostNumber(a?.card?.rank);
+      const right = parsePostNumber(b?.card?.rank);
+      if (left !== null && right !== null) return left - right;
+      if (left !== null) return -1;
+      if (right !== null) return 1;
+
+      const leftTime = new Date(a?.updatedAt || a?.createdAt || 0).getTime();
+      const rightTime = new Date(b?.updatedAt || b?.createdAt || 0).getTime();
+      return rightTime - leftTime;
+    });
   }
 
   function escapeHtml(value) {
@@ -258,12 +282,27 @@
 
   function getCardData(post, index) {
     const tags = getPostTags(post);
+    const postNumber = parsePostNumber(post?.card?.rank);
+    const rankText = postNumber !== null ? `#${postNumber}` : `#${index + 1}`;
     return {
       title: String(post?.card?.title || post?.title || '').trim() || 'Untitled',
       category: String(post?.card?.category || post?.category || 'Category').trim() || 'Category',
       tag: String(post?.card?.tag || tags[0] || 'Tag').trim() || 'Tag',
-      rank: String(post?.card?.rank || `#${index + 1}`).trim() || `#${index + 1}`
+      postNumber,
+      rank: rankText
     };
+  }
+
+  function getPostDescription(post) {
+    const explicit = String(post?.description || '').trim();
+    if (explicit) return explicit;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = post?.body || '';
+    const text = String(wrapper.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!text) return '';
+    return text.length > 90 ? `${text.slice(0, 90)}...` : text;
   }
 
   async function fetchSession() {
@@ -355,6 +394,64 @@
     `;
   }
 
+  function buildDetailPageLikeHtml(post, includeActions) {
+    const images = Array.isArray(post.images) ? post.images : [];
+    const tags = getPostTags(post);
+    const leadTag = tags[0] || post.category || 'tag';
+    const description = getPostDescription(post);
+    const previewImage = getPreviewImage(post);
+
+    return `
+      <article class="page-section">
+        <div class="container detail-layout">
+          <header class="detail-layout__head">
+            <p class="detail-layout__tag">${escapeHtml(leadTag)}</p>
+            <div class="detail-layout__title-row">
+              <h1>${escapeHtml(post.title)}</h1>
+              ${
+                includeActions
+                  ? `<div class="notice-detail__actions">
+                      <button type="button" class="admin-btn" data-action="edit">${labels.edit}</button>
+                      <button type="button" class="admin-btn admin-btn--secondary" data-action="delete">${labels.remove}</button>
+                    </div>`
+                  : ''
+              }
+            </div>
+            ${description ? `<p class="list-tags">${escapeHtml(description)}</p>` : ''}
+          </header>
+
+          <section class="detail-program" aria-label="Runtime post hero">
+            ${
+              previewImage
+                ? `<img src="${escapeHtml(previewImage)}" alt="${escapeHtml(post.title)}" loading="lazy" decoding="async" />`
+                : '<div class="detail-program__placeholder">이미지 혹은 숫자</div>'
+            }
+          </section>
+
+          <section class="detail-layout__content content-prose" data-role="detail-body"></section>
+
+          ${
+            images.length > 0
+              ? `<section class="notice-detail__images">
+                  <h3>${labels.images}</h3>
+                  <div class="notice-image-grid">
+                    ${images
+                      .map(
+                        (img) =>
+                          `<img src="/posts/${post.id}/images/${img.id}" alt="${escapeHtml(
+                            img.name || 'image'
+                          )}" loading="lazy" decoding="async" />`
+                      )
+                      .join('')}
+                  </div>
+                </section>`
+              : ''
+          }
+        </div>
+      </article>
+    `;
+  }
+
   function renderList() {
     if (!hasBoard || !listEl || !listStateEl) return;
 
@@ -431,6 +528,10 @@
   function createRuntimeCard(post, index) {
     const previewImage = getPreviewImage(post);
     const cardData = getCardData(post, index);
+    const titleClass = cardData.title.length >= 18 ? 'entry-card__title entry-card__title--compact' : 'entry-card__title';
+    const rankClass = (cardData.postNumber !== null && cardData.postNumber >= 100) || cardData.rank.length >= 4
+      ? 'entry-card__rank entry-card__rank--compact'
+      : 'entry-card__rank';
 
     const card = document.createElement('article');
     card.className = 'entry-card runtime-post-card';
@@ -450,8 +551,8 @@
             <span>${escapeHtml(cardData.tag)}</span>
           </p>
           <p class="entry-card__title-row">
-            <span class="entry-card__title">${escapeHtml(cardData.title)}</span>
-            <span class="entry-card__rank">${escapeHtml(cardData.rank)}</span>
+            <span class="${titleClass}">${escapeHtml(cardData.title)}</span>
+            <span class="${rankClass}">${escapeHtml(cardData.rank)}</span>
           </p>
         </div>
       </a>
@@ -484,9 +585,9 @@
 
     if (hasFeed && listingGrid) {
       listingGrid.querySelectorAll('[data-runtime-post="1"]').forEach((node) => node.remove());
-      const posts = pageCategory
-        ? state.posts.filter((post) => normalizeCategory(post.category) === pageCategory)
-        : state.posts;
+      const posts = sortPostsByNumber(
+        pageCategory ? state.posts.filter((post) => normalizeCategory(post.category) === pageCategory) : state.posts
+      );
       if (posts.length > 0) {
         const fragment = document.createDocumentFragment();
         posts.forEach((post, index) => {
@@ -509,7 +610,9 @@
     ['blog', 'tool', 'game'].forEach((category) => {
       const track = map[category];
       if (!track) return;
-      const posts = state.posts.filter((post) => normalizeCategory(post.category) === category).slice(0, 8);
+      const posts = sortPostsByNumber(
+        state.posts.filter((post) => normalizeCategory(post.category) === category)
+      ).slice(0, 8);
       if (posts.length === 0) return;
 
       const fragment = document.createDocumentFragment();
@@ -522,6 +625,8 @@
 
   async function openPostModal(postId, openEditDirectly = false) {
     const modal = createOverlay(labels.detailTitle);
+    const panel = modal.body.closest('.admin-modal__panel');
+    panel?.classList.add('admin-modal__panel--viewer');
     modal.body.innerHTML = `<p class="notice-board__state">${labels.loading}</p>`;
 
     try {
@@ -536,7 +641,7 @@
         return;
       }
 
-      modal.body.innerHTML = buildDetailHtml(post, state.isAdmin);
+      modal.body.innerHTML = buildDetailPageLikeHtml(post, state.isAdmin);
       const bodyEl = modal.body.querySelector('[data-role="detail-body"]');
       if (bodyEl) {
         bodyEl.innerHTML = normalizeBodyHtmlAssets(post.body || '');
@@ -905,12 +1010,13 @@
   }
 
   function makeCardDraft(post, title, category, tags) {
+    const number = parsePostNumber(post?.card?.rank);
     return {
       title: String(post?.card?.title || title || '').trim(),
       category: String(post?.card?.category || category || '').trim(),
       tag: String(post?.card?.tag || tags?.[0] || '').trim(),
       image: String(post?.card?.image || '').trim(),
-      rank: String(post?.card?.rank || '#1').trim() || '#1'
+      rank: String(number || '').trim()
     };
   }
 
@@ -936,7 +1042,7 @@
         </label>
         <label class="admin-field">
           <span>${labels.cardRank}</span>
-          <input class="admin-input" name="cardRank" type="text" value="${escapeHtml(cardDraft.rank)}" />
+          <input class="admin-input" name="cardRank" type="number" min="1" step="1" value="${escapeHtml(cardDraft.rank)}" />
         </label>
         <div class="admin-actions">
           <button type="button" class="admin-btn admin-btn--secondary" data-action="cancel">${labels.cancel}</button>
@@ -947,13 +1053,14 @@
 
     modal.body.querySelector('[data-action="cancel"]')?.addEventListener('click', modal.close);
     modal.body.querySelector('[data-action="save"]')?.addEventListener('click', () => {
+      const parsedNumber = parsePostNumber(modal.body.querySelector('input[name="cardRank"]')?.value.trim() || '');
       const next = {
         title: modal.body.querySelector('input[name="cardTitle"]')?.value.trim() || cardDraft.title || 'Untitled',
         category:
           modal.body.querySelector('input[name="cardCategory"]')?.value.trim() || cardDraft.category || 'Category',
         tag: modal.body.querySelector('input[name="cardTag"]')?.value.trim() || cardDraft.tag || 'Tag',
         image: modal.body.querySelector('input[name="cardImage"]')?.value.trim() || '',
-        rank: modal.body.querySelector('input[name="cardRank"]')?.value.trim() || cardDraft.rank || '#1'
+        rank: parsedNumber !== null ? String(parsedNumber) : ''
       };
       onSave(next);
       modal.close();
@@ -1027,7 +1134,7 @@
     formData.append('cardCategory', cardState?.category || category);
     formData.append('cardTag', cardState?.tag || tags[0]);
     formData.append('cardImage', cardState?.image || '');
-    formData.append('cardRank', cardState?.rank || '#1');
+    formData.append('cardRank', cardState?.rank || '');
 
     if (mode === 'edit') {
       gatherKeptImages(formRoot).forEach((id) => formData.append('keepImageIds', id));
@@ -1289,6 +1396,10 @@
         await fetchSession();
       }
       if (!state.isAdmin) return;
+
+      if (isCollectionDetailRoute && !hasBoard) {
+        return;
+      }
 
       const detail = event?.detail || {};
       const categoryRaw = String(detail.category || routeCategory || '').trim().toLowerCase();
