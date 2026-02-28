@@ -25,6 +25,41 @@ interface EditorState {
   defaultSection: SiteSection;
 }
 
+function renderTitleWithHiddenLoginTrigger(
+  title: string,
+  enabled: boolean,
+  onTrigger: () => void
+): React.ReactNode {
+  if (!enabled) return title;
+
+  const chars = [...title];
+  let injected = false;
+
+  return chars.map((char, index) => {
+    if (!injected && /o/i.test(char)) {
+      injected = true;
+      return (
+        <button
+          key={`hidden-login-${index}`}
+          type="button"
+          className="hidden-admin-letter"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onTrigger();
+          }}
+          tabIndex={-1}
+          aria-label="Admin login"
+        >
+          {char}
+        </button>
+      );
+    }
+
+    return <span key={`title-char-${index}`}>{char}</span>;
+  });
+}
+
 function useAdminSession() {
   const [state, setState] = useState<AdminState>({ loading: true, isAdmin: false, username: null });
 
@@ -352,6 +387,8 @@ function DetailPage({
   }, [post?.content_md]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
+  const enableHiddenPolicyLogin =
+    section === 'pages' && lang === 'en' && slug === 'privacy-policy' && !admin.isAdmin;
 
   if (!isValidSection || !section) return <Navigate to={`/${lang}/`} replace />;
 
@@ -366,7 +403,9 @@ function DetailPage({
               <header className="detail-layout__head">
                 <p className="detail-layout__tag">{Array.isArray(post.tags) && post.tags[0] ? post.tags[0] : 'tag'}</p>
                 <div className="detail-layout__title-row">
-                  <h1>{post.title}</h1>
+                  <h1>
+                    {renderTitleWithHiddenLoginTrigger(post.title, enableHiddenPolicyLogin, requestAdmin)}
+                  </h1>
                 </div>
                 {post.excerpt ? <p className="list-tags">{post.excerpt}</p> : null}
               </header>

@@ -10,7 +10,7 @@ GITHUB_OAUTH_SCOPE = "read:user"
 [[d1_databases]]
 binding = "DB"
 database_name = "utility-box-db"
-database_id = "REPLACE_WITH_REAL_DATABASE_ID"
+database_id = "1debc688-2f90-4671-9574-de8520e5104e"
 
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
