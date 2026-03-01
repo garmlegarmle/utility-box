@@ -34,8 +34,11 @@ async function parseJson(response: Response): Promise<{ data: unknown; nonJsonTe
 async function performRequest(url: string, init?: RequestInit): Promise<{ response: Response; data: unknown; nonJsonText?: string }> {
   const response = await fetch(url, {
     credentials: 'include',
+    cache: 'no-store',
     ...init,
     headers: {
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
       ...(init?.headers || {})
     }
   });

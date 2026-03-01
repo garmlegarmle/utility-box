@@ -9,8 +9,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:worker\"",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "tsc -b",
-    "import:legacy": "node scripts/import-legacy-mdx.mjs"
+    "check": "tsc -b"
   },
   "dependencies": {
     "dompurify": "^3.2.6",

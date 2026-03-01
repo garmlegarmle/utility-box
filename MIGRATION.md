@@ -10,8 +10,7 @@ to:
 - Cloudflare D1 for posts/tags/media metadata
 - Cloudflare R2 for uploaded files
 
-Legacy Astro code is preserved at:
-- `legacy/astro-20260228/`
+Legacy Astro code has been removed from the runtime repository.
 
 ## What Stays
 - Existing route shape:
