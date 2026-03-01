@@ -68,7 +68,8 @@ export async function handleAuthStart(request: Request, env: Env): Promise<Respo
   const state = randomState();
   const statePayload = encodeStateCookie({ state, redirectPath, targetOrigin });
 
-  const redirectUri = `${url.origin}/api/callback`;
+  const redirectOrigin = targetOrigin !== '*' ? targetOrigin : `${url.protocol}//${url.host}`;
+  const redirectUri = `${redirectOrigin}/api/callback`;
   const authUrl = new URL(GH_AUTHORIZE_URL);
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('redirect_uri', redirectUri);
@@ -128,7 +129,8 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
     });
   }
 
-  const redirectUri = `${url.origin}/api/callback`;
+  const callbackOrigin = stateCookie?.targetOrigin && stateCookie.targetOrigin !== '*' ? stateCookie.targetOrigin : `${url.protocol}//${url.host}`;
+  const redirectUri = `${callbackOrigin}/api/callback`;
 
   const tokenResponse = await fetch(GH_TOKEN_URL, {
     method: 'POST',

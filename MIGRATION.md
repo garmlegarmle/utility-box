@@ -86,6 +86,7 @@ wrangler deploy
 - Build command: `npm ci && npm run build`
 - Build output directory: `dist`
 - Leave `VITE_API_BASE` unset for production (frontend uses same-origin `/api/*`).
+- Pages Functions proxies `/api/*` to `https://api.utility-box.org` via `functions/api/[[path]].js`.
 
 ## Local Development
 

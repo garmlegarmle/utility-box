@@ -24,7 +24,7 @@ The app does not read runtime content from MDX/JSON files at runtime.
 Frontend (`.env`):
 - `VITE_API_BASE=http://127.0.0.1:8787`
 
-Production frontend should call same-origin `/api/*`.
+Production frontend calls same-origin `/api/*`, proxied by Pages Function (`functions/api/[[path]].js`) to `https://api.utility-box.org`.
 
 Worker secrets/vars are configured with Wrangler:
 - `ADMIN_TOKEN`
@@ -51,6 +51,9 @@ Pages settings:
 - Build command: `npm ci && npm run build`
 - Output directory: `dist`
 - Production env vars: `VITE_API_BASE` is not required (leave unset).
+
+Host canonicalization:
+- Pages middleware (`functions/_middleware.js`) redirects `utility-box.org` and `utility-box.pages.dev` to `https://www.utility-box.org` (301).
 
 More detail: see `MIGRATION.md`.
 
