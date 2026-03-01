@@ -36,6 +36,40 @@ interface PostWritePayload {
   };
 }
 
+const LEGACY_BLOCKED_KEYS = new Set<string>([
+  'blog|en|a',
+  'blog|en|dsfasfda',
+  'blog|en|test',
+  'blog|en|hanvaunboja',
+  'blog|en|editorial-grid-cms-workflow',
+  'blog|en|rebuilding-with-astro-mdx-decap',
+  'blog|ko|editorial-grid-cms-workflow',
+  'blog|ko|rebuilding-with-astro-mdx-decap',
+  'tools|en|a',
+  'tools|en|hello',
+  'tools|en|regex-playground',
+  'tools|en|compound-interest-calculator',
+  'tools|ko|regex-playground',
+  'games|en|reaction-timer',
+  'games|en|word-grid',
+  'games|ko|reaction-timer',
+  'games|ko|word-grid'
+]);
+
+const LEGACY_BLOCKED_TITLES = new Set<string>([
+  'Building an Editorial Grid Workflow with MDX + CMS',
+  'Rebuilding Utility Box with Astro, MDX, and Decap CMS',
+  'Astro, MDX, Decap CMS로 Utility Box 재구성하기',
+  '복리 계산기',
+  'hanvaunboja'
+]);
+
+function isLegacyBlockedPost(row: Pick<PostRecord, 'section' | 'lang' | 'slug' | 'title'>): boolean {
+  const key = `${row.section}|${row.lang}|${row.slug}`;
+  if (LEGACY_BLOCKED_KEYS.has(key)) return true;
+  return LEGACY_BLOCKED_TITLES.has(String(row.title || '').trim());
+}
+
 function resolveStatusFilter(requested: string | null, isAdmin: boolean): 'published' | 'draft' | 'all' {
   const normalized = String(requested || '').trim().toLowerCase();
   if (isAdmin && normalized === 'all') return 'all';
@@ -169,6 +203,7 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
 
   const items = [];
   for (const row of rows.results || []) {
+    if (isLegacyBlockedPost(row)) continue;
     const tags = await getPostTags(env, row.id);
     items.push(mapPostRow(row, tags, env, request));
   }
@@ -216,6 +251,7 @@ async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promi
     .first<PostRecord>();
 
   if (!row) return error(404, 'Post not found');
+  if (isLegacyBlockedPost(row)) return error(404, 'Post not found');
 
   const tags = await getPostTags(env, row.id);
 
