@@ -63,19 +63,13 @@ export function parseCookie(request: Request, key: string): string {
   return match ? decodeURIComponent(match.slice(key.length + 1)) : '';
 }
 
-function cookieDomainPart(env: Env): string {
-  const domain = String(env.COOKIE_DOMAIN || '').trim();
-  return domain ? `; Domain=${domain}` : '';
+export function makeSetCookie(name: string, value: string, maxAge: number, _env: Env): string {
+  // Use host-only cookies to avoid domain mismatch across www/apex/api hosts.
+  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 }
 
-export function makeSetCookie(name: string, value: string, maxAge: number, env: Env): string {
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}${cookieDomainPart(
-    env
-  )}`;
-}
-
-export function makeClearCookie(name: string, env: Env): string {
-  return `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0${cookieDomainPart(env)}`;
+export function makeClearCookie(name: string, _env: Env): string {
+  return `${name}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
 export function randomState(length = 32): string {

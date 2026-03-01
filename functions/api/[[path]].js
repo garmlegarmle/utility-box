@@ -27,9 +27,19 @@ export async function onRequest(context) {
   const responseHeaders = new Headers(upstreamResponse.headers);
   responseHeaders.set('Cache-Control', 'no-store');
 
-  return new Response(upstreamResponse.body, {
+  const proxied = new Response(upstreamResponse.body, {
     status: upstreamResponse.status,
     statusText: upstreamResponse.statusText,
     headers: responseHeaders
   });
+
+  // Preserve multiple Set-Cookie headers when available.
+  if (typeof upstreamResponse.headers.getSetCookie === 'function') {
+    proxied.headers.delete('Set-Cookie');
+    for (const cookie of upstreamResponse.headers.getSetCookie()) {
+      proxied.headers.append('Set-Cookie', cookie);
+    }
+  }
+
+  return proxied;
 }
