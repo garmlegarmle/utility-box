@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPost, deletePost, updatePost, uploadMedia } from '../lib/api';
-import type { PostItem, SiteLang, SiteSection } from '../types';
+import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from '../types';
 
 interface PostEditorModalProps {
   open: boolean;
@@ -9,9 +9,11 @@ interface PostEditorModalProps {
   defaultLang: SiteLang;
   defaultSection: SiteSection;
   onClose: () => void;
-  onSaved: (postId: number) => void;
+  onSaved: (snapshot: PostSaveSnapshot) => void;
   onDeleted?: () => void;
 }
+
+const RESIZE_EDGE_THRESHOLD = 14;
 
 function slugify(value: string): string {
   return String(value || '')
@@ -27,6 +29,24 @@ function stripRank(value: string | null | undefined): string {
   if (!value) return '';
   const match = String(value).match(/\d+/);
   return match ? match[0] : '';
+}
+
+function parseRankNumber(value: string): number | null {
+  const match = String(value || '').match(/\d+/);
+  if (!match) return null;
+  const n = Number.parseInt(match[0], 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function parseTags(value: string): string[] {
+  const map = new Map<string, string>();
+  for (const raw of String(value || '').split(',')) {
+    const clean = raw.trim();
+    if (!clean) continue;
+    const key = clean.toLowerCase();
+    if (!map.has(key)) map.set(key, clean);
+  }
+  return [...map.values()];
 }
 
 function escapeHtml(input: string): string {
@@ -94,6 +114,19 @@ function applyImageAlignment(image: HTMLImageElement, align: 'left' | 'center' |
   }
 }
 
+function isNearRightEdge(image: HTMLImageElement, clientX: number): boolean {
+  const rect = image.getBoundingClientRect();
+  return clientX >= rect.right - RESIZE_EDGE_THRESHOLD && clientX <= rect.right + 2;
+}
+
+function clearEdgeHoverStyles(editor: HTMLDivElement | null) {
+  if (!editor) return;
+  editor.style.cursor = '';
+  editor
+    .querySelectorAll('img.editor-inline-image.is-edge-hover')
+    .forEach((node) => node.classList.remove('is-edge-hover'));
+}
+
 export function PostEditorModal({
   open,
   mode,
@@ -117,9 +150,6 @@ export function PostEditorModal({
   const [cardRank, setCardRank] = useState(stripRank(initialPost?.card.rank));
   const [cardImageId, setCardImageId] = useState<number | null>(initialPost?.card.imageId ?? null);
   const [cardImageUrl, setCardImageUrl] = useState(initialPost?.card.imageUrl || '');
-
-  const [coverImageId, setCoverImageId] = useState<number | null>(initialPost?.cover?.id ?? null);
-  const [coverImageUrl, setCoverImageUrl] = useState(initialPost?.cover?.url || '');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -152,15 +182,15 @@ export function PostEditorModal({
     setCardImageId(initialPost?.card.imageId ?? null);
     setCardImageUrl(initialPost?.card.imageUrl || '');
 
-    setCoverImageId(initialPost?.cover?.id ?? null);
-    setCoverImageUrl(initialPost?.cover?.url || '');
     selectedImageRef.current = null;
+    resizeStateRef.current = null;
     setError('');
     setLoading(false);
 
     requestAnimationFrame(() => {
       if (editorRef.current) {
         editorRef.current.innerHTML = nextHtml;
+        clearEdgeHoverStyles(editorRef.current);
       }
     });
   }, [defaultLang, defaultSection, initialPost, open]);
@@ -183,16 +213,17 @@ export function PostEditorModal({
       if (!resizeStateRef.current) return;
       resizeStateRef.current = null;
       document.body.classList.remove('is-resizing-editor-image');
-      syncEditorHtml();
     };
 
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
+
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       document.body.classList.remove('is-resizing-editor-image');
       resizeStateRef.current = null;
+      clearEdgeHoverStyles(editorRef.current);
     };
   }, [open]);
 
@@ -209,7 +240,6 @@ export function PostEditorModal({
   function exec(command: string, value?: string) {
     focusEditor();
     document.execCommand(command, false, value || '');
-    syncEditorHtml();
   }
 
   function insertNodeAtCursor(node: Node) {
@@ -219,7 +249,6 @@ export function PostEditorModal({
     if (!selection || selection.rangeCount === 0) {
       editorRef.current?.appendChild(node);
       moveCaretAfter(node);
-      syncEditorHtml();
       return;
     }
 
@@ -227,7 +256,6 @@ export function PostEditorModal({
     range.deleteContents();
     range.insertNode(node);
     moveCaretAfter(node);
-    syncEditorHtml();
   }
 
   function setSelectedImageFromEvent(target: EventTarget | null) {
@@ -240,20 +268,35 @@ export function PostEditorModal({
     selectedImageRef.current = image;
   }
 
+  function handleEditorMouseMove(event: ReactMouseEvent<HTMLDivElement>) {
+    if (resizeStateRef.current) return;
+
+    const editor = editorRef.current;
+    const target = event.target as HTMLElement | null;
+
+    if (target instanceof HTMLImageElement && target.classList.contains('editor-inline-image')) {
+      const nearEdge = isNearRightEdge(target, event.clientX);
+      target.classList.toggle('is-edge-hover', nearEdge);
+
+      if (editor) {
+        editor.style.cursor = nearEdge ? 'ew-resize' : '';
+      }
+      return;
+    }
+
+    clearEdgeHoverStyles(editor);
+  }
+
   function startImageResize(event: ReactMouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement | null;
     if (!(target instanceof HTMLImageElement)) return;
     if (!target.classList.contains('editor-inline-image')) return;
-
-    const rect = target.getBoundingClientRect();
-    const edgeThreshold = 14;
-    const nearRightEdge = event.clientX >= rect.right - edgeThreshold;
-    if (!nearRightEdge) return;
+    if (!isNearRightEdge(target, event.clientX)) return;
 
     resizeStateRef.current = {
       image: target,
       startX: event.clientX,
-      startWidth: rect.width
+      startWidth: target.getBoundingClientRect().width
     };
 
     selectedImageRef.current = target;
@@ -265,7 +308,6 @@ export function PostEditorModal({
     const image = selectedImageRef.current;
     if (!image) return;
     applyImageAlignment(image, align);
-    syncEditorHtml();
   }
 
   function deleteSelectedImage() {
@@ -273,7 +315,6 @@ export function PostEditorModal({
     if (!image) return;
     image.remove();
     selectedImageRef.current = null;
-    syncEditorHtml();
   }
 
   async function uploadAndInsertBodyImage(file: File) {
@@ -298,7 +339,6 @@ export function PostEditorModal({
       insertNodeAtCursor(paragraph);
 
       selectedImageRef.current = image;
-      syncEditorHtml();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed');
     } finally {
@@ -321,21 +361,6 @@ export function PostEditorModal({
     }
   }
 
-  async function uploadCoverImage(file: File) {
-    setLoading(true);
-    setError('');
-
-    try {
-      const result = await uploadMedia(file);
-      setCoverImageId(result.mediaId);
-      setCoverImageUrl(result.urls.original);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cover image upload failed');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleSave() {
     setError('');
 
@@ -348,24 +373,45 @@ export function PostEditorModal({
       return;
     }
 
+    const parsedTags = parseTags(tagsInput);
+    const normalizedExcerpt = excerpt.trim() || null;
+    const rankNumber = parseRankNumber(cardRank.trim());
+
+    const snapshot: PostSaveSnapshot = {
+      id: initialPost?.id || 0,
+      slug: normalizedSlug,
+      title: normalizedTitle,
+      excerpt: normalizedExcerpt,
+      status: 'published',
+      lang,
+      section,
+      updated_at: new Date().toISOString(),
+      tags: parsedTags,
+      card: {
+        title: cardTitle.trim() || normalizedTitle,
+        category: cardCategory.trim() || section,
+        tag: cardTag.trim() || parsedTags[0] || 'Tag',
+        rank: rankNumber ? `#${rankNumber}` : null,
+        rankNumber,
+        imageId: cardImageId,
+        imageUrl: cardImageUrl || null
+      }
+    };
+
     const payload = {
       slug: normalizedSlug,
       title: normalizedTitle,
-      excerpt: excerpt.trim(),
+      excerpt: normalizedExcerpt || '',
       content_md: html,
       status: 'published' as const,
       lang,
       section,
-      cover_image_id: coverImageId,
-      tags: tagsInput
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean),
+      tags: parsedTags,
       card: {
-        title: cardTitle.trim() || normalizedTitle,
-        category: cardCategory.trim() || section,
-        tag: cardTag.trim(),
-        rank: cardRank.trim(),
+        title: snapshot.card.title,
+        category: snapshot.card.category,
+        tag: snapshot.card.tag,
+        rank: rankNumber ? String(rankNumber) : '',
         image_id: cardImageId
       }
     };
@@ -374,10 +420,17 @@ export function PostEditorModal({
     try {
       if (mode === 'create') {
         const result = await createPost(payload);
-        onSaved(result.id);
+        onSaved({ ...snapshot, id: result.id, slug: result.slug || snapshot.slug });
       } else if (initialPost?.id) {
-        await updatePost(initialPost.id, payload);
-        onSaved(initialPost.id);
+        const result = await updatePost(initialPost.id, payload);
+        onSaved({
+          ...snapshot,
+          id: result.id,
+          slug: result.slug || snapshot.slug,
+          lang: (result.lang as SiteLang) || snapshot.lang,
+          section: (result.section as SiteSection) || snapshot.section,
+          updated_at: result.updated_at || snapshot.updated_at
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save post');
@@ -500,25 +553,6 @@ export function PostEditorModal({
             </div>
 
             <div className="admin-card-settings">
-              <h3>Cover Image</h3>
-              <div className="admin-inline-grid">
-                <label>
-                  Cover Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (file) await uploadCoverImage(file);
-                      event.currentTarget.value = '';
-                    }}
-                  />
-                </label>
-                {coverImageUrl ? <img className="admin-preview-image" src={coverImageUrl} alt="Cover preview" /> : null}
-              </div>
-            </div>
-
-            <div className="admin-card-settings">
               <h3>Body</h3>
 
               <div className="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
@@ -585,6 +619,8 @@ export function PostEditorModal({
                 onClick={(event) => {
                   setSelectedImageFromEvent(event.target);
                 }}
+                onMouseMove={handleEditorMouseMove}
+                onMouseLeave={() => clearEdgeHoverStyles(editorRef.current)}
                 onMouseDown={startImageResize}
               />
 

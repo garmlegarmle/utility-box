@@ -1469,6 +1469,7 @@ body.is-resizing-editor-image {
   font-size: 15px;
   line-height: 1.6;
   outline: none;
+  cursor: text;
 }
 
 .editor-surface:focus {
@@ -1485,6 +1486,10 @@ body.is-resizing-editor-image {
   border: 1px solid var(--border);
   margin-top: 8px;
   margin-bottom: 8px;
+}
+
+.editor-surface img.editor-inline-image.is-edge-hover {
+  cursor: ew-resize;
 }
 
 .editor-image-tools {

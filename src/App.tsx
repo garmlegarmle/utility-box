@@ -9,7 +9,7 @@ import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { buildAuthUrl, getPostBySlug, getSession, listPosts, logout } from './lib/api';
 import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel } from './lib/site';
-import type { PostItem, SiteLang, SiteSection } from './types';
+import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from './types';
 
 interface AdminState {
   loading: boolean;
@@ -23,6 +23,44 @@ interface EditorState {
   initialPost: PostItem | null;
   defaultLang: SiteLang;
   defaultSection: SiteSection;
+}
+
+function toPostItem(snapshot: PostSaveSnapshot, existing?: PostItem): PostItem {
+  return {
+    id: snapshot.id,
+    slug: snapshot.slug,
+    title: snapshot.title,
+    excerpt: snapshot.excerpt,
+    content_md: existing?.content_md || '',
+    status: snapshot.status,
+    published_at: snapshot.status === 'published' ? existing?.published_at || snapshot.updated_at : null,
+    created_at: existing?.created_at || snapshot.updated_at,
+    updated_at: snapshot.updated_at,
+    lang: snapshot.lang,
+    section: snapshot.section,
+    pair_slug: existing?.pair_slug || null,
+    view_count: existing?.view_count || 0,
+    tags: snapshot.tags,
+    cover: existing?.cover || null,
+    card: snapshot.card
+  };
+}
+
+function upsertPost(list: PostItem[], snapshot: PostSaveSnapshot, maxItems?: number): PostItem[] {
+  const index = list.findIndex((post) => post.id === snapshot.id);
+  let next: PostItem[];
+
+  if (index >= 0) {
+    next = [...list];
+    next[index] = toPostItem(snapshot, list[index]);
+  } else {
+    next = [toPostItem(snapshot), ...list];
+  }
+
+  if (typeof maxItems === 'number' && maxItems > 0) {
+    return next.slice(0, maxItems);
+  }
+  return next;
 }
 
 function renderTitleWithHiddenLoginTrigger(
@@ -110,12 +148,14 @@ function HomePage({
   admin,
   requestAdmin,
   openCreate,
-  refreshKey
+  refreshKey,
+  savedPost
 }: {
   admin: AdminState;
   requestAdmin: () => void;
   openCreate: (section: SiteSection, post?: PostItem) => void;
   refreshKey: number;
+  savedPost: PostSaveSnapshot | null;
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
@@ -130,7 +170,7 @@ function HomePage({
     async function load() {
       setError('');
       try {
-        const status = 'all';
+        const status = admin.isAdmin ? 'all' : 'published';
         const [blog, tools, games] = await Promise.all([
           listPosts({ lang, section: 'blog', status, limit: 12 }),
           listPosts({ lang, section: 'tools', status, limit: 12 }),
@@ -155,6 +195,20 @@ function HomePage({
       canceled = true;
     };
   }, [admin.isAdmin, lang, refreshKey]);
+
+  useEffect(() => {
+    if (!savedPost) return;
+    if (savedPost.lang !== lang) return;
+    if (savedPost.status !== 'published') return;
+
+    if (savedPost.section === 'blog') {
+      setBlogPosts((prev) => upsertPost(prev, savedPost, 12));
+    } else if (savedPost.section === 'tools') {
+      setToolPosts((prev) => upsertPost(prev, savedPost, 12));
+    } else if (savedPost.section === 'games') {
+      setGamePosts((prev) => upsertPost(prev, savedPost, 12));
+    }
+  }, [lang, savedPost]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
@@ -216,15 +270,17 @@ function HomePage({
         </section>
       ) : null}
 
-      <AdminDock
-        showLogin={showLogin}
-        isAdmin={admin.isAdmin}
-        onLogin={requestAdmin}
-        onLogout={() => {
-          void logout().then(() => window.location.reload());
-        }}
-        onWrite={() => openCreate('blog')}
-      />
+      {!admin.loading ? (
+        <AdminDock
+          showLogin={showLogin}
+          isAdmin={admin.isAdmin}
+          onLogin={requestAdmin}
+          onLogout={() => {
+            void logout().then(() => window.location.reload());
+          }}
+          onWrite={() => openCreate('blog')}
+        />
+      ) : null}
     </SiteShell>
   );
 }
@@ -233,12 +289,14 @@ function SectionListPage({
   admin,
   requestAdmin,
   openCreate,
-  refreshKey
+  refreshKey,
+  savedPost
 }: {
   admin: AdminState;
   requestAdmin: () => void;
   openCreate: (section: SiteSection, post?: PostItem) => void;
   refreshKey: number;
+  savedPost: PostSaveSnapshot | null;
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
@@ -265,7 +323,7 @@ function SectionListPage({
         const response = await listPosts({
           lang,
           section,
-          status: 'all',
+          status: admin.isAdmin ? 'all' : 'published',
           limit: 120,
           page: 1
         });
@@ -284,6 +342,15 @@ function SectionListPage({
       canceled = true;
     };
   }, [admin.isAdmin, isValidSection, lang, refreshKey, section]);
+
+  useEffect(() => {
+    if (!savedPost) return;
+    if (!section || !isValidSection) return;
+    if (savedPost.lang !== lang || savedPost.section !== section) return;
+    if (savedPost.status !== 'published' && !admin.isAdmin) return;
+
+    setPosts((prev) => upsertPost(prev, savedPost, 120));
+  }, [admin.isAdmin, isValidSection, lang, savedPost, section]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
@@ -318,15 +385,17 @@ function SectionListPage({
         </div>
       </section>
 
-      <AdminDock
-        showLogin={showLogin}
-        isAdmin={admin.isAdmin}
-        onLogin={requestAdmin}
-        onLogout={() => {
-          void logout().then(() => window.location.reload());
-        }}
-        onWrite={() => openCreate(section)}
-      />
+      {!admin.loading ? (
+        <AdminDock
+          showLogin={showLogin}
+          isAdmin={admin.isAdmin}
+          onLogin={requestAdmin}
+          onLogout={() => {
+            void logout().then(() => window.location.reload());
+          }}
+          onWrite={() => openCreate(section)}
+        />
+      ) : null}
     </SiteShell>
   );
 }
@@ -335,12 +404,14 @@ function DetailPage({
   admin,
   requestAdmin,
   openCreate,
-  refreshKey
+  refreshKey,
+  savedPost
 }: {
   admin: AdminState;
   requestAdmin: () => void;
   openCreate: (section: SiteSection, post?: PostItem) => void;
   refreshKey: number;
+  savedPost: PostSaveSnapshot | null;
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
@@ -381,6 +452,14 @@ function DetailPage({
       canceled = true;
     };
   }, [isValidSection, lang, refreshKey, section, slug]);
+
+  useEffect(() => {
+    if (!savedPost) return;
+    setPost((prev) => {
+      if (!prev || prev.id !== savedPost.id) return prev;
+      return toPostItem(savedPost, prev);
+    });
+  }, [savedPost]);
 
   useEffect(() => {
     if (!post) return;
@@ -439,16 +518,18 @@ function DetailPage({
         </div>
       </article>
 
-      <AdminDock
-        showLogin={showLogin}
-        isAdmin={admin.isAdmin}
-        onLogin={requestAdmin}
-        onLogout={() => {
-          void logout().then(() => window.location.reload());
-        }}
-        onWrite={() => openCreate(section)}
-        onEditCurrent={post ? () => openCreate(section, post) : undefined}
-      />
+      {!admin.loading ? (
+        <AdminDock
+          showLogin={showLogin}
+          isAdmin={admin.isAdmin}
+          onLogin={requestAdmin}
+          onLogout={() => {
+            void logout().then(() => window.location.reload());
+          }}
+          onWrite={() => openCreate(section)}
+          onEditCurrent={post ? () => openCreate(section, post) : undefined}
+        />
+      ) : null}
     </SiteShell>
   );
 }
@@ -466,6 +547,7 @@ function AppInner() {
     defaultSection: 'blog'
   });
   const [refreshKey, setRefreshKey] = useState(0);
+  const [savedPost, setSavedPost] = useState<PostSaveSnapshot | null>(null);
 
   const currentLang = useMemo(() => {
     const first = location.pathname.split('/').filter(Boolean)[0];
@@ -556,7 +638,15 @@ function AppInner() {
         <Route path="/" element={<RootRoute />} />
         <Route
           path="/:lang"
-          element={<HomePage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} refreshKey={refreshKey} />}
+          element={
+            <HomePage
+              admin={admin}
+              requestAdmin={requestAdmin}
+              openCreate={openCreate}
+              refreshKey={refreshKey}
+              savedPost={savedPost}
+            />
+          }
         />
         <Route
           path="/:lang/:section"
@@ -566,12 +656,21 @@ function AppInner() {
               requestAdmin={requestAdmin}
               openCreate={openCreate}
               refreshKey={refreshKey}
+              savedPost={savedPost}
             />
           }
         />
         <Route
           path="/:lang/:section/:slug"
-          element={<DetailPage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} refreshKey={refreshKey} />}
+          element={
+            <DetailPage
+              admin={admin}
+              requestAdmin={requestAdmin}
+              openCreate={openCreate}
+              refreshKey={refreshKey}
+              savedPost={savedPost}
+            />
+          }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -585,10 +684,19 @@ function AppInner() {
         onClose={() => {
           setEditorState((prev) => ({ ...prev, open: false }));
         }}
-        onSaved={(postId) => {
+        onSaved={(snapshot) => {
+          const prev = editorState.initialPost;
           setEditorState((prev) => ({ ...prev, open: false }));
+          setSavedPost(snapshot);
           setRefreshKey((prev) => prev + 1);
-          void postId;
+
+          if (editorState.mode === 'edit' && prev && prev.id === snapshot.id) {
+            const slugChanged =
+              prev.slug !== snapshot.slug || prev.section !== snapshot.section || prev.lang !== snapshot.lang;
+            if (slugChanged) {
+              navigate(`/${snapshot.lang}/${snapshot.section}/${snapshot.slug}/`, { replace: true });
+            }
+          }
         }}
         onDeleted={() => {
           setEditorState((prev) => ({ ...prev, open: false }));

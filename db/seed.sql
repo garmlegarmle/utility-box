@@ -8,45 +8,6 @@ INSERT OR IGNORE INTO posts (
   status,
   published_at,
   lang,
-  section,
-  card_title,
-  card_category,
-  card_tag,
-  card_rank
-)
-VALUES (
-  'welcome-to-utility-box',
-  'Welcome to Utility Box',
-  'Cloudflare-native content platform initialized.',
-  '# Utility Box\n\nThis is the first seeded post.\n\n- Stack: React + Vite + Worker + D1 + R2\n- Storage: D1\n- Uploads: R2\n',
-  'published',
-  strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
-  'en',
-  'blog',
-  'Welcome to Utility Box',
-  'blog',
-  'guide',
-  1
-);
-
-INSERT INTO tags (name, slug)
-VALUES ('guide', 'guide')
-ON CONFLICT(slug) DO NOTHING;
-
-INSERT OR IGNORE INTO post_tags (post_id, tag_id)
-SELECT p.id, t.id
-FROM posts p
-JOIN tags t ON t.slug = 'guide'
-WHERE p.slug = 'welcome-to-utility-box' AND p.lang = 'en' AND p.section = 'blog' AND p.is_deleted = 0;
-
-INSERT OR IGNORE INTO posts (
-  slug,
-  title,
-  excerpt,
-  content_md,
-  status,
-  published_at,
-  lang,
   section
 )
 VALUES

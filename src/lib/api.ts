@@ -1,11 +1,13 @@
 import type { PostDetailResponse, PostListResponse, SessionResponse, UploadResponse } from '../types';
 
 const API_BASE = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const USE_DEV_API_BASE = Boolean(import.meta.env.DEV && API_BASE);
 
 function buildUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (!API_BASE) return path;
-  return `${API_BASE}${path}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (USE_DEV_API_BASE) return `${API_BASE}${normalizedPath}`;
+  return normalizedPath;
 }
 
 async function parseJson(response: Response): Promise<unknown> {
@@ -108,14 +110,20 @@ export async function createPost(body: unknown): Promise<{ ok: true; id: number;
   });
 }
 
-export async function updatePost(id: number, body: unknown): Promise<{ ok: true; id: number; updated_at: string }> {
-  return apiFetch<{ ok: true; id: number; updated_at: string }>(`/api/posts/${id}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    },
-    body: JSON.stringify(body)
-  });
+export async function updatePost(
+  id: number,
+  body: unknown
+): Promise<{ ok: true; id: number; slug?: string; section?: string; lang?: string; updated_at: string }> {
+  return apiFetch<{ ok: true; id: number; slug?: string; section?: string; lang?: string; updated_at: string }>(
+    `/api/posts/${id}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify(body)
+    }
+  );
 }
 
 export async function deletePost(id: number): Promise<{ ok: true }> {
@@ -150,5 +158,5 @@ export function buildAuthUrl(redirectPath: string): string {
     origin: window.location.origin
   });
 
-  return buildUrl(`/api/auth?${query.toString()}`);
+  return `/api/auth?${query.toString()}`;
 }

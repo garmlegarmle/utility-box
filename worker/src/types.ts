@@ -10,7 +10,6 @@ export interface Env {
   ADMIN_GITHUB_USERS?: string;
   ALLOWED_ORIGINS?: string;
   MEDIA_PUBLIC_BASE_URL?: string;
-  PUBLIC_HIDE_SLUGS?: string;
   COOKIE_DOMAIN?: string;
 }
 

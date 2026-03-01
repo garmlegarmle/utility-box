@@ -60,3 +60,16 @@ export interface UploadResponse {
   urls: Record<string, string>;
   variants: Array<{ variant: string; key: string; width: number; format: string }>;
 }
+
+export interface PostSaveSnapshot {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  status: 'draft' | 'published';
+  lang: SiteLang;
+  section: SiteSection;
+  updated_at: string;
+  tags: string[];
+  card: CardData;
+}
