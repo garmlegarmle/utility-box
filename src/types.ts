@@ -26,6 +26,16 @@ export interface PostItem {
   pair_slug: string | null;
   view_count: number;
   tags: string[];
+  meta: {
+    title: string | null;
+    description: string | null;
+  };
+  og: {
+    title: string | null;
+    description: string | null;
+    imageUrl: string | null;
+  };
+  schemaType: 'BlogPosting' | 'Service' | null;
   cover: { id: number; url: string } | null;
   card: CardData;
 }
@@ -86,5 +96,15 @@ export interface PostSaveSnapshot {
   section: SiteSection;
   updated_at: string;
   tags: string[];
+  meta: {
+    title: string | null;
+    description: string | null;
+  };
+  og: {
+    title: string | null;
+    description: string | null;
+    imageUrl: string | null;
+  };
+  schemaType: 'BlogPosting' | 'Service' | null;
   card: CardData;
 }

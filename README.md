@@ -39,6 +39,8 @@ wrangler login
 wrangler d1 create utility-box-db
 wrangler r2 bucket create utility-box-media
 wrangler d1 execute utility-box-db --file db/schema.sql --remote
+# Existing DB only (skip on fresh DB created from latest schema):
+wrangler d1 execute utility-box-db --file db/migrate_20260301_post_seo_and_schema.sql --remote
 wrangler d1 execute utility-box-db --file db/seed.sql --remote
 wrangler secret put ADMIN_TOKEN
 wrangler secret put ADMIN_SESSION_SECRET

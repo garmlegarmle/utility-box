@@ -46,4 +46,10 @@ export interface PostRecord {
   card_tag: string | null;
   card_rank: number | null;
   card_image_id: number | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  og_title: string | null;
+  og_description: string | null;
+  og_image_url: string | null;
+  schema_type: 'BlogPosting' | 'Service' | null;
 }

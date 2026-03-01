@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
-import { createPost, deletePost, listPosts, listTags, updatePost, uploadMedia } from '../lib/api';
+import { createPost, deletePost, deleteTag, listPosts, listTags, updatePost, uploadMedia } from '../lib/api';
 import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from '../types';
 
 interface PostEditorModalProps {
@@ -96,6 +96,17 @@ function isEditorHtmlEmpty(html: string): boolean {
   return !text && !hasMedia;
 }
 
+function normalizeBodyHtml(rawHtml: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(rawHtml, 'text/html');
+  doc.querySelectorAll('h1').forEach((node) => {
+    const replacement = doc.createElement('h2');
+    replacement.innerHTML = node.innerHTML;
+    node.parentNode?.replaceChild(replacement, node);
+  });
+  return doc.body.innerHTML;
+}
+
 function moveCaretAfter(node: Node): void {
   const selection = window.getSelection();
   if (!selection) return;
@@ -152,6 +163,15 @@ export function PostEditorModal({
   const [lang, setLang] = useState<SiteLang>(initialPost?.lang || defaultLang);
   const [section, setSection] = useState<SiteSection>(initialPost?.section || defaultSection);
   const [status, setStatus] = useState<'draft' | 'published'>(initialPost?.status || 'published');
+  const [metaTitle, setMetaTitle] = useState(initialPost?.meta?.title || '');
+  const [metaDescription, setMetaDescription] = useState(initialPost?.meta?.description || '');
+  const [schemaType, setSchemaType] = useState<'BlogPosting' | 'Service'>(
+    initialPost?.schemaType || (initialPost?.section === 'tools' || initialPost?.section === 'games' ? 'Service' : 'BlogPosting')
+  );
+  const [ogTitle, setOgTitle] = useState(initialPost?.og?.title || '');
+  const [ogDescription, setOgDescription] = useState(initialPost?.og?.description || '');
+  const [ogImageUrl, setOgImageUrl] = useState(initialPost?.og?.imageUrl || '');
+  const [ogImageAlt, setOgImageAlt] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>(initialPost?.tags || []);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState('');
@@ -165,10 +185,14 @@ export function PostEditorModal({
   const [cardRank, setCardRank] = useState(stripRank(initialPost?.card.rank));
   const [cardImageId, setCardImageId] = useState<number | null>(initialPost?.card.imageId ?? null);
   const [cardImageUrl, setCardImageUrl] = useState(initialPost?.card.imageUrl || '');
+  const [cardImageAlt, setCardImageAlt] = useState('');
   const [cardTitleTouched, setCardTitleTouched] = useState(false);
   const [cardCategoryTouched, setCardCategoryTouched] = useState(false);
   const [cardTagsTouched, setCardTagsTouched] = useState(false);
   const [cardRankTouched, setCardRankTouched] = useState(false);
+  const [bodyImageAlt, setBodyImageAlt] = useState('');
+  const [internalLinkQuery, setInternalLinkQuery] = useState('');
+  const [internalLinkResults, setInternalLinkResults] = useState<PostItem[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -193,6 +217,15 @@ export function PostEditorModal({
     setLang(initialPost?.lang || defaultLang);
     setSection(initialPost?.section || defaultSection);
     setStatus(initialPost?.status || 'published');
+    setMetaTitle(initialPost?.meta?.title || '');
+    setMetaDescription(initialPost?.meta?.description || '');
+    setSchemaType(
+      initialPost?.schemaType || (initialPost?.section === 'tools' || initialPost?.section === 'games' ? 'Service' : 'BlogPosting')
+    );
+    setOgTitle(initialPost?.og?.title || '');
+    setOgDescription(initialPost?.og?.description || '');
+    setOgImageUrl(initialPost?.og?.imageUrl || '');
+    setOgImageAlt('');
     setSelectedTags(initialPost?.tags || []);
     setAvailableTags(initialPost?.tags || []);
     setTagDraft('');
@@ -204,6 +237,10 @@ export function PostEditorModal({
     setCardRank(stripRank(initialPost?.card.rank));
     setCardImageId(initialPost?.card.imageId ?? null);
     setCardImageUrl(initialPost?.card.imageUrl || '');
+    setCardImageAlt('');
+    setBodyImageAlt('');
+    setInternalLinkQuery('');
+    setInternalLinkResults([]);
     setCardTitleTouched(Boolean(initialPost?.card.title && initialPost.card.title !== (initialPost.title || '')));
     setCardCategoryTouched(
       Boolean(initialPost?.card.category && initialPost.card.category !== (initialPost.section || defaultSection))
@@ -326,6 +363,38 @@ export function PostEditorModal({
     };
   }, [cardRankTouched, lang, mode, open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const query = internalLinkQuery.trim();
+    if (!query) {
+      setInternalLinkResults([]);
+      return;
+    }
+
+    let canceled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await listPosts({
+          lang,
+          q: query,
+          status: 'all',
+          page: 1,
+          limit: 20
+        });
+        if (canceled) return;
+        setInternalLinkResults(response.items || []);
+      } catch {
+        if (canceled) return;
+        setInternalLinkResults([]);
+      }
+    }, 180);
+
+    return () => {
+      canceled = true;
+      window.clearTimeout(timer);
+    };
+  }, [internalLinkQuery, lang, open]);
+
   if (!open) return null;
 
   function syncEditorHtml(): string {
@@ -431,6 +500,27 @@ export function PostEditorModal({
     setSelectedTags((prev) => prev.filter((item) => item.trim().toLowerCase() !== key));
   }
 
+  async function removeTagEverywhere(raw: string) {
+    const clean = String(raw || '').trim();
+    if (!clean) return;
+    const confirmed = window.confirm(`Delete tag "${clean}" from all posts in this language?`);
+    if (!confirmed) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      await deleteTag(clean, lang);
+      const key = clean.toLowerCase();
+      setAvailableTags((prev) => prev.filter((tag) => tag.trim().toLowerCase() !== key));
+      setSelectedTags((prev) => prev.filter((tag) => tag.trim().toLowerCase() !== key));
+      setSelectedCardTags((prev) => prev.filter((tag) => tag.trim().toLowerCase() !== key));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete tag');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function addCardTag(raw: string) {
     const next = parseTagInput(raw);
     if (next.length === 0) return;
@@ -448,18 +538,34 @@ export function PostEditorModal({
     setSelectedCardTags((prev) => prev.filter((item) => item.trim().toLowerCase() !== key));
   }
 
+  function insertInternalLink(post: PostItem) {
+    const anchor = document.createElement('a');
+    anchor.href = `/${post.lang}/${post.section}/${post.slug}/`;
+    anchor.textContent = post.title;
+    insertNodeAtCursor(anchor);
+
+    const spacer = document.createTextNode(' ');
+    insertNodeAtCursor(spacer);
+  }
+
   async function uploadAndInsertBodyImage(file: File) {
+    const alt = bodyImageAlt.trim();
+    if (!alt) {
+      setError('Image alt text is required.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const result = await uploadMedia(file);
+      const result = await uploadMedia(file, alt);
       const url = result.urls.original || result.urls.thumb_webp;
 
       const image = document.createElement('img');
       image.className = 'editor-inline-image';
       image.src = url;
-      image.alt = file.name;
+      image.alt = alt;
       image.style.maxWidth = '100%';
       image.style.height = 'auto';
       applyImageAlignment(image, 'center');
@@ -470,6 +576,7 @@ export function PostEditorModal({
       insertNodeAtCursor(paragraph);
 
       selectedImageRef.current = image;
+      setBodyImageAlt('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed');
     } finally {
@@ -478,15 +585,43 @@ export function PostEditorModal({
   }
 
   async function uploadCardImage(file: File) {
+    const alt = cardImageAlt.trim();
+    if (!alt) {
+      setError('Card image alt text is required.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const result = await uploadMedia(file);
+      const result = await uploadMedia(file, alt);
       setCardImageId(result.mediaId);
       setCardImageUrl(result.urls.thumb_webp || result.urls.original);
+      setCardImageAlt('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Card image upload failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function uploadOgImage(file: File) {
+    const alt = ogImageAlt.trim();
+    if (!alt) {
+      setError('OG image alt text is required.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await uploadMedia(file, alt);
+      setOgImageUrl(result.urls.original || result.urls.thumb_webp || '');
+      setOgImageAlt('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'OG image upload failed');
     } finally {
       setLoading(false);
     }
@@ -497,7 +632,8 @@ export function PostEditorModal({
 
     const normalizedTitle = title.trim();
     const normalizedSlug = slugify(slug || normalizedTitle);
-    const html = syncEditorHtml().trim();
+    const rawHtml = syncEditorHtml().trim();
+    const html = normalizeBodyHtml(rawHtml).trim();
 
     if (!normalizedTitle || !normalizedSlug || isEditorHtmlEmpty(html)) {
       setError('title, slug, content are required.');
@@ -519,6 +655,16 @@ export function PostEditorModal({
       section,
       updated_at: new Date().toISOString(),
       tags: parsedTags,
+      meta: {
+        title: metaTitle.trim() || null,
+        description: metaDescription.trim() || null
+      },
+      og: {
+        title: ogTitle.trim() || null,
+        description: ogDescription.trim() || null,
+        imageUrl: ogImageUrl.trim() || null
+      },
+      schemaType,
       card: {
         title: cardTitle.trim() || normalizedTitle,
         category: cardCategory.trim() || section,
@@ -539,6 +685,16 @@ export function PostEditorModal({
       lang,
       section,
       tags: parsedTags,
+      meta: {
+        title: metaTitle.trim(),
+        description: metaDescription.trim()
+      },
+      og: {
+        title: ogTitle.trim(),
+        description: ogDescription.trim(),
+        image_url: ogImageUrl.trim()
+      },
+      schema_type: schemaType,
       card: {
         title: snapshot.card.title,
         category: snapshot.card.category,
@@ -624,6 +780,73 @@ export function PostEditorModal({
               <input value={excerpt} onChange={(event) => setExcerpt(event.target.value)} placeholder="Short summary" />
             </label>
 
+            <div className="admin-card-settings">
+              <h3>SEO</h3>
+              <label>
+                Meta Title
+                <input
+                  value={metaTitle}
+                  maxLength={60}
+                  onChange={(event) => setMetaTitle(event.target.value)}
+                  placeholder="Meta title (max 60)"
+                />
+                <span className="list-tags">{metaTitle.length}/60</span>
+              </label>
+              <label>
+                Meta Description
+                <textarea
+                  value={metaDescription}
+                  maxLength={160}
+                  onChange={(event) => setMetaDescription(event.target.value)}
+                  placeholder="Meta description (155-160)"
+                />
+                <span className="list-tags">
+                  {metaDescription.length}/160 {metaDescription.length >= 155 && metaDescription.length <= 160 ? '(ideal)' : ''}
+                </span>
+              </label>
+              <label>
+                Schema Type
+                <select value={schemaType} onChange={(event) => setSchemaType(event.target.value as 'BlogPosting' | 'Service')}>
+                  <option value="BlogPosting">BlogPosting</option>
+                  <option value="Service">Service</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="admin-card-settings">
+              <h3>Open Graph</h3>
+              <label>
+                OG Title
+                <input value={ogTitle} onChange={(event) => setOgTitle(event.target.value)} placeholder="OG title" />
+              </label>
+              <label>
+                OG Description
+                <textarea value={ogDescription} onChange={(event) => setOgDescription(event.target.value)} placeholder="OG description" />
+              </label>
+              <div className="admin-inline-grid">
+                <label>
+                  OG Image URL
+                  <input value={ogImageUrl} onChange={(event) => setOgImageUrl(event.target.value)} placeholder="https://..." />
+                </label>
+                <label>
+                  OG Image Alt (required)
+                  <input value={ogImageAlt} onChange={(event) => setOgImageAlt(event.target.value)} placeholder="Describe image" />
+                </label>
+                <label>
+                  OG Image Upload
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (file) await uploadOgImage(file);
+                      event.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div className="admin-inline-grid">
               <label>
                 Language
@@ -693,14 +916,21 @@ export function PostEditorModal({
                   )
                   .slice(0, 30)
                   .map((tag) => (
-                    <button
-                      key={`suggestion-${tag.toLowerCase()}`}
-                      type="button"
-                      className="notice-tag-suggestion"
-                      onClick={() => addTag(tag)}
-                    >
-                      {tag}
-                    </button>
+                    <span key={`suggestion-${tag.toLowerCase()}`} className="notice-tag-suggestion-wrap">
+                      <button type="button" className="notice-tag-suggestion" onClick={() => addTag(tag)}>
+                        {tag}
+                      </button>
+                      <button
+                        type="button"
+                        className="notice-tag-delete"
+                        onClick={() => {
+                          void removeTagEverywhere(tag);
+                        }}
+                        aria-label={`Delete tag ${tag}`}
+                      >
+                        x
+                      </button>
+                    </span>
                   ))}
               </div>
             </div>
@@ -782,19 +1012,34 @@ export function PostEditorModal({
                     )
                     .slice(0, 30)
                     .map((tag) => (
-                      <button
-                        key={`card-suggestion-${tag.toLowerCase()}`}
-                        type="button"
-                        className="notice-tag-suggestion"
-                        onClick={() => addCardTag(tag)}
-                      >
-                        {tag}
-                      </button>
+                      <span key={`card-suggestion-${tag.toLowerCase()}`} className="notice-tag-suggestion-wrap">
+                        <button type="button" className="notice-tag-suggestion" onClick={() => addCardTag(tag)}>
+                          {tag}
+                        </button>
+                        <button
+                          type="button"
+                          className="notice-tag-delete"
+                          onClick={() => {
+                            void removeTagEverywhere(tag);
+                          }}
+                          aria-label={`Delete tag ${tag}`}
+                        >
+                          x
+                        </button>
+                      </span>
                     ))}
                 </div>
               </div>
 
               <div className="admin-inline-grid">
+                <label>
+                  Card Image Alt (required)
+                  <input
+                    value={cardImageAlt}
+                    onChange={(event) => setCardImageAlt(event.target.value)}
+                    placeholder="Describe card image"
+                  />
+                </label>
                 <label>
                   Card Image Upload
                   <input
@@ -813,8 +1058,27 @@ export function PostEditorModal({
 
             <div className="admin-card-settings">
               <h3>Body</h3>
+              <p className="list-tags">H1 is generated automatically from the post title. Use H2/H3 in body.</p>
 
               <div className="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
+                <label className="editor-toolbar__label">
+                  Style
+                  <select
+                    className="editor-toolbar__select"
+                    defaultValue="p"
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === 'h2') exec('formatBlock', 'H2');
+                      else if (value === 'h3') exec('formatBlock', 'H3');
+                      else exec('formatBlock', 'P');
+                      event.currentTarget.value = 'p';
+                    }}
+                  >
+                    <option value="p">Normal</option>
+                    <option value="h2">H2</option>
+                    <option value="h3">H3</option>
+                  </select>
+                </label>
                 <button type="button" onClick={() => exec('bold')} aria-label="Bold">
                   <strong>B</strong>
                 </button>
@@ -855,6 +1119,15 @@ export function PostEditorModal({
                 <button type="button" onClick={() => exec('justifyRight')} aria-label="Align right">
                   Right
                 </button>
+                <label className="editor-toolbar__label">
+                  Image Alt
+                  <input
+                    className="editor-toolbar__alt"
+                    value={bodyImageAlt}
+                    onChange={(event) => setBodyImageAlt(event.target.value)}
+                    placeholder="Required alt text"
+                  />
+                </label>
                 <label className="editor-toolbar__upload">
                   Image
                   <input
@@ -868,6 +1141,33 @@ export function PostEditorModal({
                     }}
                   />
                 </label>
+              </div>
+
+              <div className="admin-card-settings">
+                <h3>Internal Link</h3>
+                <label>
+                  Search posts
+                  <input
+                    value={internalLinkQuery}
+                    onChange={(event) => setInternalLinkQuery(event.target.value)}
+                    placeholder="Search by title/content"
+                  />
+                </label>
+                <div className="internal-link-list">
+                  {internalLinkResults.map((item) => (
+                    <button
+                      key={`internal-link-${item.id}`}
+                      type="button"
+                      className="internal-link-item"
+                      onClick={() => insertInternalLink(item)}
+                    >
+                      {item.title} ({item.lang}/{item.section})
+                    </button>
+                  ))}
+                  {internalLinkQuery.trim() && internalLinkResults.length === 0 ? (
+                    <p className="list-tags">No results.</p>
+                  ) : null}
+                </div>
               </div>
 
               <div

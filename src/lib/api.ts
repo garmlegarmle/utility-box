@@ -202,14 +202,29 @@ export async function logout(): Promise<{ ok: true }> {
   });
 }
 
-export async function uploadMedia(file: File): Promise<UploadResponse> {
+export async function uploadMedia(file: File, alt?: string): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
+  if (alt !== undefined) {
+    form.append('alt', alt);
+  }
 
   return apiFetch<UploadResponse>('/api/upload', {
     method: 'POST',
     body: form
   });
+}
+
+export async function deleteTag(
+  tag: string,
+  lang: 'en' | 'ko'
+): Promise<{ ok: true; deleted: { id: number; name: string; slug: string } }> {
+  return apiFetch<{ ok: true; deleted: { id: number; name: string; slug: string } }>(
+    `/api/tags/${encodeURIComponent(tag)}?lang=${encodeURIComponent(lang)}`,
+    {
+      method: 'DELETE'
+    }
+  );
 }
 
 export function buildAuthUrl(redirectPath: string): string {

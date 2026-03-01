@@ -35,6 +35,16 @@ interface PostWritePayload {
     rank?: number | string;
     image_id?: number | null;
   };
+  meta?: {
+    title?: string;
+    description?: string;
+  };
+  og?: {
+    title?: string;
+    description?: string;
+    image_url?: string;
+  };
+  schema_type?: 'BlogPosting' | 'Service' | string | null;
 }
 
 function resolveStatusFilter(requested: string | null, isAdmin: boolean): 'published' | 'draft' | 'all' {
@@ -86,6 +96,16 @@ function mapPostRow(row: PostRecord, tags: string[], env: Env, request: Request)
     pair_slug: row.pair_slug,
     view_count: row.view_count || 0,
     tags,
+    meta: {
+      title: row.meta_title || null,
+      description: row.meta_description || null
+    },
+    og: {
+      title: row.og_title || null,
+      description: row.og_description || null,
+      imageUrl: row.og_image_url || null
+    },
+    schemaType: row.schema_type || null,
     cover: row.cover_image_id
       ? {
           id: row.cover_image_id,
@@ -341,6 +361,13 @@ async function createPost(request: Request, env: Env): Promise<Response> {
   const cardTag = String(payload.card?.tag || '').trim();
   const cardRank = parseCardRank(payload.card?.rank);
   const cardImageId = parseIntSafe(payload.card?.image_id, null);
+  const metaTitle = String(payload.meta?.title || '').trim() || null;
+  const metaDescription = String(payload.meta?.description || '').trim() || null;
+  const ogTitle = String(payload.og?.title || '').trim() || null;
+  const ogDescription = String(payload.og?.description || '').trim() || null;
+  const ogImageUrl = String(payload.og?.image_url || '').trim() || null;
+  const schemaTypeRaw = String(payload.schema_type || '').trim();
+  const schemaType = schemaTypeRaw === 'Service' || schemaTypeRaw === 'BlogPosting' ? schemaTypeRaw : null;
 
   const existing = await env.DB.prepare(
     'SELECT id FROM posts WHERE slug = ? AND lang = ? AND section = ? AND is_deleted = 0 LIMIT 1'
@@ -357,8 +384,9 @@ async function createPost(request: Request, env: Env): Promise<Response> {
     `INSERT INTO posts (
       slug, title, excerpt, content_md, status, cover_image_id, published_at,
       lang, section, pair_slug, created_at, updated_at,
-      card_title, card_category, card_tag, card_rank, card_image_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      card_title, card_category, card_tag, card_rank, card_image_id,
+      meta_title, meta_description, og_title, og_description, og_image_url, schema_type
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       slug,
@@ -377,7 +405,13 @@ async function createPost(request: Request, env: Env): Promise<Response> {
       cardCategory,
       cardTag || null,
       cardRank,
-      cardImageId
+      cardImageId,
+      metaTitle,
+      metaDescription,
+      ogTitle,
+      ogDescription,
+      ogImageUrl,
+      schemaType
     )
     .run();
 
@@ -467,6 +501,16 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
   const cardRank = payload.card?.rank !== undefined ? parseCardRank(payload.card.rank) : current.card_rank;
   const cardImageId =
     payload.card?.image_id !== undefined ? parseIntSafe(payload.card.image_id, null) : current.card_image_id;
+  const metaTitle = payload.meta?.title !== undefined ? String(payload.meta.title || '').trim() || null : current.meta_title;
+  const metaDescription =
+    payload.meta?.description !== undefined ? String(payload.meta.description || '').trim() || null : current.meta_description;
+  const ogTitle = payload.og?.title !== undefined ? String(payload.og.title || '').trim() || null : current.og_title;
+  const ogDescription =
+    payload.og?.description !== undefined ? String(payload.og.description || '').trim() || null : current.og_description;
+  const ogImageUrl =
+    payload.og?.image_url !== undefined ? String(payload.og.image_url || '').trim() || null : current.og_image_url;
+  const schemaTypeRaw = payload.schema_type !== undefined ? String(payload.schema_type || '').trim() : current.schema_type || '';
+  const schemaType = schemaTypeRaw === 'Service' || schemaTypeRaw === 'BlogPosting' ? schemaTypeRaw : null;
 
   const existing = await env.DB.prepare(
     'SELECT id FROM posts WHERE slug = ? AND lang = ? AND section = ? AND is_deleted = 0 AND id != ? LIMIT 1'
@@ -496,7 +540,13 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
          card_category = ?,
          card_tag = ?,
          card_rank = ?,
-         card_image_id = ?
+         card_image_id = ?,
+         meta_title = ?,
+         meta_description = ?,
+         og_title = ?,
+         og_description = ?,
+         og_image_url = ?,
+         schema_type = ?
      WHERE id = ?`
   )
     .bind(
@@ -516,6 +566,12 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
       cardTag,
       cardRank,
       cardImageId,
+      metaTitle,
+      metaDescription,
+      ogTitle,
+      ogDescription,
+      ogImageUrl,
+      schemaType,
       postId
     )
     .run();

@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS posts (
   card_tag TEXT,
   card_rank INTEGER,
   card_image_id INTEGER,
+  meta_title TEXT,
+  meta_description TEXT,
+  og_title TEXT,
+  og_description TEXT,
+  og_image_url TEXT,
+  schema_type TEXT CHECK (schema_type IN ('BlogPosting', 'Service')),
   FOREIGN KEY (cover_image_id) REFERENCES media(id) ON DELETE SET NULL,
   FOREIGN KEY (card_image_id) REFERENCES media(id) ON DELETE SET NULL
 );

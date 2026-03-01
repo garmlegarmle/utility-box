@@ -21,6 +21,7 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
 
   const form = await request.formData();
   const filePart = form.get('file');
+  const altRaw = String(form.get('alt') || '').trim();
 
   if (!(filePart instanceof File)) {
     return error(400, 'file is required');
@@ -29,6 +30,10 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
   const mimeType = filePart.type || 'application/octet-stream';
   if (!isAllowedMime(mimeType)) {
     return error(415, 'Unsupported file type');
+  }
+
+  if (/^image\//i.test(mimeType) && !altRaw) {
+    return error(400, 'alt is required for image uploads');
   }
 
   if (filePart.size > MAX_UPLOAD_BYTES) {
@@ -51,7 +56,7 @@ export async function handleUpload(request: Request, env: Env): Promise<Response
     `INSERT INTO media (r2_key, kind, width, height, alt, mime_type, size_bytes)
      VALUES (?, ?, NULL, NULL, ?, ?, ?)`
   )
-    .bind(key, kind, filePart.name || null, mimeType, filePart.size)
+    .bind(key, kind, altRaw || filePart.name || null, mimeType, filePart.size)
     .run();
 
   const mediaId = Number(insert.meta.last_row_id);
