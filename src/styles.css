@@ -878,6 +878,15 @@ body.admin-mode .admin-edit-trigger {
   font-weight: 500;
 }
 
+.admin-status-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .admin-modal__close {
   border: 0;
   background: var(--bg);

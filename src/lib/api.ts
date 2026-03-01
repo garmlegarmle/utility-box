@@ -1,11 +1,11 @@
 import type { PostDetailResponse, PostListResponse, SessionResponse, UploadResponse } from '../types';
 
 const API_BASE = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
-const canUseAbsoluteApiBase = Boolean(API_BASE);
 
-function buildUrl(path: string): string {
+function buildApiUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (API_BASE) return `${API_BASE}${normalizedPath}`;
   return normalizedPath;
 }
 
@@ -32,49 +32,31 @@ async function performRequest(url: string, init?: RequestInit): Promise<{ respon
   return { response, data: parsed.data, nonJsonText: parsed.nonJsonText };
 }
 
-function getCandidateUrls(path: string): string[] {
-  const primary = buildUrl(path);
-  if (!canUseAbsoluteApiBase) return [primary];
-  if (path.startsWith('http://') || path.startsWith('https://')) return [primary];
-
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const fallback = `${API_BASE}${normalizedPath}`;
-  if (fallback === primary) return [primary];
-  return [primary, fallback];
-}
-
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const urls = getCandidateUrls(path);
-  let lastError = '';
+  const url = buildApiUrl(path);
+  const { response, data, nonJsonText } = await performRequest(url, init);
 
-  for (let i = 0; i < urls.length; i += 1) {
-    const url = urls[i];
-    const { response, data, nonJsonText } = await performRequest(url, init);
-
-    if (typeof data === 'object' && data !== null && '__nonJson' in data) {
-      lastError = `API returned non-JSON response for ${path} via ${url} (status ${response.status}, content-type: ${
+  if (typeof data === 'object' && data !== null && '__nonJson' in data) {
+    throw new Error(
+      `API returned non-JSON response for ${path} via ${url} (status ${response.status}, content-type: ${
         response.headers.get('content-type') || 'unknown'
-      }). ${String(nonJsonText || '').slice(0, 120)}`;
-      if (i < urls.length - 1) continue;
-      throw new Error(lastError);
-    }
-
-    if (typeof data === 'object' && data !== null && '__parseError' in data) {
-      throw new Error(`API JSON parse failed for ${path} via ${url}.`);
-    }
-
-    if (!response.ok || (typeof data === 'object' && data !== null && 'ok' in data && (data as { ok?: boolean }).ok === false)) {
-      const message =
-        typeof data === 'object' && data !== null && 'error' in data
-          ? String((data as { error?: string }).error || 'Request failed')
-          : `Request failed: ${response.status}`;
-      throw new Error(message);
-    }
-
-    return data as T;
+      }). ${String(nonJsonText || '').slice(0, 120)}`
+    );
   }
 
-  throw new Error(lastError || `Request failed for ${path}`);
+  if (typeof data === 'object' && data !== null && '__parseError' in data) {
+    throw new Error(`API JSON parse failed for ${path} via ${url}.`);
+  }
+
+  if (!response.ok || (typeof data === 'object' && data !== null && 'ok' in data && (data as { ok?: boolean }).ok === false)) {
+    const message =
+      typeof data === 'object' && data !== null && 'error' in data
+        ? String((data as { error?: string }).error || 'Request failed')
+        : `Request failed: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return data as T;
 }
 
 export interface ListPostsParams {
@@ -187,5 +169,5 @@ export function buildAuthUrl(redirectPath: string): string {
     origin: window.location.origin
   });
 
-  return `/api/auth?${query.toString()}`;
+  return buildApiUrl(`/api/auth?${query.toString()}`);
 }

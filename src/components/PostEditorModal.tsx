@@ -142,6 +142,7 @@ export function PostEditorModal({
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt || '');
   const [lang, setLang] = useState<SiteLang>(initialPost?.lang || defaultLang);
   const [section, setSection] = useState<SiteSection>(initialPost?.section || defaultSection);
+  const [status, setStatus] = useState<'draft' | 'published'>(initialPost?.status || 'published');
   const [tagsInput, setTagsInput] = useState((initialPost?.tags || []).join(', '));
 
   const [cardTitle, setCardTitle] = useState(initialPost?.card.title || initialPost?.title || '');
@@ -173,6 +174,7 @@ export function PostEditorModal({
     setExcerpt(initialPost?.excerpt || '');
     setLang(initialPost?.lang || defaultLang);
     setSection(initialPost?.section || defaultSection);
+    setStatus(initialPost?.status || 'published');
     setTagsInput((initialPost?.tags || []).join(', '));
 
     setCardTitle(initialPost?.card.title || initialPost?.title || '');
@@ -382,7 +384,7 @@ export function PostEditorModal({
       slug: normalizedSlug,
       title: normalizedTitle,
       excerpt: normalizedExcerpt,
-      status: 'published',
+      status,
       lang,
       section,
       updated_at: new Date().toISOString(),
@@ -403,7 +405,7 @@ export function PostEditorModal({
       title: normalizedTitle,
       excerpt: normalizedExcerpt || '',
       content_md: html,
-      status: 'published' as const,
+      status,
       lang,
       section,
       tags: parsedTags,
@@ -461,7 +463,10 @@ export function PostEditorModal({
       <div className="admin-modal__backdrop" onClick={onClose} />
       <div className="admin-modal__panel admin-editor-modal">
         <div className="admin-modal__header">
-          <h2>{titleText}</h2>
+          <div>
+            <h2>{titleText}</h2>
+            <p className="admin-status-note">Current status: {status}</p>
+          </div>
           <button type="button" className="admin-modal__close" onClick={onClose} aria-label="Close">
             x
           </button>
@@ -505,6 +510,14 @@ export function PostEditorModal({
                   <option value="tools">tool</option>
                   <option value="games">game</option>
                   <option value="pages">page</option>
+                </select>
+              </label>
+
+              <label>
+                Status
+                <select value={status} onChange={(event) => setStatus(event.target.value as 'draft' | 'published')}>
+                  <option value="draft">draft</option>
+                  <option value="published">published</option>
                 </select>
               </label>
             </div>
