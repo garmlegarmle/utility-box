@@ -1,2 +1,4 @@
 /api/* https://api.utility-box.org/api/:splat 200
+/en/* /index.html 200
+/ko/* /index.html 200
 /* /index.html 200
