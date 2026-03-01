@@ -1,7 +1,19 @@
 /index.html
   Cache-Control: no-store, no-cache, must-revalidate
 
+/en
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/en/
+  Cache-Control: no-store, no-cache, must-revalidate
+
 /en/*
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/ko
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/ko/
   Cache-Control: no-store, no-cache, must-revalidate
 
 /ko/*
