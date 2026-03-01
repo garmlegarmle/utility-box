@@ -130,7 +130,7 @@ function HomePage({
     async function load() {
       setError('');
       try {
-        const status = admin.isAdmin ? 'all' : 'published';
+        const status = 'all';
         const [blog, tools, games] = await Promise.all([
           listPosts({ lang, section: 'blog', status, limit: 12 }),
           listPosts({ lang, section: 'tools', status, limit: 12 }),
@@ -265,7 +265,7 @@ function SectionListPage({
         const response = await listPosts({
           lang,
           section,
-          status: admin.isAdmin ? 'all' : 'published',
+          status: 'all',
           limit: 120,
           page: 1
         });

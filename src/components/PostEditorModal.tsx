@@ -109,9 +109,7 @@ export function PostEditorModal({
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt || '');
   const [lang, setLang] = useState<SiteLang>(initialPost?.lang || defaultLang);
   const [section, setSection] = useState<SiteSection>(initialPost?.section || defaultSection);
-  const [status, setStatus] = useState<'draft' | 'published'>(initialPost?.status || 'published');
   const [tagsInput, setTagsInput] = useState((initialPost?.tags || []).join(', '));
-  const [contentHtml, setContentHtml] = useState(toInitialEditorHtml(initialPost?.content_md || ''));
 
   const [cardTitle, setCardTitle] = useState(initialPost?.card.title || initialPost?.title || '');
   const [cardCategory, setCardCategory] = useState(initialPost?.card.category || initialPost?.section || defaultSection);
@@ -145,9 +143,7 @@ export function PostEditorModal({
     setExcerpt(initialPost?.excerpt || '');
     setLang(initialPost?.lang || defaultLang);
     setSection(initialPost?.section || defaultSection);
-    setStatus(initialPost?.status || 'published');
     setTagsInput((initialPost?.tags || []).join(', '));
-    setContentHtml(nextHtml);
 
     setCardTitle(initialPost?.card.title || initialPost?.title || '');
     setCardCategory(initialPost?.card.category || initialPost?.section || defaultSection);
@@ -203,9 +199,7 @@ export function PostEditorModal({
   if (!open) return null;
 
   function syncEditorHtml(): string {
-    const html = editorRef.current?.innerHTML || '';
-    setContentHtml(html);
-    return html;
+    return editorRef.current?.innerHTML || '';
   }
 
   function focusEditor() {
@@ -359,7 +353,7 @@ export function PostEditorModal({
       title: normalizedTitle,
       excerpt: excerpt.trim(),
       content_md: html,
-      status,
+      status: 'published' as const,
       lang,
       section,
       cover_image_id: coverImageId,
@@ -458,14 +452,6 @@ export function PostEditorModal({
                   <option value="tools">tool</option>
                   <option value="games">game</option>
                   <option value="pages">page</option>
-                </select>
-              </label>
-
-              <label>
-                Status
-                <select value={status} onChange={(event) => setStatus(event.target.value as 'draft' | 'published')}>
-                  <option value="published">published</option>
-                  <option value="draft">draft</option>
                 </select>
               </label>
             </div>
@@ -596,14 +582,10 @@ export function PostEditorModal({
                 className="editor-surface"
                 contentEditable
                 suppressContentEditableWarning
-                onInput={() => {
-                  syncEditorHtml();
-                }}
                 onClick={(event) => {
                   setSelectedImageFromEvent(event.target);
                 }}
                 onMouseDown={startImageResize}
-                dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
 
               <div className="editor-image-tools">

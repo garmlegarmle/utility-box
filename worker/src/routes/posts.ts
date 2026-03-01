@@ -37,10 +37,21 @@ interface PostWritePayload {
   };
 }
 
+function getPublicHiddenSlugs(env: Env): string[] {
+  const raw = String(
+    env.PUBLIC_HIDE_SLUGS ||
+      'welcome-to-utility-box,rebuilding-with-astro-mdx-decap,editorial-grid-cms-workflow,regex-playground,compound-interest-calculator,word-grid,reaction-timer'
+  );
+  return raw
+    .split(',')
+    .map((value) => slugify(value))
+    .filter(Boolean);
+}
+
 function resolveStatusFilter(requested: string | null, isAdmin: boolean): 'published' | 'draft' | 'all' {
   const normalized = String(requested || '').trim().toLowerCase();
-  if (isAdmin && normalized === 'all') return 'all';
-  if (isAdmin && normalized === 'draft') return 'draft';
+  if (normalized === 'all') return 'all';
+  if (normalized === 'draft') return isAdmin ? 'draft' : 'all';
   return 'published';
 }
 
@@ -107,6 +118,7 @@ function mapPostRow(row: PostRecord, tags: string[], env: Env, request: Request)
 async function listPosts(request: Request, env: Env): Promise<Response> {
   const isAdmin = await isAdminRequest(request, env);
   const url = new URL(request.url);
+  const hiddenSlugs = !isAdmin ? getPublicHiddenSlugs(env) : [];
 
   const statusFilter = resolveStatusFilter(url.searchParams.get('status'), isAdmin);
   const lang = normalizeLang(url.searchParams.get('lang') || 'en');
@@ -127,17 +139,17 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
   if (section) {
     where.push('p.section = ?');
     binds.push(section);
-
-    // Listing cards are rendered from card metadata.
-    // Legacy imported rows without card fields are excluded to prevent mixed old/new feeds.
-    if (section !== 'pages') {
-      where.push("COALESCE(TRIM(p.card_title), '') != ''");
-    }
   }
 
   if (statusFilter !== 'all') {
     where.push('p.status = ?');
     binds.push(statusFilter);
+  }
+
+  if (hiddenSlugs.length > 0) {
+    const placeholders = hiddenSlugs.map(() => '?').join(', ');
+    where.push(`LOWER(p.slug) NOT IN (${placeholders})`);
+    binds.push(...hiddenSlugs);
   }
 
   if (q) {
@@ -192,9 +204,14 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
 async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promise<Response> {
   const isAdmin = await isAdminRequest(request, env);
   const url = new URL(request.url);
+  const hiddenSlugs = !isAdmin ? getPublicHiddenSlugs(env) : [];
 
   const slug = slugify(decodeURIComponent(slugRaw));
   if (!slug) return error(400, 'Invalid slug');
+
+  if (!isAdmin && hiddenSlugs.includes(slug)) {
+    return error(404, 'Post not found');
+  }
 
   const lang = normalizeLang(url.searchParams.get('lang') || 'en');
   const sectionRaw = url.searchParams.get('section');
@@ -206,10 +223,6 @@ async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promi
   if (section) {
     where.push('section = ?');
     binds.push(section);
-  }
-
-  if (!isAdmin) {
-    where.push("status = 'published'");
   }
 
   const row = await env.DB.prepare(
