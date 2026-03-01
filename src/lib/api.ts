@@ -1,25 +1,26 @@
 import type { PostDetailResponse, PostListResponse, SessionResponse, UploadResponse } from '../types';
 
 const API_BASE = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
-const USE_DEV_API_BASE = Boolean(import.meta.env.DEV && API_BASE);
+const canUseAbsoluteApiBase = Boolean(API_BASE);
 
 function buildUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  if (USE_DEV_API_BASE) return `${API_BASE}${normalizedPath}`;
   return normalizedPath;
 }
 
-async function parseJson(response: Response): Promise<unknown> {
+async function parseJson(response: Response): Promise<{ data: unknown; nonJsonText?: string }> {
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.toLowerCase().includes('application/json')) {
-    return { __nonJson: true };
+    const text = await response.text().catch(() => '');
+    return { data: { __nonJson: true }, nonJsonText: text };
   }
-  return response.json().catch(() => ({ __parseError: true }));
+  const parsed = await response.json().catch(() => ({ __parseError: true }));
+  return { data: parsed };
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(buildUrl(path), {
+async function performRequest(url: string, init?: RequestInit): Promise<{ response: Response; data: unknown; nonJsonText?: string }> {
+  const response = await fetch(url, {
     credentials: 'include',
     ...init,
     headers: {
@@ -27,25 +28,53 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     }
   });
 
-  const data = await parseJson(response);
+  const parsed = await parseJson(response);
+  return { response, data: parsed.data, nonJsonText: parsed.nonJsonText };
+}
 
-  if (typeof data === 'object' && data !== null && '__nonJson' in data) {
-    throw new Error(`API returned non-JSON response for ${path}. Check VITE_API_BASE and Worker routing.`);
+function getCandidateUrls(path: string): string[] {
+  const primary = buildUrl(path);
+  if (!canUseAbsoluteApiBase) return [primary];
+  if (path.startsWith('http://') || path.startsWith('https://')) return [primary];
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const fallback = `${API_BASE}${normalizedPath}`;
+  if (fallback === primary) return [primary];
+  return [primary, fallback];
+}
+
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const urls = getCandidateUrls(path);
+  let lastError = '';
+
+  for (let i = 0; i < urls.length; i += 1) {
+    const url = urls[i];
+    const { response, data, nonJsonText } = await performRequest(url, init);
+
+    if (typeof data === 'object' && data !== null && '__nonJson' in data) {
+      lastError = `API returned non-JSON response for ${path} via ${url} (status ${response.status}, content-type: ${
+        response.headers.get('content-type') || 'unknown'
+      }). ${String(nonJsonText || '').slice(0, 120)}`;
+      if (i < urls.length - 1) continue;
+      throw new Error(lastError);
+    }
+
+    if (typeof data === 'object' && data !== null && '__parseError' in data) {
+      throw new Error(`API JSON parse failed for ${path} via ${url}.`);
+    }
+
+    if (!response.ok || (typeof data === 'object' && data !== null && 'ok' in data && (data as { ok?: boolean }).ok === false)) {
+      const message =
+        typeof data === 'object' && data !== null && 'error' in data
+          ? String((data as { error?: string }).error || 'Request failed')
+          : `Request failed: ${response.status}`;
+      throw new Error(message);
+    }
+
+    return data as T;
   }
 
-  if (typeof data === 'object' && data !== null && '__parseError' in data) {
-    throw new Error(`API JSON parse failed for ${path}.`);
-  }
-
-  if (!response.ok || (typeof data === 'object' && data !== null && 'ok' in data && (data as { ok?: boolean }).ok === false)) {
-    const message =
-      typeof data === 'object' && data !== null && 'error' in data
-        ? String((data as { error?: string }).error || 'Request failed')
-        : `Request failed: ${response.status}`;
-    throw new Error(message);
-  }
-
-  return data as T;
+  throw new Error(lastError || `Request failed for ${path}`);
 }
 
 export interface ListPostsParams {
