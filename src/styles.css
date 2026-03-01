@@ -137,6 +137,36 @@ main {
   color: var(--text);
 }
 
+.list-tags-center {
+  text-align: center;
+}
+
+.list-tags-title {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.list-tags--empty {
+  min-height: 20px;
+}
+
+.tag-filter-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.3;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tag-filter-btn.is-active {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .listing-grid {
   display: grid;
   gap: 20px;
@@ -325,6 +355,12 @@ main {
   margin: 0 0 10px;
   font-size: 15px;
   line-height: 1;
+}
+
+.detail-layout__date {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.3;
 }
 
 .detail-program {

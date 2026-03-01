@@ -74,7 +74,7 @@ export async function getPostTags(env: Env, postId: number): Promise<string[]> {
 
 export async function listDistinctTags(
   env: Env,
-  options?: { lang?: 'en' | 'ko'; section?: 'blog' | 'tools' | 'games' | 'pages' }
+  options?: { lang?: 'en' | 'ko'; publishedOnly?: boolean }
 ): Promise<string[]> {
   const where: string[] = ['p.is_deleted = 0'];
   const binds: unknown[] = [];
@@ -84,9 +84,8 @@ export async function listDistinctTags(
     binds.push(options.lang);
   }
 
-  if (options?.section) {
-    where.push('p.section = ?');
-    binds.push(options.section);
+  if (options?.publishedOnly) {
+    where.push("p.status = 'published'");
   }
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -103,6 +102,45 @@ export async function listDistinctTags(
     .all<{ name: string }>();
 
   return (rows.results || []).map((row) => String(row.name || '').trim()).filter(Boolean);
+}
+
+export async function listTagCountsBySection(
+  env: Env,
+  options: {
+    lang: 'en' | 'ko';
+    section: 'blog' | 'tools' | 'games' | 'pages';
+    publishedOnly?: boolean;
+  }
+): Promise<Array<{ name: string; count: number }>> {
+  const where: string[] = ['p.is_deleted = 0', 'p.lang = ?'];
+  const binds: unknown[] = [options.section, options.lang];
+
+  if (options.publishedOnly) {
+    where.push("p.status = 'published'");
+  }
+
+  const whereSql = `WHERE ${where.join(' AND ')}`;
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       t.name AS name,
+       SUM(CASE WHEN p.section = ? THEN 1 ELSE 0 END) AS count
+     FROM tags t
+     INNER JOIN post_tags pt ON pt.tag_id = t.id
+     INNER JOIN posts p ON p.id = pt.post_id
+     ${whereSql}
+     GROUP BY t.id, t.name
+     ORDER BY LOWER(t.name) ASC`
+  )
+    .bind(...binds)
+    .all<{ name: string; count: number | string | null }>();
+
+  return (rows.results || [])
+    .map((row) => ({
+      name: String(row.name || '').trim(),
+      count: Number(row.count || 0)
+    }))
+    .filter((row) => Boolean(row.name));
 }
 
 export async function getMediaById(env: Env, mediaId: number): Promise<MediaRecord | null> {

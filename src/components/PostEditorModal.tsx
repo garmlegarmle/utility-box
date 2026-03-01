@@ -158,13 +158,16 @@ export function PostEditorModal({
 
   const [cardTitle, setCardTitle] = useState(initialPost?.card.title || initialPost?.title || '');
   const [cardCategory, setCardCategory] = useState(initialPost?.card.category || initialPost?.section || defaultSection);
-  const [cardTag, setCardTag] = useState(initialPost?.card.tag || initialPost?.tags[0] || '');
+  const [selectedCardTags, setSelectedCardTags] = useState<string[]>(
+    parseTagInput(initialPost?.card.tag || (initialPost?.tags || []).join(', '))
+  );
+  const [cardTagDraft, setCardTagDraft] = useState('');
   const [cardRank, setCardRank] = useState(stripRank(initialPost?.card.rank));
   const [cardImageId, setCardImageId] = useState<number | null>(initialPost?.card.imageId ?? null);
   const [cardImageUrl, setCardImageUrl] = useState(initialPost?.card.imageUrl || '');
   const [cardTitleTouched, setCardTitleTouched] = useState(false);
   const [cardCategoryTouched, setCardCategoryTouched] = useState(false);
-  const [cardTagTouched, setCardTagTouched] = useState(false);
+  const [cardTagsTouched, setCardTagsTouched] = useState(false);
   const [cardRankTouched, setCardRankTouched] = useState(false);
 
   const [loading, setLoading] = useState(false);
@@ -196,7 +199,8 @@ export function PostEditorModal({
 
     setCardTitle(initialPost?.card.title || initialPost?.title || '');
     setCardCategory(initialPost?.card.category || initialPost?.section || defaultSection);
-    setCardTag(initialPost?.card.tag || initialPost?.tags[0] || '');
+    setSelectedCardTags(parseTagInput(initialPost?.card.tag || (initialPost?.tags || []).join(', ')));
+    setCardTagDraft('');
     setCardRank(stripRank(initialPost?.card.rank));
     setCardImageId(initialPost?.card.imageId ?? null);
     setCardImageUrl(initialPost?.card.imageUrl || '');
@@ -204,7 +208,9 @@ export function PostEditorModal({
     setCardCategoryTouched(
       Boolean(initialPost?.card.category && initialPost.card.category !== (initialPost.section || defaultSection))
     );
-    setCardTagTouched(Boolean(initialPost?.card.tag && initialPost.card.tag !== (initialPost.tags?.[0] || '')));
+    setCardTagsTouched(
+      Boolean(parseTagInput(initialPost?.card.tag || '').join(',') !== parseTagInput((initialPost?.tags || []).join(',')).join(','))
+    );
     setCardRankTouched(Boolean(stripRank(initialPost?.card.rank)));
 
     selectedImageRef.current = null;
@@ -258,9 +264,11 @@ export function PostEditorModal({
 
     async function loadTags() {
       try {
-        const response = await listTags({ lang, section });
+        const response = await listTags({ lang });
         if (canceled) return;
-        setAvailableTags((prev) => dedupeTagList([...prev, ...(response.items || []), ...selectedTags]));
+        setAvailableTags((prev) =>
+          dedupeTagList([...prev, ...(response.items || []), ...selectedTags, ...selectedCardTags])
+        );
       } catch {
         // Keep current local tag cache only.
       }
@@ -270,7 +278,7 @@ export function PostEditorModal({
     return () => {
       canceled = true;
     };
-  }, [lang, open, section, selectedTags]);
+  }, [lang, open, selectedCardTags, selectedTags]);
 
   useEffect(() => {
     if (!open) return;
@@ -286,9 +294,9 @@ export function PostEditorModal({
 
   useEffect(() => {
     if (!open) return;
-    if (cardTagTouched) return;
-    setCardTag(selectedTags[0] || '');
-  }, [cardTagTouched, open, selectedTags]);
+    if (cardTagsTouched) return;
+    setSelectedCardTags(selectedTags);
+  }, [cardTagsTouched, open, selectedTags]);
 
   useEffect(() => {
     if (!open) return;
@@ -300,7 +308,6 @@ export function PostEditorModal({
       try {
         const response = await listPosts({
           lang,
-          section,
           status: 'published',
           page: 1,
           limit: 1
@@ -317,7 +324,7 @@ export function PostEditorModal({
     return () => {
       canceled = true;
     };
-  }, [cardRankTouched, lang, mode, open, section]);
+  }, [cardRankTouched, lang, mode, open]);
 
   if (!open) return null;
 
@@ -424,6 +431,23 @@ export function PostEditorModal({
     setSelectedTags((prev) => prev.filter((item) => item.trim().toLowerCase() !== key));
   }
 
+  function addCardTag(raw: string) {
+    const next = parseTagInput(raw);
+    if (next.length === 0) return;
+
+    setCardTagsTouched(true);
+    setSelectedCardTags((prev) => dedupeTagList([...prev, ...next]));
+    setAvailableTags((prev) => dedupeTagList([...prev, ...next]));
+    setCardTagDraft('');
+  }
+
+  function removeCardTag(raw: string) {
+    const key = String(raw || '').trim().toLowerCase();
+    if (!key) return;
+    setCardTagsTouched(true);
+    setSelectedCardTags((prev) => prev.filter((item) => item.trim().toLowerCase() !== key));
+  }
+
   async function uploadAndInsertBodyImage(file: File) {
     setLoading(true);
     setError('');
@@ -481,6 +505,7 @@ export function PostEditorModal({
     }
 
     const parsedTags = dedupeTagList(selectedTags);
+    const parsedCardTags = dedupeTagList(selectedCardTags);
     const normalizedExcerpt = excerpt.trim() || null;
     const rankNumber = parseRankNumber(cardRank.trim());
 
@@ -497,7 +522,7 @@ export function PostEditorModal({
       card: {
         title: cardTitle.trim() || normalizedTitle,
         category: cardCategory.trim() || section,
-        tag: cardTag.trim() || parsedTags[0] || 'Tag',
+        tag: parsedCardTags.join(', ') || parsedTags.join(', ') || 'Tag',
         rank: rankNumber ? `#${rankNumber}` : null,
         rankNumber,
         imageId: cardImageId,
@@ -517,7 +542,7 @@ export function PostEditorModal({
       card: {
         title: snapshot.card.title,
         category: snapshot.card.category,
-        tag: snapshot.card.tag,
+        tag: parsedCardTags.join(', ') || parsedTags.join(', ') || '',
         rank: rankNumber ? String(rankNumber) : '',
         image_id: cardImageId
       }
@@ -706,17 +731,6 @@ export function PostEditorModal({
                   />
                 </label>
                 <label>
-                  Card Tag
-                  <input
-                    value={cardTag}
-                    onChange={(event) => {
-                      setCardTagTouched(true);
-                      setCardTag(event.target.value);
-                    }}
-                    placeholder="tag"
-                  />
-                </label>
-                <label>
                   Post Number
                   <input
                     value={cardRank}
@@ -727,6 +741,57 @@ export function PostEditorModal({
                     placeholder="1"
                   />
                 </label>
+              </div>
+
+              <div className="notice-tag-builder">
+                <p className="notice-tag-builder__label">Card Tags</p>
+                <div className="notice-tag-builder__chips">
+                  {selectedCardTags.map((tag) => (
+                    <button
+                      key={`card-tag-${tag.toLowerCase()}`}
+                      type="button"
+                      className="notice-tag-chip"
+                      onClick={() => removeCardTag(tag)}
+                    >
+                      {tag} x
+                    </button>
+                  ))}
+                  {selectedCardTags.length === 0 ? <span className="list-tags">No card tags selected.</span> : null}
+                </div>
+                <div className="notice-tag-builder__input-row">
+                  <input
+                    value={cardTagDraft}
+                    onChange={(event) => setCardTagDraft(event.target.value)}
+                    placeholder="Type card tag and press Enter"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ',') {
+                        event.preventDefault();
+                        addCardTag(cardTagDraft);
+                      }
+                    }}
+                  />
+                  <button type="button" className="admin-btn admin-btn--secondary" onClick={() => addCardTag(cardTagDraft)}>
+                    add
+                  </button>
+                </div>
+                <div className="notice-tag-builder__suggestions">
+                  {availableTags
+                    .filter(
+                      (tag) =>
+                        !selectedCardTags.some((picked) => picked.trim().toLowerCase() === tag.trim().toLowerCase())
+                    )
+                    .slice(0, 30)
+                    .map((tag) => (
+                      <button
+                        key={`card-suggestion-${tag.toLowerCase()}`}
+                        type="button"
+                        className="notice-tag-suggestion"
+                        onClick={() => addCardTag(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                </div>
               </div>
 
               <div className="admin-inline-grid">

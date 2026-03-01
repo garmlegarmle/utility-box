@@ -1,4 +1,11 @@
-import type { PostDetailResponse, PostListResponse, SessionResponse, TagListResponse, UploadResponse } from '../types';
+import type {
+  PostDetailResponse,
+  PostListResponse,
+  SessionResponse,
+  TagCountResponse,
+  TagListResponse,
+  UploadResponse
+} from '../types';
 
 function buildApiUrl(path: string): string {
   // Keep API calls same-origin to avoid host/CORS mismatch.
@@ -110,6 +117,29 @@ export async function listTags(params: ListTagsParams = {}): Promise<TagListResp
   return {
     ok: true,
     items: Array.isArray(data.items) ? data.items : []
+  };
+}
+
+export async function listTagCounts(params: { lang: 'en' | 'ko'; section: 'blog' | 'tools' | 'games' | 'pages' }): Promise<TagCountResponse> {
+  const query = new URLSearchParams({
+    lang: params.lang,
+    section: params.section,
+    counts: '1'
+  });
+
+  const data = await apiFetch<Partial<TagCountResponse>>(`/api/tags?${query.toString()}`);
+  const items = Array.isArray(data.items)
+    ? data.items
+        .map((item) => ({
+          name: String((item as { name?: string }).name || '').trim(),
+          count: Number((item as { count?: number }).count || 0)
+        }))
+        .filter((item) => Boolean(item.name))
+    : [];
+
+  return {
+    ok: true,
+    items
   };
 }
 

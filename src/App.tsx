@@ -8,7 +8,7 @@ import { PageManagerModal } from './components/PageManagerModal';
 import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
-import { buildAuthUrl, getPostBySlug, getSession, listPosts, logout } from './lib/api';
+import { buildAuthUrl, getPostBySlug, getSession, listPosts, listTagCounts, logout } from './lib/api';
 import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel } from './lib/site';
 import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from './types';
 
@@ -325,9 +325,11 @@ function SectionListPage({
   const params = useParams();
   const lang = normalizeLang(params.lang);
   const section = normalizeSection(params.section || '') as SiteSection | null;
-  const isValidSection = Boolean(section && section !== 'pages');
+  const isValidSection = Boolean(section);
 
   const [posts, setPosts] = useState<PostItem[]>([]);
+  const [tagCounts, setTagCounts] = useState<Array<{ name: string; count: number }>>([]);
+  const [selectedTag, setSelectedTag] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -339,23 +341,30 @@ function SectionListPage({
     async function load() {
       if (!isValidSection || !section) {
         setPosts([]);
+        setTagCounts([]);
         setLoading(false);
         return;
       }
 
       try {
-        const response = await listPosts({
-          lang,
-          section,
-          status: admin.isAdmin ? 'all' : 'published',
-          limit: 120,
-          page: 1
-        });
+        const [response, tags] = await Promise.all([
+          listPosts({
+            lang,
+            section,
+            status: admin.isAdmin ? 'all' : 'published',
+            tag: selectedTag || undefined,
+            limit: 120,
+            page: 1
+          }),
+          listTagCounts({ lang, section })
+        ]);
         if (canceled) return;
         setPosts(response.items);
+        setTagCounts(Array.isArray(tags.items) ? tags.items : []);
       } catch (err) {
         if (canceled) return;
         setPosts([]);
+        setTagCounts([]);
         setError(err instanceof Error ? err.message : 'Failed to load posts');
       } finally {
         if (!canceled) setLoading(false);
@@ -366,16 +375,26 @@ function SectionListPage({
     return () => {
       canceled = true;
     };
-  }, [admin.isAdmin, isValidSection, lang, refreshKey, section]);
+  }, [admin.isAdmin, isValidSection, lang, refreshKey, section, selectedTag]);
+
+  useEffect(() => {
+    setSelectedTag('');
+  }, [lang, section]);
 
   useEffect(() => {
     if (!savedPost) return;
     if (!section || !isValidSection) return;
     if (savedPost.lang !== lang || savedPost.section !== section) return;
     if (savedPost.status !== 'published' && !admin.isAdmin) return;
+    if (
+      selectedTag &&
+      !savedPost.tags.some((tag) => tag.trim().toLowerCase() === selectedTag.trim().toLowerCase())
+    ) {
+      return;
+    }
 
     setPosts((prev) => upsertPost(prev, savedPost, 120));
-  }, [admin.isAdmin, isValidSection, lang, savedPost, section]);
+  }, [admin.isAdmin, isValidSection, lang, savedPost, section, selectedTag]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
@@ -389,7 +408,27 @@ function SectionListPage({
         <div className="container">
           <header className="list-head">
             <h1>{sectionLabel(section, lang)}</h1>
-            <p className="list-tags">tag list ~~~~~~~~~~~~~~~~~~~~~~~~~~</p>
+            <div className="list-tags-center">
+              <p className="list-tags-title">Tag list</p>
+              {tagCounts.length > 0 ? (
+                <p className="list-tags">
+                  {tagCounts.map((item, index) => (
+                    <span key={`${item.name}-${index}`}>
+                      <button
+                        type="button"
+                        className={`tag-filter-btn${selectedTag === item.name ? ' is-active' : ''}`}
+                        onClick={() => setSelectedTag((prev) => (prev === item.name ? '' : item.name))}
+                      >
+                        {item.name}({item.count})
+                      </button>
+                      {index < tagCounts.length - 1 ? ' | ' : ''}
+                    </span>
+                  ))}
+                </p>
+              ) : (
+                <p className="list-tags list-tags--empty" />
+              )}
+            </div>
           </header>
 
           {loading ? <p>Loading...</p> : null}
@@ -523,7 +562,15 @@ function DetailPage({
           {!loading && !error && post ? (
             <>
               <header className="detail-layout__head">
-                <p className="detail-layout__tag">{Array.isArray(post.tags) && post.tags[0] ? post.tags[0] : 'tag'}</p>
+                <p className="detail-layout__tag">
+                  {Array.isArray(post.tags) && post.tags.length > 0 ? post.tags.join(' | ') : 'tag'}
+                </p>
+                <p className="detail-layout__date">
+                  Created: {new Date(post.created_at).toLocaleDateString()}
+                  {post.updated_at && post.updated_at !== post.created_at
+                    ? ` | Updated: ${new Date(post.updated_at).toLocaleDateString()}`
+                    : ''}
+                </p>
                 <div className="detail-layout__title-row">
                   <h1>
                     {renderTitleWithHiddenLoginTrigger(post.title, enableHiddenPolicyLogin, requestAdmin)}

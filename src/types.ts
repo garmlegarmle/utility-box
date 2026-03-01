@@ -66,6 +66,16 @@ export interface TagListResponse {
   items: string[];
 }
 
+export interface TagCountItem {
+  name: string;
+  count: number;
+}
+
+export interface TagCountResponse {
+  ok: true;
+  items: TagCountItem[];
+}
+
 export interface PostSaveSnapshot {
   id: number;
   slug: string;
