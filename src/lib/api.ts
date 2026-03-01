@@ -1,23 +1,8 @@
 import type { PostDetailResponse, PostListResponse, SessionResponse, UploadResponse } from '../types';
 
-const ENV_API_BASE = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
-const DEFAULT_PROD_API_BASE = 'https://api.utility-box.org';
-
-function resolveApiBase(): string {
-  if (ENV_API_BASE) return ENV_API_BASE;
-  if (typeof window === 'undefined') return '';
-
-  const host = String(window.location.hostname || '').toLowerCase();
-  if (host === 'localhost' || host === '127.0.0.1') return '';
-  return DEFAULT_PROD_API_BASE;
-}
-
-const API_BASE = resolveApiBase();
-
 function buildApiUrl(path: string): string {
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // Keep API calls same-origin to avoid host/CORS mismatch.
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  if (API_BASE) return `${API_BASE}${normalizedPath}`;
   return normalizedPath;
 }
 
@@ -184,5 +169,5 @@ export function buildAuthUrl(redirectPath: string): string {
     origin: window.location.origin
   });
 
-  return buildApiUrl(`/api/auth?${query.toString()}`);
+  return `/api/auth?${query.toString()}`;
 }

@@ -331,6 +331,7 @@ function SectionListPage({
         setPosts(response.items);
       } catch (err) {
         if (canceled) return;
+        setPosts([]);
         setError(err instanceof Error ? err.message : 'Failed to load posts');
       } finally {
         if (!canceled) setLoading(false);
@@ -441,6 +442,7 @@ function DetailPage({
         setPost(response.post);
       } catch (err) {
         if (canceled) return;
+        setPost(null);
         setError(err instanceof Error ? err.message : 'Failed to load post');
       } finally {
         if (!canceled) setLoading(false);

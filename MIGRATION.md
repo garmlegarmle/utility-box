@@ -85,8 +85,7 @@ wrangler deploy
 ### 6) Cloudflare Pages settings
 - Build command: `npm ci && npm run build`
 - Build output directory: `dist`
-- Environment variable:
-  - `VITE_API_BASE=https://api.utility-box.org`
+- Leave `VITE_API_BASE` unset for production (frontend uses same-origin `/api/*`).
 
 ## Local Development
 
