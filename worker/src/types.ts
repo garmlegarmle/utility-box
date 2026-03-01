@@ -7,11 +7,6 @@ export interface Env {
   GITHUB_CLIENT_SECRET?: string;
   GITHUB_OAUTH_SCOPE?: string;
   ADMIN_GITHUB_USER?: string;
-  ADMIN_GITHUB_USERS?: string;
-  ADMIN_GITHUB_USERNAME?: string;
-  ADMIN_GITHUB_USERNAMES?: string;
-  GITHUB_ADMIN_USER?: string;
-  GITHUB_ADMIN_USERS?: string;
   ALLOWED_ORIGINS?: string;
   MEDIA_PUBLIC_BASE_URL?: string;
   COOKIE_DOMAIN?: string;

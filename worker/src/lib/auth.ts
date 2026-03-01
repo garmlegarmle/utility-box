@@ -84,36 +84,12 @@ export function randomState(length = 32): string {
   return out;
 }
 
-function parseEnvUsers(value: unknown): string[] {
-  return String(value || '')
-    .split(/[,\s]+/)
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function collectAllowedAdmins(env: Env): string[] {
-  const candidates = [
-    env.ADMIN_GITHUB_USER,
-    env.ADMIN_GITHUB_USERS,
-    env.ADMIN_GITHUB_USERNAME,
-    env.ADMIN_GITHUB_USERNAMES,
-    env.GITHUB_ADMIN_USER,
-    env.GITHUB_ADMIN_USERS
-  ];
-
-  const set = new Set<string>();
-  for (const value of candidates) {
-    for (const user of parseEnvUsers(value)) {
-      set.add(user);
-    }
-  }
-  return [...set];
-}
-
 export function isAllowedAdmin(username: string, env: Env): boolean {
-  const allowlist = collectAllowedAdmins(env);
-  if (allowlist.length === 0) return false;
-  return allowlist.includes(username.toLowerCase());
+  const allowed = String(env.ADMIN_GITHUB_USER || '')
+    .trim()
+    .toLowerCase();
+  if (!allowed) return false;
+  return username.toLowerCase() === allowed;
 }
 
 export function safeRedirectPath(input: string | null): string {

@@ -229,12 +229,7 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
     debugLog(env, 'auth.callback.denied', {
       reqId,
       username,
-      hasSingleAdminUser: Boolean(String(env.ADMIN_GITHUB_USER || '').trim()),
-      hasAdminAllowlist: Boolean(String(env.ADMIN_GITHUB_USERS || '').trim()),
-      hasLegacyAdminUser: Boolean(String(env.ADMIN_GITHUB_USERNAME || '').trim()),
-      hasLegacyAdminAllowlist: Boolean(String(env.ADMIN_GITHUB_USERNAMES || '').trim()),
-      hasGithubAdminUser: Boolean(String(env.GITHUB_ADMIN_USER || '').trim()),
-      hasGithubAdminAllowlist: Boolean(String(env.GITHUB_ADMIN_USERS || '').trim())
+      hasAdminGithubUser: Boolean(String(env.ADMIN_GITHUB_USER || '').trim())
     });
     return new Response(
       createPopupHtml({
