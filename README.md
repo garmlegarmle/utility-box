@@ -31,7 +31,7 @@ Worker secrets/vars are configured with Wrangler:
 - `ADMIN_SESSION_SECRET`
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
-- optional: `ADMIN_GITHUB_USER`, `ADMIN_GITHUB_USERS`, `MEDIA_PUBLIC_BASE_URL`
+- optional: `ADMIN_GITHUB_USER`, `ADMIN_GITHUB_USERS`, `MEDIA_PUBLIC_BASE_URL`, `DEBUG_LOGS`
 
 ## Cloudflare Setup
 ```bash
@@ -56,6 +56,18 @@ Host canonicalization:
 - Pages middleware (`functions/_middleware.js`) redirects `utility-box.org` and `utility-box.pages.dev` to `https://www.utility-box.org` (301).
 
 More detail: see `MIGRATION.md`.
+
+## Debug Logging
+- Worker debug logs are off by default.
+- Enable by setting Worker variable `DEBUG_LOGS=1`.
+- Then inspect logs with:
+```bash
+npx wrangler tail utility-box-api
+```
+- Logged flows:
+  - auth start/callback/session/logout
+  - posts list/detail/create/update/delete
+  - top-level API status/error
 
 ## Operations Checklist
 1. Apply schema + seed.

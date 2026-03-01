@@ -12,6 +12,7 @@ import {
   randomState,
   safeRedirectPath
 } from '../lib/auth';
+import { debugLog, requestDebugId } from '../lib/debug';
 import { ok } from '../lib/validators';
 
 const GH_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize';
@@ -71,11 +72,14 @@ async function decodeOAuthState(value: string, env: Env): Promise<OAuthStatePayl
 }
 
 export async function handleAuthStart(request: Request, env: Env): Promise<Response> {
+  const reqId = requestDebugId(request);
   const clientId = env.GITHUB_CLIENT_ID;
   if (!clientId) {
+    debugLog(env, 'auth.start.error', { reqId, reason: 'missing_github_client_id' });
     return new Response('Missing GITHUB_CLIENT_ID', { status: 500 });
   }
   if (!env.ADMIN_SESSION_SECRET) {
+    debugLog(env, 'auth.start.error', { reqId, reason: 'missing_admin_session_secret' });
     return new Response('Missing ADMIN_SESSION_SECRET', { status: 500 });
   }
 
@@ -96,6 +100,14 @@ export async function handleAuthStart(request: Request, env: Env): Promise<Respo
   authUrl.searchParams.set('scope', env.GITHUB_OAUTH_SCOPE || 'read:user');
   authUrl.searchParams.set('state', signedState);
 
+  debugLog(env, 'auth.start', {
+    reqId,
+    redirectPath,
+    targetOrigin,
+    redirectOrigin,
+    host: url.host
+  });
+
   const headers = new Headers({
     Location: authUrl.toString(),
     'Cache-Control': 'no-store'
@@ -108,11 +120,14 @@ export async function handleAuthStart(request: Request, env: Env): Promise<Respo
 }
 
 export async function handleAuthCallback(request: Request, env: Env): Promise<Response> {
+  const reqId = requestDebugId(request);
   if (!env.GITHUB_CLIENT_ID || !env.GITHUB_CLIENT_SECRET) {
+    debugLog(env, 'auth.callback.error', { reqId, reason: 'missing_github_oauth_env' });
     return new Response('Missing GitHub OAuth env vars', { status: 500 });
   }
 
   if (!env.ADMIN_SESSION_SECRET) {
+    debugLog(env, 'auth.callback.error', { reqId, reason: 'missing_admin_session_secret' });
     return new Response('Missing ADMIN_SESSION_SECRET', { status: 500 });
   }
 
@@ -127,6 +142,7 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   const redirectPath = statePayload?.redirectPath || '/en/';
 
   if (oauthError) {
+    debugLog(env, 'auth.callback.error', { reqId, reason: 'oauth_error', oauthError, targetOrigin, redirectPath });
     return new Response(createPopupHtml({ ok: false, message: oauthError, targetOrigin, redirectPath }), {
       status: 400,
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -134,6 +150,7 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   }
 
   if (!statePayload) {
+    debugLog(env, 'auth.callback.error', { reqId, reason: 'invalid_state', targetOrigin, redirectPath });
     return new Response(createPopupHtml({ ok: false, message: 'Invalid OAuth state', targetOrigin, redirectPath }), {
       status: 403,
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -141,6 +158,7 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   }
 
   if (!code) {
+    debugLog(env, 'auth.callback.error', { reqId, reason: 'missing_code', targetOrigin, redirectPath });
     return new Response(createPopupHtml({ ok: false, message: 'Missing OAuth code', targetOrigin, redirectPath }), {
       status: 400,
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -169,6 +187,13 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   const accessToken = tokenJson?.access_token;
 
   if (!tokenResponse.ok || !accessToken) {
+    debugLog(env, 'auth.callback.error', {
+      reqId,
+      reason: 'token_exchange_failed',
+      tokenStatus: tokenResponse.status,
+      targetOrigin,
+      redirectPath
+    });
     return new Response(createPopupHtml({ ok: false, message: 'Token exchange failed', targetOrigin, redirectPath }), {
       status: 502,
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -187,6 +212,13 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   const username = String(userJson?.login || '');
 
   if (!userResponse.ok || !username) {
+    debugLog(env, 'auth.callback.error', {
+      reqId,
+      reason: 'github_user_load_failed',
+      userStatus: userResponse.status,
+      targetOrigin,
+      redirectPath
+    });
     return new Response(createPopupHtml({ ok: false, message: 'Failed to load user profile', targetOrigin, redirectPath }), {
       status: 502,
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -194,6 +226,12 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   }
 
   if (!isAllowedAdmin(username, env)) {
+    debugLog(env, 'auth.callback.denied', {
+      reqId,
+      username,
+      hasSingleAdminUser: Boolean(String(env.ADMIN_GITHUB_USER || '').trim()),
+      hasAdminAllowlist: Boolean(String(env.ADMIN_GITHUB_USERS || '').trim())
+    });
     return new Response(createPopupHtml({ ok: false, message: 'User is not allowed', targetOrigin, redirectPath }), {
       status: 403,
       headers: {
@@ -221,6 +259,8 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   // Cleanup legacy cookie format if still present in browsers.
   headers.append('Set-Cookie', makeClearCookie(OAUTH_STATE_COOKIE, env));
 
+  debugLog(env, 'auth.callback.success', { reqId, username, redirectPath, targetOrigin });
+
   return new Response(createPopupHtml({ ok: true, message: 'ok', targetOrigin, redirectPath }), {
     status: 200,
     headers
@@ -229,6 +269,11 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
 
 export async function handleAuthSession(request: Request, env: Env): Promise<Response> {
   const session = await getAdminSession(request, env);
+  debugLog(env, 'auth.session', {
+    reqId: requestDebugId(request),
+    authenticated: Boolean(session),
+    username: session?.username || null
+  });
   return ok({
     ok: true,
     authenticated: Boolean(session),
@@ -237,7 +282,8 @@ export async function handleAuthSession(request: Request, env: Env): Promise<Res
   });
 }
 
-export async function handleAuthLogout(_request: Request, env: Env): Promise<Response> {
+export async function handleAuthLogout(request: Request, env: Env): Promise<Response> {
+  debugLog(env, 'auth.logout', { reqId: requestDebugId(request) });
   return ok(
     { ok: true },
     200,

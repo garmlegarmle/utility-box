@@ -1,6 +1,7 @@
 import type { Env, PostRecord } from '../types';
 import { isAdminRequest } from '../lib/auth';
 import { getPostTags, replacePostTags } from '../lib/db';
+import { debugLog, requestDebugId } from '../lib/debug';
 import { buildMediaUrls } from '../lib/media';
 import {
   clamp,
@@ -104,6 +105,7 @@ function mapPostRow(row: PostRecord, tags: string[], env: Env, request: Request)
 }
 
 async function listPosts(request: Request, env: Env): Promise<Response> {
+  const reqId = requestDebugId(request);
   const isAdmin = await isAdminRequest(request, env);
   const url = new URL(request.url);
 
@@ -173,6 +175,20 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
     items.push(mapPostRow(row, tags, env, request));
   }
 
+  debugLog(env, 'posts.list', {
+    reqId,
+    isAdmin,
+    lang,
+    section: section || 'all',
+    statusFilter,
+    page,
+    limit,
+    q: Boolean(q),
+    tag: tagFilter || null,
+    count: items.length,
+    total: Number(countRow?.total || 0)
+  });
+
   return ok({
     ok: true,
     items,
@@ -183,6 +199,7 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
 }
 
 async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promise<Response> {
+  const reqId = requestDebugId(request);
   const isAdmin = await isAdminRequest(request, env);
   const url = new URL(request.url);
 
@@ -215,7 +232,16 @@ async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promi
     .bind(...binds)
     .first<PostRecord>();
 
-  if (!row) return error(404, 'Post not found');
+  if (!row) {
+    debugLog(env, 'posts.detail.not_found', {
+      reqId,
+      isAdmin,
+      slug,
+      lang,
+      section: section || 'all'
+    });
+    return error(404, 'Post not found');
+  }
 
   const tags = await getPostTags(env, row.id);
 
@@ -243,6 +269,17 @@ async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promi
 
   const post = mapPostRow({ ...row, view_count: updatedViewCount }, tags, env, request);
 
+  debugLog(env, 'posts.detail', {
+    reqId,
+    isAdmin,
+    id: row.id,
+    slug: row.slug,
+    lang: row.lang,
+    section: row.section,
+    status: row.status,
+    viewCount: updatedViewCount
+  });
+
   return ok(
     {
       ok: true,
@@ -265,14 +302,20 @@ async function parsePayload(request: Request): Promise<PostWritePayload> {
 }
 
 async function createPost(request: Request, env: Env): Promise<Response> {
+  const reqId = requestDebugId(request);
   const isAdmin = await isAdminRequest(request, env);
-  if (!isAdmin) return error(401, 'Admin authentication required');
+  if (!isAdmin) {
+    debugLog(env, 'posts.create.denied', { reqId });
+    return error(401, 'Admin authentication required');
+  }
 
   let payload: PostWritePayload;
   try {
     payload = await parsePayload(request);
   } catch (err) {
-    return error(400, err instanceof Error ? err.message : 'Invalid payload');
+    const message = err instanceof Error ? err.message : 'Invalid payload';
+    debugLog(env, 'posts.create.error', { reqId, reason: message });
+    return error(400, message);
   }
 
   const title = String(payload.title || '').trim();
@@ -305,7 +348,10 @@ async function createPost(request: Request, env: Env): Promise<Response> {
     .bind(slug, lang, section)
     .first();
 
-  if (existing) return error(409, 'Post with same slug/lang/section already exists');
+  if (existing) {
+    debugLog(env, 'posts.create.conflict', { reqId, slug, lang, section });
+    return error(409, 'Post with same slug/lang/section already exists');
+  }
 
   const insert = await env.DB.prepare(
     `INSERT INTO posts (
@@ -342,6 +388,16 @@ async function createPost(request: Request, env: Env): Promise<Response> {
     await replacePostTags(env, postId, tags);
   }
 
+  debugLog(env, 'posts.create.success', {
+    reqId,
+    id: postId,
+    slug,
+    lang,
+    section,
+    status,
+    tagsCount: tags.length
+  });
+
   return ok({
     ok: true,
     id: postId,
@@ -350,8 +406,12 @@ async function createPost(request: Request, env: Env): Promise<Response> {
 }
 
 async function updatePost(request: Request, env: Env, idRaw: string): Promise<Response> {
+  const reqId = requestDebugId(request);
   const isAdmin = await isAdminRequest(request, env);
-  if (!isAdmin) return error(401, 'Admin authentication required');
+  if (!isAdmin) {
+    debugLog(env, 'posts.update.denied', { reqId, idRaw });
+    return error(401, 'Admin authentication required');
+  }
 
   const postId = parseIntSafe(idRaw);
   if (!postId) return error(400, 'Invalid post id');
@@ -366,7 +426,9 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
   try {
     payload = await parsePayload(request);
   } catch (err) {
-    return error(400, err instanceof Error ? err.message : 'Invalid payload');
+    const message = err instanceof Error ? err.message : 'Invalid payload';
+    debugLog(env, 'posts.update.error', { reqId, id: postId, reason: message });
+    return error(400, message);
   }
 
   const title = payload.title !== undefined ? String(payload.title || '').trim() : current.title;
@@ -412,7 +474,10 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
     .bind(slug, lang, section, postId)
     .first();
 
-  if (existing) return error(409, 'Another post with same slug/lang/section exists');
+  if (existing) {
+    debugLog(env, 'posts.update.conflict', { reqId, id: postId, slug, lang, section });
+    return error(409, 'Another post with same slug/lang/section exists');
+  }
 
   await env.DB.prepare(
     `UPDATE posts
@@ -460,6 +525,15 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
     await replacePostTags(env, postId, tags);
   }
 
+  debugLog(env, 'posts.update.success', {
+    reqId,
+    id: postId,
+    slug,
+    lang,
+    section,
+    status
+  });
+
   return ok({
     ok: true,
     id: postId,
@@ -471,8 +545,12 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
 }
 
 async function deletePost(request: Request, env: Env, idRaw: string): Promise<Response> {
+  const reqId = requestDebugId(request);
   const isAdmin = await isAdminRequest(request, env);
-  if (!isAdmin) return error(401, 'Admin authentication required');
+  if (!isAdmin) {
+    debugLog(env, 'posts.delete.denied', { reqId, idRaw });
+    return error(401, 'Admin authentication required');
+  }
 
   const postId = parseIntSafe(idRaw);
   if (!postId) return error(400, 'Invalid post id');
@@ -484,7 +562,12 @@ async function deletePost(request: Request, env: Env, idRaw: string): Promise<Re
     .run();
 
   const changed = Number(result.meta.changes || 0);
-  if (!changed) return error(404, 'Post not found');
+  if (!changed) {
+    debugLog(env, 'posts.delete.not_found', { reqId, id: postId });
+    return error(404, 'Post not found');
+  }
+
+  debugLog(env, 'posts.delete.success', { reqId, id: postId });
 
   return ok({ ok: true });
 }

@@ -1,4 +1,5 @@
 import { handlePreflight, withCors } from './lib/cors';
+import { debugLog, requestDebugId } from './lib/debug';
 import { error } from './lib/validators';
 import type { Env } from './types';
 import { handleAuthCallback, handleAuthLogout, handleAuthSession, handleAuthStart } from './routes/auth';
@@ -68,11 +69,24 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const reqId = requestDebugId(request);
     try {
       const response = await handleApi(request, env);
+      debugLog(env, 'api.response', {
+        reqId,
+        method: request.method,
+        path: new URL(request.url).pathname,
+        status: response.status
+      });
       return withCors(request, env, response);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unexpected error';
+      debugLog(env, 'api.error', {
+        reqId,
+        method: request.method,
+        path: new URL(request.url).pathname,
+        message
+      });
       return withCors(
         request,
         env,

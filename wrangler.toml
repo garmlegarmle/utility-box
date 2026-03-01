@@ -6,6 +6,7 @@ workers_dev = true
 [vars]
 ALLOWED_ORIGINS = "https://www.utility-box.org,https://utility-box.org,http://localhost:5173"
 GITHUB_OAUTH_SCOPE = "read:user"
+DEBUG_LOGS = "0"
 
 [[d1_databases]]
 binding = "DB"

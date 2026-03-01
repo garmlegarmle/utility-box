@@ -11,6 +11,7 @@ export interface Env {
   ALLOWED_ORIGINS?: string;
   MEDIA_PUBLIC_BASE_URL?: string;
   COOKIE_DOMAIN?: string;
+  DEBUG_LOGS?: string;
 }
 
 export interface ApiError {
