@@ -4,11 +4,11 @@ import {
   SESSION_COOKIE,
   createPopupHtml,
   createSignedValue,
+  verifySignedValue,
   getAdminSession,
   isAllowedAdmin,
   makeClearCookie,
   makeSetCookie,
-  parseCookie,
   randomState,
   safeRedirectPath
 } from '../lib/auth';
@@ -22,26 +22,7 @@ interface OAuthStatePayload {
   state: string;
   redirectPath: string;
   targetOrigin: string;
-}
-
-function encodeStateCookie(payload: OAuthStatePayload): string {
-  return btoa(JSON.stringify(payload));
-}
-
-function decodeStateCookie(value: string): OAuthStatePayload | null {
-  try {
-    const parsed = JSON.parse(atob(value));
-    if (!parsed || typeof parsed !== 'object') return null;
-    if (!parsed.state || !parsed.redirectPath) return null;
-
-    return {
-      state: String(parsed.state),
-      redirectPath: safeRedirectPath(String(parsed.redirectPath)),
-      targetOrigin: String(parsed.targetOrigin || '*')
-    };
-  } catch {
-    return null;
-  }
+  issuedAt: number;
 }
 
 function sanitizeOrigin(value: string): string {
@@ -53,10 +34,49 @@ function sanitizeOrigin(value: string): string {
   }
 }
 
+async function createOAuthState(payload: Omit<OAuthStatePayload, 'issuedAt'>, env: Env): Promise<string> {
+  if (!env.ADMIN_SESSION_SECRET) {
+    throw new Error('Missing ADMIN_SESSION_SECRET');
+  }
+
+  return createSignedValue(
+    {
+      ...payload,
+      issuedAt: Date.now()
+    },
+    env.ADMIN_SESSION_SECRET
+  );
+}
+
+async function decodeOAuthState(value: string, env: Env): Promise<OAuthStatePayload | null> {
+  const secret = env.ADMIN_SESSION_SECRET;
+  if (!value || !secret) return null;
+
+  const parsed = (await verifySignedValue(value, secret)) as Partial<OAuthStatePayload> | null;
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  if (!parsed.state || !parsed.redirectPath || !parsed.issuedAt) return null;
+  const issuedAt = Number(parsed.issuedAt);
+  if (!Number.isFinite(issuedAt)) return null;
+
+  // 10 minutes
+  if (Date.now() - issuedAt > 10 * 60 * 1000) return null;
+
+  return {
+    state: String(parsed.state),
+    redirectPath: safeRedirectPath(String(parsed.redirectPath)),
+    targetOrigin: String(parsed.targetOrigin || '*'),
+    issuedAt
+  };
+}
+
 export async function handleAuthStart(request: Request, env: Env): Promise<Response> {
   const clientId = env.GITHUB_CLIENT_ID;
   if (!clientId) {
     return new Response('Missing GITHUB_CLIENT_ID', { status: 500 });
+  }
+  if (!env.ADMIN_SESSION_SECRET) {
+    return new Response('Missing ADMIN_SESSION_SECRET', { status: 500 });
   }
 
   const url = new URL(request.url);
@@ -66,7 +86,7 @@ export async function handleAuthStart(request: Request, env: Env): Promise<Respo
   const targetOrigin = targetOriginParam === '*' ? '*' : sanitizeOrigin(targetOriginParam);
 
   const state = randomState();
-  const statePayload = encodeStateCookie({ state, redirectPath, targetOrigin });
+  const signedState = await createOAuthState({ state, redirectPath, targetOrigin }, env);
 
   const redirectOrigin = targetOrigin !== '*' ? targetOrigin : `${url.protocol}//${url.host}`;
   const redirectUri = `${redirectOrigin}/api/callback`;
@@ -74,13 +94,12 @@ export async function handleAuthStart(request: Request, env: Env): Promise<Respo
   authUrl.searchParams.set('client_id', clientId);
   authUrl.searchParams.set('redirect_uri', redirectUri);
   authUrl.searchParams.set('scope', env.GITHUB_OAUTH_SCOPE || 'read:user');
-  authUrl.searchParams.set('state', state);
+  authUrl.searchParams.set('state', signedState);
 
   const headers = new Headers({
     Location: authUrl.toString(),
     'Cache-Control': 'no-store'
   });
-  headers.append('Set-Cookie', makeSetCookie(OAUTH_STATE_COOKIE, statePayload, 600, env));
 
   return new Response(null, {
     status: 302,
@@ -102,11 +121,10 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   const state = url.searchParams.get('state') || '';
   const oauthError = url.searchParams.get('error') || '';
 
-  const stateCookieRaw = parseCookie(request, OAUTH_STATE_COOKIE);
-  const stateCookie = decodeStateCookie(stateCookieRaw);
+  const statePayload = await decodeOAuthState(state, env);
 
-  const targetOrigin = stateCookie?.targetOrigin || '*';
-  const redirectPath = stateCookie?.redirectPath || '/en/';
+  const targetOrigin = statePayload?.targetOrigin || '*';
+  const redirectPath = statePayload?.redirectPath || '/en/';
 
   if (oauthError) {
     return new Response(createPopupHtml({ ok: false, message: oauthError, targetOrigin, redirectPath }), {
@@ -115,7 +133,7 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
     });
   }
 
-  if (!stateCookie || stateCookie.state !== state) {
+  if (!statePayload) {
     return new Response(createPopupHtml({ ok: false, message: 'Invalid OAuth state', targetOrigin, redirectPath }), {
       status: 403,
       headers: { 'Content-Type': 'text/html; charset=utf-8' }
@@ -129,7 +147,8 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
     });
   }
 
-  const callbackOrigin = stateCookie?.targetOrigin && stateCookie.targetOrigin !== '*' ? stateCookie.targetOrigin : `${url.protocol}//${url.host}`;
+  const callbackOrigin =
+    statePayload.targetOrigin && statePayload.targetOrigin !== '*' ? statePayload.targetOrigin : `${url.protocol}//${url.host}`;
   const redirectUri = `${callbackOrigin}/api/callback`;
 
   const tokenResponse = await fetch(GH_TOKEN_URL, {
@@ -199,6 +218,7 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
   });
 
   headers.append('Set-Cookie', makeSetCookie(SESSION_COOKIE, sessionValue, 60 * 60 * 12, env));
+  // Cleanup legacy cookie format if still present in browsers.
   headers.append('Set-Cookie', makeClearCookie(OAUTH_STATE_COOKIE, env));
 
   return new Response(createPopupHtml({ ok: true, message: 'ok', targetOrigin, redirectPath }), {
