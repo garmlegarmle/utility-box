@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { AdminDock } from './components/AdminDock';
 import { EntryCard } from './components/EntryCard';
+import { PageManagerModal } from './components/PageManagerModal';
 import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
@@ -148,12 +149,14 @@ function HomePage({
   admin,
   requestAdmin,
   openCreate,
+  openPageManager,
   refreshKey,
   savedPost
 }: {
   admin: AdminState;
   requestAdmin: () => void;
-  openCreate: (section: SiteSection, post?: PostItem) => void;
+  openCreate: (section: SiteSection, post?: PostItem, forcedLang?: SiteLang) => void;
+  openPageManager: () => void;
   refreshKey: number;
   savedPost: PostSaveSnapshot | null;
 }) {
@@ -223,7 +226,13 @@ function HomePage({
             </button>
             <div className="home-row-track">
               {blogPosts.map((post) => (
-                <EntryCard key={post.id} post={post} lang={lang} href={`/${lang}/blog/${post.slug}/`} />
+                <EntryCard
+                  key={post.id}
+                  post={post}
+                  lang={lang}
+                  href={`/${lang}/blog/${post.slug}/`}
+                  showDraftBadge={admin.isAdmin}
+                />
               ))}
             </div>
           </div>
@@ -239,7 +248,13 @@ function HomePage({
             </button>
             <div className="home-row-track">
               {toolPosts.map((post) => (
-                <EntryCard key={post.id} post={post} lang={lang} href={`/${lang}/tools/${post.slug}/`} />
+                <EntryCard
+                  key={post.id}
+                  post={post}
+                  lang={lang}
+                  href={`/${lang}/tools/${post.slug}/`}
+                  showDraftBadge={admin.isAdmin}
+                />
               ))}
             </div>
           </div>
@@ -255,7 +270,13 @@ function HomePage({
             </button>
             <div className="home-row-track">
               {gamePosts.map((post) => (
-                <EntryCard key={post.id} post={post} lang={lang} href={`/${lang}/games/${post.slug}/`} />
+                <EntryCard
+                  key={post.id}
+                  post={post}
+                  lang={lang}
+                  href={`/${lang}/games/${post.slug}/`}
+                  showDraftBadge={admin.isAdmin}
+                />
               ))}
             </div>
           </div>
@@ -279,6 +300,7 @@ function HomePage({
             void logout().then(() => window.location.reload());
           }}
           onWrite={() => openCreate('blog')}
+          onManagePages={openPageManager}
         />
       ) : null}
     </SiteShell>
@@ -289,12 +311,14 @@ function SectionListPage({
   admin,
   requestAdmin,
   openCreate,
+  openPageManager,
   refreshKey,
   savedPost
 }: {
   admin: AdminState;
   requestAdmin: () => void;
-  openCreate: (section: SiteSection, post?: PostItem) => void;
+  openCreate: (section: SiteSection, post?: PostItem, forcedLang?: SiteLang) => void;
+  openPageManager: () => void;
   refreshKey: number;
   savedPost: PostSaveSnapshot | null;
 }) {
@@ -378,6 +402,7 @@ function SectionListPage({
                 post={post}
                 lang={lang}
                 href={`/${lang}/${section}/${post.slug}/`}
+                showDraftBadge={admin.isAdmin}
               />
             ))}
           </div>
@@ -395,6 +420,7 @@ function SectionListPage({
             void logout().then(() => window.location.reload());
           }}
           onWrite={() => openCreate(section)}
+          onManagePages={openPageManager}
         />
       ) : null}
     </SiteShell>
@@ -405,12 +431,14 @@ function DetailPage({
   admin,
   requestAdmin,
   openCreate,
+  openPageManager,
   refreshKey,
   savedPost
 }: {
   admin: AdminState;
   requestAdmin: () => void;
-  openCreate: (section: SiteSection, post?: PostItem) => void;
+  openCreate: (section: SiteSection, post?: PostItem, forcedLang?: SiteLang) => void;
+  openPageManager: () => void;
   refreshKey: number;
   savedPost: PostSaveSnapshot | null;
 }) {
@@ -529,6 +557,7 @@ function DetailPage({
             void logout().then(() => window.location.reload());
           }}
           onWrite={() => openCreate(section)}
+          onManagePages={openPageManager}
           onEditCurrent={post ? () => openCreate(section, post) : undefined}
         />
       ) : null}
@@ -550,6 +579,7 @@ function AppInner() {
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const [savedPost, setSavedPost] = useState<PostSaveSnapshot | null>(null);
+  const [pageManagerOpen, setPageManagerOpen] = useState(false);
 
   const currentLang = useMemo(() => {
     const first = location.pathname.split('/').filter(Boolean)[0];
@@ -609,7 +639,7 @@ function AppInner() {
   }, [location.pathname, location.search, refresh]);
 
   const openCreate = useCallback(
-    (section: SiteSection, post?: PostItem) => {
+    (section: SiteSection, post?: PostItem, forcedLang?: SiteLang) => {
       if (!admin.isAdmin) return;
 
       if (post) {
@@ -627,12 +657,17 @@ function AppInner() {
         open: true,
         mode: 'create',
         initialPost: null,
-        defaultLang: currentLang,
+        defaultLang: forcedLang || currentLang,
         defaultSection: section
       });
     },
     [admin.isAdmin, currentLang]
   );
+
+  const openPageManager = useCallback(() => {
+    if (!admin.isAdmin) return;
+    setPageManagerOpen(true);
+  }, [admin.isAdmin]);
 
   return (
     <>
@@ -645,6 +680,7 @@ function AppInner() {
               admin={admin}
               requestAdmin={requestAdmin}
               openCreate={openCreate}
+              openPageManager={openPageManager}
               refreshKey={refreshKey}
               savedPost={savedPost}
             />
@@ -657,6 +693,7 @@ function AppInner() {
               admin={admin}
               requestAdmin={requestAdmin}
               openCreate={openCreate}
+              openPageManager={openPageManager}
               refreshKey={refreshKey}
               savedPost={savedPost}
             />
@@ -669,6 +706,7 @@ function AppInner() {
               admin={admin}
               requestAdmin={requestAdmin}
               openCreate={openCreate}
+              openPageManager={openPageManager}
               refreshKey={refreshKey}
               savedPost={savedPost}
             />
@@ -702,6 +740,23 @@ function AppInner() {
         }}
         onDeleted={() => {
           setEditorState((prev) => ({ ...prev, open: false }));
+          setRefreshKey((prev) => prev + 1);
+        }}
+      />
+
+      <PageManagerModal
+        open={pageManagerOpen}
+        defaultLang={currentLang}
+        onClose={() => setPageManagerOpen(false)}
+        onCreate={(section, lang) => {
+          setPageManagerOpen(false);
+          openCreate(section, undefined, lang);
+        }}
+        onEdit={(post) => {
+          setPageManagerOpen(false);
+          openCreate(post.section, post, post.lang);
+        }}
+        onChanged={() => {
           setRefreshKey((prev) => prev + 1);
         }}
       />

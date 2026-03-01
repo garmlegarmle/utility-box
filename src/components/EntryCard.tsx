@@ -5,6 +5,7 @@ interface EntryCardProps {
   post: PostItem;
   href?: string;
   lang: SiteLang;
+  showDraftBadge?: boolean;
 }
 
 function rankText(post: PostItem, fallback: number): string {
@@ -13,7 +14,7 @@ function rankText(post: PostItem, fallback: number): string {
   return `#${fallback}`;
 }
 
-export function EntryCard({ post, href, lang }: EntryCardProps) {
+export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCardProps) {
   const targetHref = href || `/${lang}/${post.section}/${post.slug}/`;
   const cardTitle = post.card.title || post.title;
   const tags = Array.isArray(post.tags) ? post.tags : [];
@@ -36,7 +37,12 @@ export function EntryCard({ post, href, lang }: EntryCardProps) {
         <div className="entry-card__info">
           <p className="entry-card__meta">
             <span>{post.card.category || post.section}</span>
-            <span>{post.card.tag || tags[0] || 'Tag'}</span>
+            <span className="entry-card__meta-right">
+              {showDraftBadge && post.status === 'draft' ? (
+                <span className="entry-card__draft">draft</span>
+              ) : null}
+              <span>{post.card.tag || tags[0] || 'Tag'}</span>
+            </span>
           </p>
           <p className="entry-card__title-row">
             <span className={titleClass}>{cardTitle}</span>

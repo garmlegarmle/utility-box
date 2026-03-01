@@ -72,6 +72,39 @@ export async function getPostTags(env: Env, postId: number): Promise<string[]> {
   return (rows.results || []).map((row) => row.name);
 }
 
+export async function listDistinctTags(
+  env: Env,
+  options?: { lang?: 'en' | 'ko'; section?: 'blog' | 'tools' | 'games' | 'pages' }
+): Promise<string[]> {
+  const where: string[] = ['p.is_deleted = 0'];
+  const binds: unknown[] = [];
+
+  if (options?.lang) {
+    where.push('p.lang = ?');
+    binds.push(options.lang);
+  }
+
+  if (options?.section) {
+    where.push('p.section = ?');
+    binds.push(options.section);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT t.name AS name
+     FROM tags t
+     INNER JOIN post_tags pt ON pt.tag_id = t.id
+     INNER JOIN posts p ON p.id = pt.post_id
+     ${whereSql}
+     ORDER BY LOWER(t.name) ASC`
+  )
+    .bind(...binds)
+    .all<{ name: string }>();
+
+  return (rows.results || []).map((row) => String(row.name || '').trim()).filter(Boolean);
+}
+
 export async function getMediaById(env: Env, mediaId: number): Promise<MediaRecord | null> {
   const media = await env.DB.prepare('SELECT * FROM media WHERE id = ? LIMIT 1').bind(mediaId).first<MediaRecord>();
   return media || null;

@@ -1,4 +1,4 @@
-import type { PostDetailResponse, PostListResponse, SessionResponse, UploadResponse } from '../types';
+import type { PostDetailResponse, PostListResponse, SessionResponse, TagListResponse, UploadResponse } from '../types';
 
 function buildApiUrl(path: string): string {
   // Keep API calls same-origin to avoid host/CORS mismatch.
@@ -69,6 +69,11 @@ export interface ListPostsParams {
   section?: 'blog' | 'tools' | 'games' | 'pages';
 }
 
+export interface ListTagsParams {
+  lang?: 'en' | 'ko';
+  section?: 'blog' | 'tools' | 'games' | 'pages';
+}
+
 export async function listPosts(params: ListPostsParams): Promise<PostListResponse> {
   const query = new URLSearchParams();
   if (params.status) query.set('status', params.status);
@@ -91,6 +96,20 @@ export async function listPosts(params: ListPostsParams): Promise<PostListRespon
     page: Number(data.page || 1),
     limit: Number(data.limit || params.limit || 12),
     total: Number(data.total || data.items.length)
+  };
+}
+
+export async function listTags(params: ListTagsParams = {}): Promise<TagListResponse> {
+  const query = new URLSearchParams();
+  if (params.lang) query.set('lang', params.lang);
+  if (params.section) query.set('section', params.section);
+
+  const suffix = query.toString();
+  const data = await apiFetch<Partial<TagListResponse>>(`/api/tags${suffix ? `?${suffix}` : ''}`);
+
+  return {
+    ok: true,
+    items: Array.isArray(data.items) ? data.items : []
   };
 }
 

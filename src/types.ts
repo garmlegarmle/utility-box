@@ -61,6 +61,11 @@ export interface UploadResponse {
   variants: Array<{ variant: string; key: string; width: number; format: string }>;
 }
 
+export interface TagListResponse {
+  ok: true;
+  items: string[];
+}
+
 export interface PostSaveSnapshot {
   id: number;
   slug: string;

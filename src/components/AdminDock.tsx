@@ -6,10 +6,11 @@ interface AdminDockProps {
   onLogin: () => void;
   onLogout: () => void;
   onWrite: () => void;
+  onManagePages?: () => void;
   onEditCurrent?: () => void;
 }
 
-export function AdminDock({ showLogin, isAdmin, onLogin, onLogout, onWrite, onEditCurrent }: AdminDockProps) {
+export function AdminDock({ showLogin, isAdmin, onLogin, onLogout, onWrite, onManagePages, onEditCurrent }: AdminDockProps) {
   const [open, setOpen] = useState(false);
 
   if (!showLogin && !isAdmin) return null;
@@ -41,6 +42,11 @@ export function AdminDock({ showLogin, isAdmin, onLogin, onLogout, onWrite, onEd
               <button type="button" className="admin-menu__item" role="menuitem" onClick={onWrite}>
                 write post
               </button>
+              {onManagePages ? (
+                <button type="button" className="admin-menu__item" role="menuitem" onClick={onManagePages}>
+                  page manager
+                </button>
+              ) : null}
               <button type="button" className="admin-menu__item" role="menuitem" onClick={onLogout}>
                 logout
               </button>

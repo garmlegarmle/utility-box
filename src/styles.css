@@ -212,6 +212,20 @@ main {
   line-height: 1.2;
 }
 
+.entry-card__meta-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.entry-card__draft {
+  border: 1px solid var(--border);
+  padding: 0 4px;
+  font-size: 11px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
 .entry-card__title-row {
   margin-top: 4px;
   min-height: 36px;
@@ -1382,6 +1396,75 @@ body.is-resizing-editor-image {
   padding: 16px;
 }
 
+.admin-page-manager .admin-modal__body {
+  padding: 16px;
+}
+
+.admin-page-manager__controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.admin-page-manager__controls label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.admin-page-manager__controls select {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  padding: 6px 8px;
+}
+
+.admin-page-manager__table-wrap {
+  border: 1px solid var(--border);
+  overflow: auto;
+}
+
+.admin-page-manager__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-page-manager__table th,
+.admin-page-manager__table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  font-size: 13px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-page-manager__table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-page-manager__title-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-page-manager__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-status-pill {
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
 .admin-form-grid {
   display: grid;
   gap: 12px;
@@ -1521,6 +1604,10 @@ body.is-resizing-editor-image {
 
 @media (max-width: 860px) {
   .admin-inline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-page-manager__controls {
     grid-template-columns: 1fr;
   }
 }

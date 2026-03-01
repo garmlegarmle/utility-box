@@ -5,6 +5,7 @@ import type { Env } from './types';
 import { handleAuthCallback, handleAuthLogout, handleAuthSession, handleAuthStart } from './routes/auth';
 import { handleGetMedia, handleGetMediaFile } from './routes/media';
 import { handlePostsRequest } from './routes/posts';
+import { handleListTags } from './routes/tags';
 import { handleUpload } from './routes/upload';
 
 function routePath(pathname: string): string[] {
@@ -43,6 +44,10 @@ async function handleApi(request: Request, env: Env): Promise<Response> {
 
   if (route === 'posts') {
     return handlePostsRequest(request, env, segments.slice(2));
+  }
+
+  if (route === 'tags' && request.method.toUpperCase() === 'GET') {
+    return handleListTags(request, env);
   }
 
   if (route === 'upload' && request.method.toUpperCase() === 'POST') {
