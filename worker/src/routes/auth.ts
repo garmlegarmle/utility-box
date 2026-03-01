@@ -230,15 +230,27 @@ export async function handleAuthCallback(request: Request, env: Env): Promise<Re
       reqId,
       username,
       hasSingleAdminUser: Boolean(String(env.ADMIN_GITHUB_USER || '').trim()),
-      hasAdminAllowlist: Boolean(String(env.ADMIN_GITHUB_USERS || '').trim())
+      hasAdminAllowlist: Boolean(String(env.ADMIN_GITHUB_USERS || '').trim()),
+      hasLegacyAdminUser: Boolean(String(env.ADMIN_GITHUB_USERNAME || '').trim()),
+      hasLegacyAdminAllowlist: Boolean(String(env.ADMIN_GITHUB_USERNAMES || '').trim()),
+      hasGithubAdminUser: Boolean(String(env.GITHUB_ADMIN_USER || '').trim()),
+      hasGithubAdminAllowlist: Boolean(String(env.GITHUB_ADMIN_USERS || '').trim())
     });
-    return new Response(createPopupHtml({ ok: false, message: 'User is not allowed', targetOrigin, redirectPath }), {
-      status: 403,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Set-Cookie': makeClearCookie(OAUTH_STATE_COOKIE, env)
+    return new Response(
+      createPopupHtml({
+        ok: false,
+        message: `User is not allowed (${username}). Set ADMIN_GITHUB_USER to this username.`,
+        targetOrigin,
+        redirectPath
+      }),
+      {
+        status: 403,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Set-Cookie': makeClearCookie(OAUTH_STATE_COOKIE, env)
+        }
       }
-    });
+    );
   }
 
   const sessionValue = await createSignedValue(
