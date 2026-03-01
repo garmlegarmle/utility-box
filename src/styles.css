@@ -1434,6 +1434,77 @@ body.is-resizing-editor-image {
   cursor: pointer;
 }
 
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.editor-toolbar button,
+.editor-toolbar__upload {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.editor-toolbar__upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-surface {
+  border: 1px solid var(--border);
+  min-height: 340px;
+  padding: 14px;
+  background: var(--surface);
+  font-size: 15px;
+  line-height: 1.6;
+  outline: none;
+}
+
+.editor-surface:focus {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.editor-surface p {
+  margin: 0 0 0.8em;
+}
+
+.editor-surface img.editor-inline-image {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.editor-image-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.editor-image-tools button {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
 @media (max-width: 860px) {
   .admin-inline-grid {
     grid-template-columns: 1fr;

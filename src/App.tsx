@@ -109,11 +109,13 @@ function RootRoute() {
 function HomePage({
   admin,
   requestAdmin,
-  openCreate
+  openCreate,
+  refreshKey
 }: {
   admin: AdminState;
   requestAdmin: () => void;
   openCreate: (section: SiteSection, post?: PostItem) => void;
+  refreshKey: number;
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
@@ -128,10 +130,11 @@ function HomePage({
     async function load() {
       setError('');
       try {
+        const status = admin.isAdmin ? 'all' : 'published';
         const [blog, tools, games] = await Promise.all([
-          listPosts({ lang, section: 'blog', status: 'published', limit: 12 }),
-          listPosts({ lang, section: 'tools', status: 'published', limit: 12 }),
-          listPosts({ lang, section: 'games', status: 'published', limit: 12 })
+          listPosts({ lang, section: 'blog', status, limit: 12 }),
+          listPosts({ lang, section: 'tools', status, limit: 12 }),
+          listPosts({ lang, section: 'games', status, limit: 12 })
         ]);
 
         if (canceled) return;
@@ -151,7 +154,7 @@ function HomePage({
     return () => {
       canceled = true;
     };
-  }, [lang]);
+  }, [admin.isAdmin, lang, refreshKey]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
@@ -229,11 +232,13 @@ function HomePage({
 function SectionListPage({
   admin,
   requestAdmin,
-  openCreate
+  openCreate,
+  refreshKey
 }: {
   admin: AdminState;
   requestAdmin: () => void;
   openCreate: (section: SiteSection, post?: PostItem) => void;
+  refreshKey: number;
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
@@ -278,7 +283,7 @@ function SectionListPage({
     return () => {
       canceled = true;
     };
-  }, [admin.isAdmin, isValidSection, lang, section]);
+  }, [admin.isAdmin, isValidSection, lang, refreshKey, section]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
@@ -329,11 +334,13 @@ function SectionListPage({
 function DetailPage({
   admin,
   requestAdmin,
-  openCreate
+  openCreate,
+  refreshKey
 }: {
   admin: AdminState;
   requestAdmin: () => void;
   openCreate: (section: SiteSection, post?: PostItem) => void;
+  refreshKey: number;
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
@@ -373,7 +380,7 @@ function DetailPage({
     return () => {
       canceled = true;
     };
-  }, [isValidSection, lang, section, slug]);
+  }, [isValidSection, lang, refreshKey, section, slug]);
 
   useEffect(() => {
     if (!post) return;
@@ -382,7 +389,13 @@ function DetailPage({
 
   const html = useMemo(() => {
     if (!post?.content_md) return '';
-    const parsed = marked.parse(post.content_md, { async: false }) as string;
+
+    const raw = String(post.content_md || '');
+    if (/<[a-z][\s\S]*>/i.test(raw)) {
+      return DOMPurify.sanitize(raw);
+    }
+
+    const parsed = marked.parse(raw, { async: false }) as string;
     return DOMPurify.sanitize(parsed);
   }, [post?.content_md]);
 
@@ -452,6 +465,7 @@ function AppInner() {
     defaultLang: 'en',
     defaultSection: 'blog'
   });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const currentLang = useMemo(() => {
     const first = location.pathname.split('/').filter(Boolean)[0];
@@ -540,14 +554,24 @@ function AppInner() {
     <>
       <Routes>
         <Route path="/" element={<RootRoute />} />
-        <Route path="/:lang" element={<HomePage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} />} />
+        <Route
+          path="/:lang"
+          element={<HomePage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} refreshKey={refreshKey} />}
+        />
         <Route
           path="/:lang/:section"
-          element={<SectionListPage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} />}
+          element={
+            <SectionListPage
+              admin={admin}
+              requestAdmin={requestAdmin}
+              openCreate={openCreate}
+              refreshKey={refreshKey}
+            />
+          }
         />
         <Route
           path="/:lang/:section/:slug"
-          element={<DetailPage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} />}
+          element={<DetailPage admin={admin} requestAdmin={requestAdmin} openCreate={openCreate} refreshKey={refreshKey} />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -563,12 +587,12 @@ function AppInner() {
         }}
         onSaved={(postId) => {
           setEditorState((prev) => ({ ...prev, open: false }));
-          window.location.reload();
+          setRefreshKey((prev) => prev + 1);
           void postId;
         }}
         onDeleted={() => {
           setEditorState((prev) => ({ ...prev, open: false }));
-          window.location.reload();
+          setRefreshKey((prev) => prev + 1);
         }}
       />
     </>

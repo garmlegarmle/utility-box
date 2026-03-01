@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import { createPost, deletePost, updatePost, uploadMedia } from '../lib/api';
 import type { PostItem, SiteLang, SiteSection } from '../types';
 
@@ -29,6 +29,71 @@ function stripRank(value: string | null | undefined): string {
   return match ? match[0] : '';
 }
 
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function toInitialEditorHtml(raw: string): string {
+  const value = String(raw || '').trim();
+  if (!value) return '<p><br></p>';
+
+  if (/<[a-z][\s\S]*>/i.test(value)) return value;
+
+  const paragraphHtml = escapeHtml(value)
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((block) => `<p>${block.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+
+  return paragraphHtml || '<p><br></p>';
+}
+
+function isEditorHtmlEmpty(html: string): boolean {
+  const raw = String(html || '').trim();
+  if (!raw) return true;
+
+  const text = raw
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const hasMedia = /<(img|video|iframe|table|ul|ol|blockquote)\b/i.test(raw);
+  return !text && !hasMedia;
+}
+
+function moveCaretAfter(node: Node): void {
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  const range = document.createRange();
+  range.setStartAfter(node);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function applyImageAlignment(image: HTMLImageElement, align: 'left' | 'center' | 'right') {
+  image.dataset.align = align;
+  image.style.display = 'block';
+
+  if (align === 'left') {
+    image.style.marginLeft = '0';
+    image.style.marginRight = 'auto';
+  } else if (align === 'right') {
+    image.style.marginLeft = 'auto';
+    image.style.marginRight = '0';
+  } else {
+    image.style.marginLeft = 'auto';
+    image.style.marginRight = 'auto';
+  }
+}
+
 export function PostEditorModal({
   open,
   mode,
@@ -44,9 +109,9 @@ export function PostEditorModal({
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt || '');
   const [lang, setLang] = useState<SiteLang>(initialPost?.lang || defaultLang);
   const [section, setSection] = useState<SiteSection>(initialPost?.section || defaultSection);
-  const [status, setStatus] = useState<'draft' | 'published'>(initialPost?.status || 'draft');
+  const [status, setStatus] = useState<'draft' | 'published'>(initialPost?.status || 'published');
   const [tagsInput, setTagsInput] = useState((initialPost?.tags || []).join(', '));
-  const [content, setContent] = useState(initialPost?.content_md || '');
+  const [contentHtml, setContentHtml] = useState(toInitialEditorHtml(initialPost?.content_md || ''));
 
   const [cardTitle, setCardTitle] = useState(initialPost?.card.title || initialPost?.title || '');
   const [cardCategory, setCardCategory] = useState(initialPost?.card.category || initialPost?.section || defaultSection);
@@ -61,21 +126,28 @@ export function PostEditorModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorRef = useRef<HTMLDivElement | null>(null);
+  const selectedImageRef = useRef<HTMLImageElement | null>(null);
+  const resizeStateRef = useRef<{
+    image: HTMLImageElement;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
 
   const canDelete = mode === 'edit' && Boolean(initialPost?.id);
-
   const titleText = useMemo(() => (mode === 'edit' ? 'Edit Post' : 'Write Post'), [mode]);
 
   useEffect(() => {
+    const nextHtml = toInitialEditorHtml(initialPost?.content_md || '');
+
     setTitle(initialPost?.title || '');
     setSlug(initialPost?.slug || '');
     setExcerpt(initialPost?.excerpt || '');
     setLang(initialPost?.lang || defaultLang);
     setSection(initialPost?.section || defaultSection);
-    setStatus(initialPost?.status || 'draft');
+    setStatus(initialPost?.status || 'published');
     setTagsInput((initialPost?.tags || []).join(', '));
-    setContent(initialPost?.content_md || '');
+    setContentHtml(nextHtml);
 
     setCardTitle(initialPost?.card.title || initialPost?.title || '');
     setCardCategory(initialPost?.card.category || initialPost?.section || defaultSection);
@@ -86,38 +158,153 @@ export function PostEditorModal({
 
     setCoverImageId(initialPost?.cover?.id ?? null);
     setCoverImageUrl(initialPost?.cover?.url || '');
+    selectedImageRef.current = null;
     setError('');
     setLoading(false);
+
+    requestAnimationFrame(() => {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = nextHtml;
+      }
+    });
   }, [defaultLang, defaultSection, initialPost, open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onMouseMove = (event: MouseEvent) => {
+      const state = resizeStateRef.current;
+      if (!state) return;
+
+      const editorWidth = editorRef.current?.clientWidth || 900;
+      const delta = event.clientX - state.startX;
+      const nextWidth = Math.max(120, Math.min(editorWidth - 24, state.startWidth + delta));
+      state.image.style.width = `${nextWidth}px`;
+      state.image.style.height = 'auto';
+    };
+
+    const onMouseUp = () => {
+      if (!resizeStateRef.current) return;
+      resizeStateRef.current = null;
+      document.body.classList.remove('is-resizing-editor-image');
+      syncEditorHtml();
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.classList.remove('is-resizing-editor-image');
+      resizeStateRef.current = null;
+    };
+  }, [open]);
 
   if (!open) return null;
 
-  function insertAtCursor(text: string) {
-    const target = bodyRef.current;
-    if (!target) {
-      setContent((prev) => `${prev}\n${text}`.trim());
+  function syncEditorHtml(): string {
+    const html = editorRef.current?.innerHTML || '';
+    setContentHtml(html);
+    return html;
+  }
+
+  function focusEditor() {
+    editorRef.current?.focus();
+  }
+
+  function exec(command: string, value?: string) {
+    focusEditor();
+    document.execCommand(command, false, value || '');
+    syncEditorHtml();
+  }
+
+  function insertNodeAtCursor(node: Node) {
+    focusEditor();
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      editorRef.current?.appendChild(node);
+      moveCaretAfter(node);
+      syncEditorHtml();
       return;
     }
 
-    const start = target.selectionStart || 0;
-    const end = target.selectionEnd || start;
-    const next = `${content.slice(0, start)}${text}${content.slice(end)}`;
-    setContent(next);
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(node);
+    moveCaretAfter(node);
+    syncEditorHtml();
+  }
 
-    requestAnimationFrame(() => {
-      target.focus();
-      const pos = start + text.length;
-      target.setSelectionRange(pos, pos);
-    });
+  function setSelectedImageFromEvent(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) {
+      selectedImageRef.current = null;
+      return;
+    }
+
+    const image = target.closest('img.editor-inline-image') as HTMLImageElement | null;
+    selectedImageRef.current = image;
+  }
+
+  function startImageResize(event: ReactMouseEvent<HTMLDivElement>) {
+    const target = event.target as HTMLElement | null;
+    if (!(target instanceof HTMLImageElement)) return;
+    if (!target.classList.contains('editor-inline-image')) return;
+
+    const rect = target.getBoundingClientRect();
+    const edgeThreshold = 14;
+    const nearRightEdge = event.clientX >= rect.right - edgeThreshold;
+    if (!nearRightEdge) return;
+
+    resizeStateRef.current = {
+      image: target,
+      startX: event.clientX,
+      startWidth: rect.width
+    };
+
+    selectedImageRef.current = target;
+    document.body.classList.add('is-resizing-editor-image');
+    event.preventDefault();
+  }
+
+  function setSelectedImageAlign(align: 'left' | 'center' | 'right') {
+    const image = selectedImageRef.current;
+    if (!image) return;
+    applyImageAlignment(image, align);
+    syncEditorHtml();
+  }
+
+  function deleteSelectedImage() {
+    const image = selectedImageRef.current;
+    if (!image) return;
+    image.remove();
+    selectedImageRef.current = null;
+    syncEditorHtml();
   }
 
   async function uploadAndInsertBodyImage(file: File) {
     setLoading(true);
     setError('');
+
     try {
       const result = await uploadMedia(file);
-      const url = result.urls.thumb_webp || result.urls.original;
-      insertAtCursor(`\n![${file.name}](${url})\n`);
+      const url = result.urls.original || result.urls.thumb_webp;
+
+      const image = document.createElement('img');
+      image.className = 'editor-inline-image';
+      image.src = url;
+      image.alt = file.name;
+      image.style.maxWidth = '100%';
+      image.style.height = 'auto';
+      applyImageAlignment(image, 'center');
+      insertNodeAtCursor(image);
+
+      const paragraph = document.createElement('p');
+      paragraph.innerHTML = '<br>';
+      insertNodeAtCursor(paragraph);
+
+      selectedImageRef.current = image;
+      syncEditorHtml();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed');
     } finally {
@@ -128,6 +315,7 @@ export function PostEditorModal({
   async function uploadCardImage(file: File) {
     setLoading(true);
     setError('');
+
     try {
       const result = await uploadMedia(file);
       setCardImageId(result.mediaId);
@@ -142,6 +330,7 @@ export function PostEditorModal({
   async function uploadCoverImage(file: File) {
     setLoading(true);
     setError('');
+
     try {
       const result = await uploadMedia(file);
       setCoverImageId(result.mediaId);
@@ -158,9 +347,9 @@ export function PostEditorModal({
 
     const normalizedTitle = title.trim();
     const normalizedSlug = slugify(slug || normalizedTitle);
-    const normalizedContent = content.trim();
+    const html = syncEditorHtml().trim();
 
-    if (!normalizedTitle || !normalizedSlug || !normalizedContent) {
+    if (!normalizedTitle || !normalizedSlug || isEditorHtmlEmpty(html)) {
       setError('title, slug, content are required.');
       return;
     }
@@ -169,7 +358,7 @@ export function PostEditorModal({
       slug: normalizedSlug,
       title: normalizedTitle,
       excerpt: excerpt.trim(),
-      content_md: normalizedContent,
+      content_md: html,
       status,
       lang,
       section,
@@ -266,17 +455,17 @@ export function PostEditorModal({
                 Category
                 <select value={section} onChange={(event) => setSection(event.target.value as SiteSection)}>
                   <option value="blog">blog</option>
-                  <option value="tools">tools</option>
-                  <option value="games">games</option>
-                  <option value="pages">pages</option>
+                  <option value="tools">tool</option>
+                  <option value="games">game</option>
+                  <option value="pages">page</option>
                 </select>
               </label>
 
               <label>
                 Status
                 <select value={status} onChange={(event) => setStatus(event.target.value as 'draft' | 'published')}>
-                  <option value="draft">draft</option>
                   <option value="published">published</option>
+                  <option value="draft">draft</option>
                 </select>
               </label>
             </div>
@@ -343,31 +532,96 @@ export function PostEditorModal({
               </div>
             </div>
 
-            <label>
-              Body (Markdown/HTML)
-              <textarea
-                ref={bodyRef}
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                rows={16}
-                placeholder="Write your content"
-              />
-            </label>
+            <div className="admin-card-settings">
+              <h3>Body</h3>
 
-            <div className="admin-actions">
-              <label className="admin-btn admin-btn--secondary admin-file-btn">
-                Upload image & insert
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={async (event) => {
-                    const file = event.target.files?.[0];
-                    if (file) await uploadAndInsertBodyImage(file);
-                    event.currentTarget.value = '';
+              <div className="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
+                <button type="button" onClick={() => exec('bold')} aria-label="Bold">
+                  <strong>B</strong>
+                </button>
+                <button type="button" onClick={() => exec('italic')} aria-label="Italic">
+                  <em>I</em>
+                </button>
+                <button type="button" onClick={() => exec('underline')} aria-label="Underline">
+                  <u>U</u>
+                </button>
+                <button type="button" onClick={() => exec('strikeThrough')} aria-label="Strike">
+                  <s>S</s>
+                </button>
+                <button type="button" onClick={() => exec('insertUnorderedList')} aria-label="Bullet list">
+                  • List
+                </button>
+                <button type="button" onClick={() => exec('insertOrderedList')} aria-label="Numbered list">
+                  1. List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const href = window.prompt('Link URL');
+                    if (href && href.trim()) exec('createLink', href.trim());
                   }}
-                />
-              </label>
+                  aria-label="Insert link"
+                >
+                  Link
+                </button>
+                <button type="button" onClick={() => exec('removeFormat')} aria-label="Clear format">
+                  Tx
+                </button>
+                <button type="button" onClick={() => exec('justifyLeft')} aria-label="Align left">
+                  Left
+                </button>
+                <button type="button" onClick={() => exec('justifyCenter')} aria-label="Align center">
+                  Center
+                </button>
+                <button type="button" onClick={() => exec('justifyRight')} aria-label="Align right">
+                  Right
+                </button>
+                <label className="editor-toolbar__upload">
+                  Image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (file) await uploadAndInsertBodyImage(file);
+                      event.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div
+                ref={editorRef}
+                className="editor-surface"
+                contentEditable
+                suppressContentEditableWarning
+                onInput={() => {
+                  syncEditorHtml();
+                }}
+                onClick={(event) => {
+                  setSelectedImageFromEvent(event.target);
+                }}
+                onMouseDown={startImageResize}
+                dangerouslySetInnerHTML={{ __html: contentHtml }}
+              />
+
+              <div className="editor-image-tools">
+                <span>Image</span>
+                <button type="button" onClick={() => setSelectedImageAlign('left')}>
+                  Left
+                </button>
+                <button type="button" onClick={() => setSelectedImageAlign('center')}>
+                  Center
+                </button>
+                <button type="button" onClick={() => setSelectedImageAlign('right')}>
+                  Right
+                </button>
+                <button type="button" onClick={deleteSelectedImage}>
+                  Delete image
+                </button>
+                <span className="list-tags">Drag image edge to resize</span>
+              </div>
             </div>
 
             {error ? <p className="admin-error">{error}</p> : null}

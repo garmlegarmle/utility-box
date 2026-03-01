@@ -127,6 +127,12 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
   if (section) {
     where.push('p.section = ?');
     binds.push(section);
+
+    // Listing cards are rendered from card metadata.
+    // Legacy imported rows without card fields are excluded to prevent mixed old/new feeds.
+    if (section !== 'pages') {
+      where.push("COALESCE(TRIM(p.card_title), '') != ''");
+    }
   }
 
   if (statusFilter !== 'all') {
