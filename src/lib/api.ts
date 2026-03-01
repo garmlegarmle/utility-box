@@ -1,6 +1,18 @@
 import type { PostDetailResponse, PostListResponse, SessionResponse, UploadResponse } from '../types';
 
-const API_BASE = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const ENV_API_BASE = String(import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
+const DEFAULT_PROD_API_BASE = 'https://api.utility-box.org';
+
+function resolveApiBase(): string {
+  if (ENV_API_BASE) return ENV_API_BASE;
+  if (typeof window === 'undefined') return '';
+
+  const host = String(window.location.hostname || '').toLowerCase();
+  if (host === 'localhost' || host === '127.0.0.1') return '';
+  return DEFAULT_PROD_API_BASE;
+}
+
+const API_BASE = resolveApiBase();
 
 function buildApiUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
