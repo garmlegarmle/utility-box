@@ -867,7 +867,6 @@ function DetailPage({
                     {renderTitleWithHiddenLoginTrigger(post.title, enableHiddenPolicyLogin, requestAdmin)}
                   </h1>
                 </div>
-                {post.excerpt ? <p className="list-tags">{post.excerpt}</p> : null}
               </header>
 
               {(section === 'tools' || section === 'games') && (
