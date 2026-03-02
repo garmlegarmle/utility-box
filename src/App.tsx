@@ -9,7 +9,7 @@ import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
 import { buildAuthUrl, getPostBySlug, getSession, listPosts, listTagCounts, logout } from './lib/api';
-import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel } from './lib/site';
+import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel, t } from './lib/site';
 import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from './types';
 
 interface AdminState {
@@ -313,13 +313,13 @@ function HomePage({
         <div className="container">
           <header className="list-head">
             <div className="list-tags-center">
-              <p className="list-tags-title">Category</p>
+              <p className="list-tags-title">{t(lang, 'home.category')}</p>
               <p className="list-tags">
                 {([
-                  { key: 'all', label: 'All', count: categoryCounts.all },
-                  { key: 'tools', label: 'Tool', count: categoryCounts.tools },
-                  { key: 'games', label: 'Game', count: categoryCounts.games },
-                  { key: 'blog', label: 'Blog', count: categoryCounts.blog }
+                  { key: 'all', label: t(lang, 'common.all'), count: categoryCounts.all },
+                  { key: 'tools', label: sectionLabel('tools', lang), count: categoryCounts.tools },
+                  { key: 'games', label: sectionLabel('games', lang), count: categoryCounts.games },
+                  { key: 'blog', label: sectionLabel('blog', lang), count: categoryCounts.blog }
                 ] as const).map((item, index) => (
                   <span key={`home-category-${item.key}`}>
                     <button
@@ -336,7 +336,7 @@ function HomePage({
             </div>
 
             <div className="list-tags-center">
-              <p className="list-tags-title">Tag list</p>
+              <p className="list-tags-title">{t(lang, 'home.tagList')}</p>
               {tagCounts.length > 0 ? (
                 <p className="list-tags">
                   <span key="home-tag-all">
@@ -345,7 +345,7 @@ function HomePage({
                       className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
                       onClick={() => setSelectedTag('')}
                     >
-                      All({categoryPosts.length})
+                      {t(lang, 'common.all')}({categoryPosts.length})
                     </button>
                     {' | '}
                   </span>
@@ -369,14 +369,14 @@ function HomePage({
                     className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
                     onClick={() => setSelectedTag('')}
                   >
-                    All({categoryPosts.length})
+                    {t(lang, 'common.all')}({categoryPosts.length})
                   </button>
                 </p>
               )}
             </div>
           </header>
 
-          {loading ? <p>Loading...</p> : null}
+          {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           <div className="listing-grid listing-grid--four listing-grid--center">
             {visiblePosts.map((post) => (
               <EntryCard
@@ -389,7 +389,7 @@ function HomePage({
             ))}
           </div>
 
-          {!loading && visiblePosts.length === 0 ? <p className="list-tags">No posts yet.</p> : null}
+          {!loading && visiblePosts.length === 0 ? <p className="list-tags">{t(lang, 'common.noPosts')}</p> : null}
         </div>
       </section>
 
@@ -403,6 +403,7 @@ function HomePage({
 
       {!admin.loading ? (
         <AdminDock
+          lang={lang}
           showLogin={showLogin}
           isAdmin={admin.isAdmin}
           onLogin={requestAdmin}
@@ -530,7 +531,7 @@ function SectionListPage({
           <header className="list-head">
             <h1>{sectionLabel(section, lang)}</h1>
             <div className="list-tags-center">
-              <p className="list-tags-title">Tag list</p>
+              <p className="list-tags-title">{t(lang, 'home.tagList')}</p>
               {tagCounts.length > 0 ? (
                 <p className="list-tags">
                   <span key="see-all-tag">
@@ -539,7 +540,7 @@ function SectionListPage({
                       className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
                       onClick={() => setSelectedTag('')}
                     >
-                      All({sectionTotal})
+                      {t(lang, 'common.all')}({sectionTotal})
                     </button>
                     {' | '}
                   </span>
@@ -563,14 +564,14 @@ function SectionListPage({
                     className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
                     onClick={() => setSelectedTag('')}
                   >
-                    All({sectionTotal})
+                    {t(lang, 'common.all')}({sectionTotal})
                   </button>
                 </p>
               )}
             </div>
           </header>
 
-          {loading ? <p>Loading...</p> : null}
+          {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           {error ? <p>{error}</p> : null}
 
           <div className="listing-grid listing-grid--four">
@@ -585,12 +586,13 @@ function SectionListPage({
             ))}
           </div>
 
-          {!loading && posts.length === 0 ? <p className="list-tags">No posts yet.</p> : null}
+          {!loading && posts.length === 0 ? <p className="list-tags">{t(lang, 'common.noPosts')}</p> : null}
         </div>
       </section>
 
       {!admin.loading ? (
         <AdminDock
+          lang={lang}
           showLogin={showLogin}
           isAdmin={admin.isAdmin}
           onLogin={requestAdmin}
@@ -809,7 +811,7 @@ function DetailPage({
     <SiteShell lang={lang} active={section}>
       <article className="page-section">
         <div className="container detail-layout">
-          {loading ? <p>Loading...</p> : null}
+          {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           {error ? <p>{error}</p> : null}
           {!loading && !error && post ? (
             <>
@@ -817,11 +819,11 @@ function DetailPage({
                 <div className="detail-layout__pager">
                   {previousPost ? (
                     <Link className="detail-layout__pager-link" to={`/${post.lang}/${post.section}/${previousPost.slug}/`}>
-                      {'< 이전글'}
+                      {t(lang, 'detail.prev')}
                     </Link>
                   ) : (
                     <span className="detail-layout__pager-link detail-layout__pager-link--placeholder" aria-hidden="true">
-                      {'< 이전글'}
+                      {t(lang, 'detail.prev')}
                     </span>
                   )}
                   {nextPost ? (
@@ -829,24 +831,24 @@ function DetailPage({
                       className="detail-layout__pager-link detail-layout__pager-link--next"
                       to={`/${post.lang}/${post.section}/${nextPost.slug}/`}
                     >
-                      {'다음글 >'}
+                      {t(lang, 'detail.next')}
                     </Link>
                   ) : (
                     <span
                       className="detail-layout__pager-link detail-layout__pager-link--next detail-layout__pager-link--placeholder"
                       aria-hidden="true"
                     >
-                      {'다음글 >'}
+                      {t(lang, 'detail.next')}
                     </span>
                   )}
                 </div>
                 <p className="detail-layout__tag">
-                  {Array.isArray(post.tags) && post.tags.length > 0 ? post.tags.join(' | ') : 'tag'}
+                  {Array.isArray(post.tags) && post.tags.length > 0 ? post.tags.join(' | ') : t(lang, 'detail.tagFallback')}
                 </p>
                 <p className="detail-layout__date">
-                  Created: {new Date(post.created_at).toLocaleDateString()}
+                  {t(lang, 'detail.created')}: {new Date(post.created_at).toLocaleDateString()}
                   {post.updated_at && post.updated_at !== post.created_at
-                    ? ` | Updated: ${new Date(post.updated_at).toLocaleDateString()}`
+                    ? ` | ${t(lang, 'detail.updated')}: ${new Date(post.updated_at).toLocaleDateString()}`
                     : ''}
                 </p>
                 <div className="detail-layout__title-row">
@@ -862,15 +864,17 @@ function DetailPage({
                   {post.cover?.url ? (
                     <img src={post.cover.url} alt={post.title} loading="lazy" decoding="async" />
                   ) : (
-                    <div className="detail-program__placeholder">Tool / Game Area</div>
+                    <div className="detail-program__placeholder">
+                      {lang === 'ko' ? '도구 / 게임 영역' : 'Tool / Game Area'}
+                    </div>
                   )}
                 </section>
               )}
 
               <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: html }} />
               {relatedPosts.length > 0 ? (
-                <section className="detail-related" aria-label="Related posts">
-                  <h2>{`#${post.tags[0]} posts`}</h2>
+                <section className="detail-related" aria-label={t(lang, 'detail.related')}>
+                  <h2>{`${t(lang, 'detail.related')}: #${post.tags[0]}`}</h2>
                   <ul>
                     {relatedPosts.map((item) => (
                       <li key={`related-${item.id}`}>
@@ -888,6 +892,7 @@ function DetailPage({
 
       {!admin.loading ? (
         <AdminDock
+          lang={lang}
           showLogin={showLogin}
           isAdmin={admin.isAdmin}
           onLogin={requestAdmin}

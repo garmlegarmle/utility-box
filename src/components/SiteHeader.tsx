@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { getLanguageTogglePath, sectionNavLabel } from '../lib/site';
+import { getLanguageTogglePath, sectionNavLabel, t } from '../lib/site';
 import type { SiteLang, SiteSection } from '../types';
 
 interface SiteHeaderProps {
@@ -26,18 +26,18 @@ export function SiteHeader({ lang, active }: SiteHeaderProps) {
         </Link>
         <nav className="site-nav" aria-label={lang === 'ko' ? '주요 탐색' : 'Primary navigation'}>
           <Link to={`/${lang}/`} aria-current={active === 'home' ? 'page' : undefined}>
-            HOME
+            {t(lang, 'nav.home')}
           </Link>
           <Link to={`/${lang}/pages/about/`} aria-current={isAboutPage ? 'page' : undefined}>
-            ABOUT
+            {t(lang, 'nav.about')}
           </Link>
           {nav.map((item) => (
             <Link key={item.key} to={`/${lang}/${item.to}/`} aria-current={active === item.key ? 'page' : undefined}>
-              {sectionNavLabel(item.key)}
+              {sectionNavLabel(item.key, lang)}
             </Link>
           ))}
           <Link className="lang-toggle" to={togglePath} rel="alternate" hrefLang={lang === 'ko' ? 'en' : 'ko'}>
-            EN / KR
+            {t(lang, 'nav.langToggle')}
           </Link>
         </nav>
       </div>

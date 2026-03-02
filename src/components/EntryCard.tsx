@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { t } from '../lib/site';
 import type { PostItem, SiteLang } from '../types';
 
 interface EntryCardProps {
@@ -31,7 +32,7 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
           {image ? (
             <img className="entry-card__image" src={image} alt={cardTitle} loading="lazy" decoding="async" />
           ) : (
-            <div className="entry-card__placeholder">이미지 혹은 숫자</div>
+            <div className="entry-card__placeholder">{t(lang, 'card.placeholder')}</div>
           )}
         </div>
         <div className="entry-card__info">
@@ -39,9 +40,9 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
             <span>{post.card.category || post.section}</span>
             <span className="entry-card__meta-right">
               {showDraftBadge && post.status === 'draft' ? (
-                <span className="entry-card__draft">draft</span>
+                <span className="entry-card__draft">{t(lang, 'card.draft')}</span>
               ) : null}
-              <span>{post.card.tag || tags[0] || 'Tag'}</span>
+              <span>{post.card.tag || tags[0] || t(lang, 'card.tagFallback')}</span>
             </span>
           </p>
           <p className="entry-card__title-row">
