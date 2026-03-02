@@ -147,6 +147,17 @@ main {
   line-height: 1.2;
 }
 
+.list-head--home-filters .list-tags-title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.list-head--home-filters .list-tags-center + .list-tags-center {
+  margin-top: 18px;
+}
+
 .list-tags--empty {
   min-height: 20px;
 }

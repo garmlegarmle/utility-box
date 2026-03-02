@@ -7,11 +7,8 @@ interface SiteFooterProps {
 }
 
 export function SiteFooter({ lang }: SiteFooterProps) {
-  const year = new Date().getFullYear();
-  const meta =
-    lang === 'ko'
-      ? `© ${year} Utility Box. 실용적인 도구와 가이드.`
-      : `© ${year} Utility Box. Practical tools and guides.`;
+  void lang;
+  const meta = '© 2026–Present Utility Box. All rights reserved.';
 
   return (
     <footer className="site-footer">

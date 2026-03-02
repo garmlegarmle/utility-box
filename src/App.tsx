@@ -311,7 +311,7 @@ function HomePage({
     <SiteShell lang={lang} active="home">
       <section className="page-section">
         <div className="container">
-          <header className="list-head">
+          <header className="list-head list-head--home-filters">
             <div className="list-tags-center">
               <p className="list-tags-title">{t(lang, 'home.category')}</p>
               <p className="list-tags">
@@ -682,6 +682,12 @@ function DetailPage({
       return;
     }
     const currentPost: PostItem = post;
+    if (currentPost.section === 'pages') {
+      setPreviousPost(null);
+      setNextPost(null);
+      setRelatedPosts([]);
+      return;
+    }
 
     let canceled = false;
     async function loadNeighborsAndRelated() {
@@ -779,6 +785,7 @@ function DetailPage({
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
   const enableHiddenPolicyLogin =
     section === 'pages' && lang === 'en' && slug === 'privacy-policy' && !admin.isAdmin;
+  const isStandalonePage = section === 'pages';
   const schemaJson = useMemo(() => {
     if (!post?.schemaType) return '';
 
@@ -816,41 +823,45 @@ function DetailPage({
           {!loading && !error && post ? (
             <>
               <header className="detail-layout__head">
-                <div className="detail-layout__pager">
-                  {previousPost ? (
-                    <Link className="detail-layout__pager-link" to={`/${post.lang}/${post.section}/${previousPost.slug}/`}>
-                      {t(lang, 'detail.prev')}
-                    </Link>
-                  ) : (
-                    <span className="detail-layout__pager-link detail-layout__pager-link--placeholder" aria-hidden="true">
-                      {t(lang, 'detail.prev')}
-                    </span>
-                  )}
-                  {nextPost ? (
-                    <Link
-                      className="detail-layout__pager-link detail-layout__pager-link--next"
-                      to={`/${post.lang}/${post.section}/${nextPost.slug}/`}
-                    >
-                      {t(lang, 'detail.next')}
-                    </Link>
-                  ) : (
-                    <span
-                      className="detail-layout__pager-link detail-layout__pager-link--next detail-layout__pager-link--placeholder"
-                      aria-hidden="true"
-                    >
-                      {t(lang, 'detail.next')}
-                    </span>
-                  )}
-                </div>
-                <p className="detail-layout__tag">
-                  {Array.isArray(post.tags) && post.tags.length > 0 ? post.tags.join(' | ') : t(lang, 'detail.tagFallback')}
-                </p>
-                <p className="detail-layout__date">
-                  {t(lang, 'detail.created')}: {new Date(post.created_at).toLocaleDateString()}
-                  {post.updated_at && post.updated_at !== post.created_at
-                    ? ` | ${t(lang, 'detail.updated')}: ${new Date(post.updated_at).toLocaleDateString()}`
-                    : ''}
-                </p>
+                {!isStandalonePage ? (
+                  <>
+                    <div className="detail-layout__pager">
+                      {previousPost ? (
+                        <Link className="detail-layout__pager-link" to={`/${post.lang}/${post.section}/${previousPost.slug}/`}>
+                          {t(lang, 'detail.prev')}
+                        </Link>
+                      ) : (
+                        <span className="detail-layout__pager-link detail-layout__pager-link--placeholder" aria-hidden="true">
+                          {t(lang, 'detail.prev')}
+                        </span>
+                      )}
+                      {nextPost ? (
+                        <Link
+                          className="detail-layout__pager-link detail-layout__pager-link--next"
+                          to={`/${post.lang}/${post.section}/${nextPost.slug}/`}
+                        >
+                          {t(lang, 'detail.next')}
+                        </Link>
+                      ) : (
+                        <span
+                          className="detail-layout__pager-link detail-layout__pager-link--next detail-layout__pager-link--placeholder"
+                          aria-hidden="true"
+                        >
+                          {t(lang, 'detail.next')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="detail-layout__tag">
+                      {Array.isArray(post.tags) && post.tags.length > 0 ? post.tags.join(' | ') : t(lang, 'detail.tagFallback')}
+                    </p>
+                    <p className="detail-layout__date">
+                      {t(lang, 'detail.created')}: {new Date(post.created_at).toLocaleDateString()}
+                      {post.updated_at && post.updated_at !== post.created_at
+                        ? ` | ${t(lang, 'detail.updated')}: ${new Date(post.updated_at).toLocaleDateString()}`
+                        : ''}
+                    </p>
+                  </>
+                ) : null}
                 <div className="detail-layout__title-row">
                   <h1>
                     {renderTitleWithHiddenLoginTrigger(post.title, enableHiddenPolicyLogin, requestAdmin)}
@@ -872,7 +883,7 @@ function DetailPage({
               )}
 
               <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: html }} />
-              {relatedPosts.length > 0 ? (
+              {!isStandalonePage && relatedPosts.length > 0 ? (
                 <section className="detail-related" aria-label={t(lang, 'detail.related')}>
                   <h2>{`${t(lang, 'detail.related')}: #${post.tags[0]}`}</h2>
                   <ul>

@@ -58,6 +58,7 @@ Host canonicalization:
 - Pages middleware (`functions/_middleware.js`) redirects `utility-box.org` and `utility-box.pages.dev` to `https://www.utility-box.org` (301).
 
 More detail: see `MIGRATION.md`.
+Agent handoff/runbook: see `CLAUDE_CODE_GUIDE.md`.
 
 ## Debug Logging
 - Worker debug logs are off by default.
@@ -79,3 +80,8 @@ npx wrangler tail utility-box-api
    - `/api/session` keeps admin session after refresh.
    - public pages show `published` posts only.
    - new/edited posts appear on home/list/detail consistently.
+
+## Security Notes
+- Never commit real secret values into the repository.
+- Use local-only files (`.env.local`, `CLAUDE_LOCAL_SECRETS.md`) and Cloudflare Worker Secrets.
+- Local secret template: `CLAUDE_LOCAL_SECRETS.example.md`.

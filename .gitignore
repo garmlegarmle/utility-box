@@ -7,3 +7,17 @@ vite.config.js
 vite.config.d.ts
 * 2
 * 2.*
+
+# Local runtime/secrets (do not commit)
+.env
+.env.local
+.env.*.local
+.wrangler/
+
+# Local AI/private operation notes (do not commit)
+CLAUDE_LOCAL_SECRETS.md
+CLAUDE_LOCAL_NOTES.md
+
+# Common private key files
+*.pem
+*.key
