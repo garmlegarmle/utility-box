@@ -67,6 +67,20 @@ function upsertPost(list: PostItem[], snapshot: PostSaveSnapshot, maxItems?: num
   return next;
 }
 
+function postDateValue(post: Pick<PostItem, 'published_at' | 'created_at'>): number {
+  const raw = post.published_at || post.created_at;
+  const value = Date.parse(raw);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function sortPostsByNewest(list: PostItem[]): PostItem[] {
+  return [...list].sort((a, b) => {
+    const diff = postDateValue(b) - postDateValue(a);
+    if (diff !== 0) return diff;
+    return b.id - a.id;
+  });
+}
+
 function renderTitleWithHiddenLoginTrigger(
   title: string,
   enabled: boolean,
@@ -182,34 +196,41 @@ function HomePage({
 }) {
   const params = useParams();
   const lang = normalizeLang(params.lang);
-  const [blogPosts, setBlogPosts] = useState<PostItem[]>([]);
-  const [toolPosts, setToolPosts] = useState<PostItem[]>([]);
-  const [gamePosts, setGamePosts] = useState<PostItem[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'tools' | 'games' | 'blog'>('all');
+  const [selectedTag, setSelectedTag] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     let canceled = false;
 
     async function load() {
+      setLoading(true);
       setError('');
       try {
         const status = admin.isAdmin ? 'all' : 'published';
         const [blog, tools, games] = await Promise.all([
-          listPosts({ lang, section: 'blog', status, limit: 12 }),
-          listPosts({ lang, section: 'tools', status, limit: 12 }),
-          listPosts({ lang, section: 'games', status, limit: 12 })
+          listPosts({ lang, section: 'blog', status, limit: 120 }),
+          listPosts({ lang, section: 'tools', status, limit: 120 }),
+          listPosts({ lang, section: 'games', status, limit: 120 })
         ]);
 
         if (canceled) return;
-        setBlogPosts(Array.isArray(blog.items) ? blog.items : []);
-        setToolPosts(Array.isArray(tools.items) ? tools.items : []);
-        setGamePosts(Array.isArray(games.items) ? games.items : []);
+        const merged = sortPostsByNewest([
+          ...(Array.isArray(blog.items) ? blog.items : []),
+          ...(Array.isArray(tools.items) ? tools.items : []),
+          ...(Array.isArray(games.items) ? games.items : [])
+        ]);
+        setPosts(merged);
       } catch (err) {
         if (canceled) return;
-        setBlogPosts([]);
-        setToolPosts([]);
-        setGamePosts([]);
+        setPosts([]);
         setError(err instanceof Error ? err.message : 'Failed to load home feeds');
+      } finally {
+        if (!canceled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -222,84 +243,153 @@ function HomePage({
   useEffect(() => {
     if (!savedPost) return;
     if (savedPost.lang !== lang) return;
-    if (savedPost.status !== 'published') return;
+    if (!['blog', 'tools', 'games'].includes(savedPost.section)) return;
 
-    if (savedPost.section === 'blog') {
-      setBlogPosts((prev) => upsertPost(prev, savedPost, 12));
-    } else if (savedPost.section === 'tools') {
-      setToolPosts((prev) => upsertPost(prev, savedPost, 12));
-    } else if (savedPost.section === 'games') {
-      setGamePosts((prev) => upsertPost(prev, savedPost, 12));
+    setPosts((prev) => {
+      const without = prev.filter((item) => item.id !== savedPost.id);
+      if (!admin.isAdmin && savedPost.status !== 'published') {
+        return without;
+      }
+      return sortPostsByNewest([toPostItem(savedPost), ...without]);
+    });
+  }, [admin.isAdmin, lang, savedPost]);
+
+  useEffect(() => {
+    setSelectedCategory('all');
+    setSelectedTag('');
+  }, [lang]);
+
+  useEffect(() => {
+    setSelectedTag('');
+  }, [selectedCategory]);
+
+  const categoryCounts = useMemo(
+    () => ({
+      all: posts.length,
+      tools: posts.filter((item) => item.section === 'tools').length,
+      games: posts.filter((item) => item.section === 'games').length,
+      blog: posts.filter((item) => item.section === 'blog').length
+    }),
+    [posts]
+  );
+
+  const categoryPosts = useMemo(() => {
+    if (selectedCategory === 'all') return posts;
+    return posts.filter((item) => item.section === selectedCategory);
+  }, [posts, selectedCategory]);
+
+  const tagCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const item of categoryPosts) {
+      const seen = new Set<string>();
+      for (const rawTag of item.tags || []) {
+        const tag = String(rawTag || '').trim();
+        if (!tag) continue;
+        const key = tag.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      }
     }
-  }, [lang, savedPost]);
+
+    return [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+  }, [categoryPosts]);
+
+  const visiblePosts = useMemo(() => {
+    if (!selectedTag) return categoryPosts;
+    const key = selectedTag.trim().toLowerCase();
+    return categoryPosts.filter((item) =>
+      item.tags.some((tag) => String(tag || '').trim().toLowerCase() === key)
+    );
+  }, [categoryPosts, selectedTag]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
   return (
     <SiteShell lang={lang} active="home">
-      <section className="page-section home-row-section">
+      <section className="page-section">
         <div className="container">
-          <h2 className="row-heading">Blog</h2>
-          <div className="home-row-shell">
-            <button className="home-row-arrow" type="button" aria-label="Previous blog items" disabled>
-              <span aria-hidden="true">‹</span>
-            </button>
-            <div className="home-row-track">
-              {blogPosts.map((post) => (
-                <EntryCard
-                  key={post.id}
-                  post={post}
-                  lang={lang}
-                  href={`/${lang}/blog/${post.slug}/`}
-                  showDraftBadge={admin.isAdmin}
-                />
-              ))}
+          <header className="list-head">
+            <div className="list-tags-center">
+              <p className="list-tags-title">Category</p>
+              <p className="list-tags">
+                {([
+                  { key: 'all', label: 'All', count: categoryCounts.all },
+                  { key: 'tools', label: 'Tool', count: categoryCounts.tools },
+                  { key: 'games', label: 'Game', count: categoryCounts.games },
+                  { key: 'blog', label: 'Blog', count: categoryCounts.blog }
+                ] as const).map((item, index) => (
+                  <span key={`home-category-${item.key}`}>
+                    <button
+                      type="button"
+                      className={`tag-filter-btn${selectedCategory === item.key ? ' is-active' : ''}`}
+                      onClick={() => setSelectedCategory(item.key)}
+                    >
+                      {item.label}({item.count})
+                    </button>
+                    {index < 3 ? ' | ' : ''}
+                  </span>
+                ))}
+              </p>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section className="page-section home-row-section">
-        <div className="container">
-          <h2 className="row-heading">Tool</h2>
-          <div className="home-row-shell">
-            <button className="home-row-arrow" type="button" aria-label="Previous tool items" disabled>
-              <span aria-hidden="true">‹</span>
-            </button>
-            <div className="home-row-track">
-              {toolPosts.map((post) => (
-                <EntryCard
-                  key={post.id}
-                  post={post}
-                  lang={lang}
-                  href={`/${lang}/tools/${post.slug}/`}
-                  showDraftBadge={admin.isAdmin}
-                />
-              ))}
+            <div className="list-tags-center">
+              <p className="list-tags-title">Tag list</p>
+              {tagCounts.length > 0 ? (
+                <p className="list-tags">
+                  <span key="home-tag-all">
+                    <button
+                      type="button"
+                      className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
+                      onClick={() => setSelectedTag('')}
+                    >
+                      All({categoryPosts.length})
+                    </button>
+                    {' | '}
+                  </span>
+                  {tagCounts.map((item, index) => (
+                    <span key={`home-tag-${item.name}-${index}`}>
+                      <button
+                        type="button"
+                        className={`tag-filter-btn${selectedTag === item.name ? ' is-active' : ''}`}
+                        onClick={() => setSelectedTag((prev) => (prev === item.name ? '' : item.name))}
+                      >
+                        {item.name}({item.count})
+                      </button>
+                      {index < tagCounts.length - 1 ? ' | ' : ''}
+                    </span>
+                  ))}
+                </p>
+              ) : (
+                <p className="list-tags list-tags--empty">
+                  <button
+                    type="button"
+                    className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
+                    onClick={() => setSelectedTag('')}
+                  >
+                    All({categoryPosts.length})
+                  </button>
+                </p>
+              )}
             </div>
-          </div>
-        </div>
-      </section>
+          </header>
 
-      <section className="page-section home-row-section">
-        <div className="container">
-          <h2 className="row-heading">Game</h2>
-          <div className="home-row-shell">
-            <button className="home-row-arrow" type="button" aria-label="Previous game items" disabled>
-              <span aria-hidden="true">‹</span>
-            </button>
-            <div className="home-row-track">
-              {gamePosts.map((post) => (
-                <EntryCard
-                  key={post.id}
-                  post={post}
-                  lang={lang}
-                  href={`/${lang}/games/${post.slug}/`}
-                  showDraftBadge={admin.isAdmin}
-                />
-              ))}
-            </div>
+          {loading ? <p>Loading...</p> : null}
+          <div className="listing-grid listing-grid--four listing-grid--center">
+            {visiblePosts.map((post) => (
+              <EntryCard
+                key={post.id}
+                post={post}
+                lang={lang}
+                href={`/${lang}/${post.section}/${post.slug}/`}
+                showDraftBadge={admin.isAdmin}
+              />
+            ))}
           </div>
+
+          {!loading && visiblePosts.length === 0 ? <p className="list-tags">No posts yet.</p> : null}
         </div>
       </section>
 
@@ -319,7 +409,7 @@ function HomePage({
           onLogout={() => {
             void logout().then(() => window.location.reload());
           }}
-          onWrite={() => openCreate('blog')}
+          onWrite={() => openCreate(selectedCategory === 'all' ? 'blog' : selectedCategory)}
           onManagePages={openPageManager}
         />
       ) : null}
@@ -449,7 +539,7 @@ function SectionListPage({
                       className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
                       onClick={() => setSelectedTag('')}
                     >
-                      See All({sectionTotal})
+                      All({sectionTotal})
                     </button>
                     {' | '}
                   </span>
@@ -473,7 +563,7 @@ function SectionListPage({
                     className={`tag-filter-btn${selectedTag === '' ? ' is-active' : ''}`}
                     onClick={() => setSelectedTag('')}
                   >
-                    See All({sectionTotal})
+                    All({sectionTotal})
                   </button>
                 </p>
               )}
@@ -539,6 +629,9 @@ function DetailPage({
   const [post, setPost] = useState<PostItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [previousPost, setPreviousPost] = useState<PostItem | null>(null);
+  const [nextPost, setNextPost] = useState<PostItem | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<PostItem[]>([]);
 
   useEffect(() => {
     let canceled = false;
@@ -580,13 +673,73 @@ function DetailPage({
   }, [savedPost]);
 
   useEffect(() => {
+    if (!post) {
+      setPreviousPost(null);
+      setNextPost(null);
+      setRelatedPosts([]);
+      return;
+    }
+    const currentPost: PostItem = post;
+
+    let canceled = false;
+    async function loadNeighborsAndRelated() {
+      try {
+        const status = admin.isAdmin ? 'all' : 'published';
+        const [neighborsResponse, relatedResponse] = await Promise.all([
+          listPosts({
+            lang: currentPost.lang,
+            section: currentPost.section,
+            status,
+            page: 1,
+            limit: 120
+          }),
+          currentPost.tags[0]
+            ? listPosts({
+                lang: currentPost.lang,
+                section: currentPost.section,
+                status,
+                tag: currentPost.tags[0],
+                page: 1,
+                limit: 120
+              })
+            : Promise.resolve({ ok: true, items: [], page: 1, limit: 0, total: 0 })
+        ]);
+
+        if (canceled) return;
+
+        const neighbors = Array.isArray(neighborsResponse.items) ? neighborsResponse.items : [];
+        const currentIndex = neighbors.findIndex((item) => item.id === currentPost.id);
+        setPreviousPost(currentIndex >= 0 ? neighbors[currentIndex + 1] || null : null);
+        setNextPost(currentIndex > 0 ? neighbors[currentIndex - 1] || null : null);
+
+        const related = Array.isArray(relatedResponse.items) ? relatedResponse.items : [];
+        setRelatedPosts(
+          related
+            .filter((item) => item.id !== currentPost.id)
+            .slice(0, 4)
+        );
+      } catch {
+        if (canceled) return;
+        setPreviousPost(null);
+        setNextPost(null);
+        setRelatedPosts([]);
+      }
+    }
+
+    void loadNeighborsAndRelated();
+    return () => {
+      canceled = true;
+    };
+  }, [admin.isAdmin, post?.id, post?.lang, post?.section, post?.tags]);
+
+  useEffect(() => {
     if (!post) return;
     const canonical = `${window.location.origin}/${post.lang}/${post.section}/${post.slug}/`;
     const metaTitle = post.meta?.title?.trim() || post.title;
     const metaDescription = post.meta?.description?.trim() || post.excerpt || '';
-    const ogTitle = post.og?.title?.trim() || metaTitle;
-    const ogDescription = post.og?.description?.trim() || metaDescription;
-    const ogImage = post.og?.imageUrl || post.card?.imageUrl || post.cover?.url || '';
+    const ogTitle = metaTitle;
+    const ogDescription = metaDescription;
+    const ogImage = post.card?.imageUrl || post.cover?.url || '';
 
     const previousTitle = document.title;
     document.title = `${metaTitle} | Utility Box`;
@@ -661,6 +814,32 @@ function DetailPage({
           {!loading && !error && post ? (
             <>
               <header className="detail-layout__head">
+                <div className="detail-layout__pager">
+                  {previousPost ? (
+                    <Link className="detail-layout__pager-link" to={`/${post.lang}/${post.section}/${previousPost.slug}/`}>
+                      {'< 이전글'}
+                    </Link>
+                  ) : (
+                    <span className="detail-layout__pager-link detail-layout__pager-link--placeholder" aria-hidden="true">
+                      {'< 이전글'}
+                    </span>
+                  )}
+                  {nextPost ? (
+                    <Link
+                      className="detail-layout__pager-link detail-layout__pager-link--next"
+                      to={`/${post.lang}/${post.section}/${nextPost.slug}/`}
+                    >
+                      {'다음글 >'}
+                    </Link>
+                  ) : (
+                    <span
+                      className="detail-layout__pager-link detail-layout__pager-link--next detail-layout__pager-link--placeholder"
+                      aria-hidden="true"
+                    >
+                      {'다음글 >'}
+                    </span>
+                  )}
+                </div>
                 <p className="detail-layout__tag">
                   {Array.isArray(post.tags) && post.tags.length > 0 ? post.tags.join(' | ') : 'tag'}
                 </p>
@@ -689,6 +868,18 @@ function DetailPage({
               )}
 
               <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: html }} />
+              {relatedPosts.length > 0 ? (
+                <section className="detail-related" aria-label="Related posts">
+                  <h2>{`#${post.tags[0]} posts`}</h2>
+                  <ul>
+                    {relatedPosts.map((item) => (
+                      <li key={`related-${item.id}`}>
+                        <Link to={`/${item.lang}/${item.section}/${item.slug}/`}>{item.title}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
               {schemaJson ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schemaJson }} /> : null}
             </>
           ) : null}

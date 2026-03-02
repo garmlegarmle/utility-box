@@ -16,6 +16,7 @@ const nav: Array<{ key: SiteSection; to: string }> = [
 export function SiteHeader({ lang, active }: SiteHeaderProps) {
   const location = useLocation();
   const togglePath = getLanguageTogglePath(location.pathname, lang);
+  const isAboutPage = new RegExp(`^/${lang}/pages/about/?$`).test(location.pathname);
 
   return (
     <header className="site-header">
@@ -26,6 +27,9 @@ export function SiteHeader({ lang, active }: SiteHeaderProps) {
         <nav className="site-nav" aria-label={lang === 'ko' ? '주요 탐색' : 'Primary navigation'}>
           <Link to={`/${lang}/`} aria-current={active === 'home' ? 'page' : undefined}>
             HOME
+          </Link>
+          <Link to={`/${lang}/pages/about/`} aria-current={isAboutPage ? 'page' : undefined}>
+            ABOUT
           </Link>
           {nav.map((item) => (
             <Link key={item.key} to={`/${lang}/${item.to}/`} aria-current={active === item.key ? 'page' : undefined}>

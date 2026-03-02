@@ -168,10 +168,6 @@ export function PostEditorModal({
   const [schemaType, setSchemaType] = useState<'BlogPosting' | 'Service'>(
     initialPost?.schemaType || (initialPost?.section === 'tools' || initialPost?.section === 'games' ? 'Service' : 'BlogPosting')
   );
-  const [ogTitle, setOgTitle] = useState(initialPost?.og?.title || '');
-  const [ogDescription, setOgDescription] = useState(initialPost?.og?.description || '');
-  const [ogImageUrl, setOgImageUrl] = useState(initialPost?.og?.imageUrl || '');
-  const [ogImageAlt, setOgImageAlt] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>(initialPost?.tags || []);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState('');
@@ -222,10 +218,6 @@ export function PostEditorModal({
     setSchemaType(
       initialPost?.schemaType || (initialPost?.section === 'tools' || initialPost?.section === 'games' ? 'Service' : 'BlogPosting')
     );
-    setOgTitle(initialPost?.og?.title || '');
-    setOgDescription(initialPost?.og?.description || '');
-    setOgImageUrl(initialPost?.og?.imageUrl || '');
-    setOgImageAlt('');
     setSelectedTags(initialPost?.tags || []);
     setAvailableTags(initialPost?.tags || []);
     setTagDraft('');
@@ -606,27 +598,6 @@ export function PostEditorModal({
     }
   }
 
-  async function uploadOgImage(file: File) {
-    const alt = ogImageAlt.trim();
-    if (!alt) {
-      setError('OG image alt text is required.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const result = await uploadMedia(file, alt);
-      setOgImageUrl(result.urls.original || result.urls.thumb_webp || '');
-      setOgImageAlt('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'OG image upload failed');
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleSave() {
     setError('');
 
@@ -644,6 +615,11 @@ export function PostEditorModal({
     const parsedCardTags = dedupeTagList(selectedCardTags);
     const normalizedExcerpt = excerpt.trim() || null;
     const rankNumber = parseRankNumber(cardRank.trim());
+    const normalizedMetaTitle = metaTitle.trim() || null;
+    const normalizedMetaDescription = metaDescription.trim() || null;
+    const ogTitle = normalizedMetaTitle || normalizedTitle;
+    const ogDescription = normalizedMetaDescription || normalizedExcerpt || null;
+    const ogImage = cardImageUrl || null;
 
     const snapshot: PostSaveSnapshot = {
       id: initialPost?.id || 0,
@@ -656,13 +632,13 @@ export function PostEditorModal({
       updated_at: new Date().toISOString(),
       tags: parsedTags,
       meta: {
-        title: metaTitle.trim() || null,
-        description: metaDescription.trim() || null
+        title: normalizedMetaTitle,
+        description: normalizedMetaDescription
       },
       og: {
-        title: ogTitle.trim() || null,
-        description: ogDescription.trim() || null,
-        imageUrl: ogImageUrl.trim() || null
+        title: ogTitle,
+        description: ogDescription,
+        imageUrl: ogImage
       },
       schemaType,
       card: {
@@ -686,13 +662,8 @@ export function PostEditorModal({
       section,
       tags: parsedTags,
       meta: {
-        title: metaTitle.trim(),
-        description: metaDescription.trim()
-      },
-      og: {
-        title: ogTitle.trim(),
-        description: ogDescription.trim(),
-        image_url: ogImageUrl.trim()
+        title: normalizedMetaTitle || '',
+        description: normalizedMetaDescription || ''
       },
       schema_type: schemaType,
       card: {
@@ -811,40 +782,7 @@ export function PostEditorModal({
                   <option value="Service">Service</option>
                 </select>
               </label>
-            </div>
-
-            <div className="admin-card-settings">
-              <h3>Open Graph</h3>
-              <label>
-                OG Title
-                <input value={ogTitle} onChange={(event) => setOgTitle(event.target.value)} placeholder="OG title" />
-              </label>
-              <label>
-                OG Description
-                <textarea value={ogDescription} onChange={(event) => setOgDescription(event.target.value)} placeholder="OG description" />
-              </label>
-              <div className="admin-inline-grid">
-                <label>
-                  OG Image URL
-                  <input value={ogImageUrl} onChange={(event) => setOgImageUrl(event.target.value)} placeholder="https://..." />
-                </label>
-                <label>
-                  OG Image Alt (required)
-                  <input value={ogImageAlt} onChange={(event) => setOgImageAlt(event.target.value)} placeholder="Describe image" />
-                </label>
-                <label>
-                  OG Image Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (file) await uploadOgImage(file);
-                      event.currentTarget.value = '';
-                    }}
-                  />
-                </label>
-              </div>
+              <p className="list-tags">Open Graph is generated automatically from SEO fields and card image.</p>
             </div>
 
             <div className="admin-inline-grid">

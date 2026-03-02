@@ -80,6 +80,7 @@ function mapPostRow(row: PostRecord, tags: string[], env: Env, request: Request)
     : null;
 
   const rankValue = row.card_rank ? `#${row.card_rank}` : null;
+  const resolvedOgImageUrl = row.og_image_url || cardImageUrl || coverUrl || null;
 
   return {
     id: row.id,
@@ -101,9 +102,9 @@ function mapPostRow(row: PostRecord, tags: string[], env: Env, request: Request)
       description: row.meta_description || null
     },
     og: {
-      title: row.og_title || null,
-      description: row.og_description || null,
-      imageUrl: row.og_image_url || null
+      title: row.og_title || row.meta_title || row.title || null,
+      description: row.og_description || row.meta_description || row.excerpt || null,
+      imageUrl: resolvedOgImageUrl
     },
     schemaType: row.schema_type || null,
     cover: row.cover_image_id
@@ -363,9 +364,9 @@ async function createPost(request: Request, env: Env): Promise<Response> {
   const cardImageId = parseIntSafe(payload.card?.image_id, null);
   const metaTitle = String(payload.meta?.title || '').trim() || null;
   const metaDescription = String(payload.meta?.description || '').trim() || null;
-  const ogTitle = String(payload.og?.title || '').trim() || null;
-  const ogDescription = String(payload.og?.description || '').trim() || null;
-  const ogImageUrl = String(payload.og?.image_url || '').trim() || null;
+  const ogTitle = metaTitle || title;
+  const ogDescription = metaDescription || excerpt || null;
+  const ogImageUrl = null;
   const schemaTypeRaw = String(payload.schema_type || '').trim();
   const schemaType = schemaTypeRaw === 'Service' || schemaTypeRaw === 'BlogPosting' ? schemaTypeRaw : null;
 
@@ -504,11 +505,9 @@ async function updatePost(request: Request, env: Env, idRaw: string): Promise<Re
   const metaTitle = payload.meta?.title !== undefined ? String(payload.meta.title || '').trim() || null : current.meta_title;
   const metaDescription =
     payload.meta?.description !== undefined ? String(payload.meta.description || '').trim() || null : current.meta_description;
-  const ogTitle = payload.og?.title !== undefined ? String(payload.og.title || '').trim() || null : current.og_title;
-  const ogDescription =
-    payload.og?.description !== undefined ? String(payload.og.description || '').trim() || null : current.og_description;
-  const ogImageUrl =
-    payload.og?.image_url !== undefined ? String(payload.og.image_url || '').trim() || null : current.og_image_url;
+  const ogTitle = metaTitle || title;
+  const ogDescription = metaDescription || excerpt || null;
+  const ogImageUrl = null;
   const schemaTypeRaw = payload.schema_type !== undefined ? String(payload.schema_type || '').trim() : current.schema_type || '';
   const schemaType = schemaTypeRaw === 'Service' || schemaTypeRaw === 'BlogPosting' ? schemaTypeRaw : null;
 

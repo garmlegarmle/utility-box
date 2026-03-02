@@ -179,6 +179,10 @@ main {
   align-content: start;
 }
 
+.listing-grid--center {
+  justify-content: center;
+}
+
 .entry-card {
   position: relative;
   display: flex;
@@ -344,6 +348,32 @@ main {
   margin-bottom: 20px;
 }
 
+.detail-layout__pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.detail-layout__pager-link {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.detail-layout__pager-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.detail-layout__pager-link--next {
+  margin-left: auto;
+}
+
+.detail-layout__pager-link--placeholder {
+  visibility: hidden;
+}
+
 .detail-layout__title-row {
   display: flex;
   align-items: center;
@@ -385,6 +415,31 @@ main {
 
 .detail-layout__content {
   max-width: 100%;
+}
+
+.detail-related {
+  margin-top: 26px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.detail-related h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+
+.detail-related ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.detail-related a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .content-prose h1 {

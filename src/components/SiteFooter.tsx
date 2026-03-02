@@ -16,9 +16,6 @@ export function SiteFooter({ lang }: SiteFooterProps) {
           <Link className="text-link" to={`/${lang}/pages/contact/`}>
             Contact
           </Link>
-          <Link className="text-link" to={`/${lang}/pages/about/`}>
-            About
-          </Link>
           <Link className="text-link" to={`/${lang}/pages/privacy-policy/`}>
             Privacy Policy
           </Link>
