@@ -81,6 +81,29 @@ npx wrangler tail utility-box-api
    - public pages show `published` posts only.
    - new/edited posts appear on home/list/detail consistently.
 
+## Security + Cost Baseline
+Code-level defaults already applied:
+- API write methods (`POST/PUT/DELETE/PATCH`) reject disallowed `Origin`.
+- API write payloads over ~12MB are rejected early.
+- Security headers are attached to all Worker API responses.
+- Public read endpoints now return cacheable `Cache-Control`:
+  - `GET /api/posts` (published/public): short CDN/browser cache
+  - `GET /api/tags`: short CDN/browser cache
+  - `GET /api/media/:id`: medium CDN/browser cache
+  - write/admin/auth endpoints stay `no-store`
+- Pages `/api` proxy now preserves Worker cache headers.
+
+Cloudflare Dashboard hardening to add:
+1. WAF managed rules: enable default OWASP set.
+2. Bot protection: enable Bot Fight Mode.
+3. Rate limiting rules:
+   - `/api/upload`: strict (very low burst)
+   - `/api/posts` write methods: strict
+   - `/api/auth`, `/api/callback`: moderate
+4. Cache rules:
+   - bypass cache for write/auth/session paths
+   - allow cache for public read paths if `Cache-Control` permits
+
 ## Security Notes
 - Never commit real secret values into the repository.
 - Use local-only files (`.env.local`, `CLAUDE_LOCAL_SECRETS.md`) and Cloudflare Worker Secrets.

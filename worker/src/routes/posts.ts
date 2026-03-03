@@ -1,6 +1,6 @@
 import type { Env, PostRecord } from '../types';
 import { isAdminRequest } from '../lib/auth';
-import { getPostTags, replacePostTags } from '../lib/db';
+import { getPostTags, getPostTagsMap, replacePostTags } from '../lib/db';
 import { debugLog, requestDebugId } from '../lib/debug';
 import { buildMediaUrls } from '../lib/media';
 import {
@@ -190,9 +190,15 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
     .bind(...binds, limit, offset)
     .all<PostRecord>();
 
+  const rowList = rows.results || [];
+  const tagMap = await getPostTagsMap(
+    env,
+    rowList.map((row) => row.id)
+  );
+
   const items = [];
-  for (const row of rows.results || []) {
-    const tags = await getPostTags(env, row.id);
+  for (const row of rowList) {
+    const tags = tagMap.get(row.id) || [];
     items.push(mapPostRow(row, tags, env, request));
   }
 
@@ -210,13 +216,28 @@ async function listPosts(request: Request, env: Env): Promise<Response> {
     total: Number(countRow?.total || 0)
   });
 
-  return ok({
-    ok: true,
-    items,
-    page,
-    limit,
-    total: Number(countRow?.total || 0)
-  });
+  const cacheHeaders =
+    isAdmin || statusFilter === 'all' || statusFilter === 'draft'
+      ? { 'Cache-Control': 'no-store' }
+      : q
+        ? {
+            'Cache-Control': 'public, max-age=20, s-maxage=60, stale-while-revalidate=120'
+          }
+        : {
+            'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
+          };
+
+  return ok(
+    {
+      ok: true,
+      items,
+      page,
+      limit,
+      total: Number(countRow?.total || 0)
+    },
+    200,
+    cacheHeaders
+  );
 }
 
 async function getPostBySlug(request: Request, env: Env, slugRaw: string): Promise<Response> {

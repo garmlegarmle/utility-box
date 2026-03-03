@@ -1,4 +1,4 @@
-import { handlePreflight, withCors } from './lib/cors';
+import { handlePreflight, resolveCorsOrigin, withCors } from './lib/cors';
 import { debugLog, requestDebugId } from './lib/debug';
 import { error } from './lib/validators';
 import type { Env } from './types';
@@ -12,12 +12,43 @@ function routePath(pathname: string): string[] {
   return pathname.split('/').filter(Boolean);
 }
 
+const WRITE_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
+const MAX_WRITE_BYTES = 12 * 1024 * 1024;
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Referrer-Policy', 'no-referrer');
+  headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  headers.set('X-Robots-Tag', 'noindex, nofollow');
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 async function handleApi(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const segments = routePath(url.pathname);
+  const method = request.method.toUpperCase();
 
-  if (request.method.toUpperCase() === 'OPTIONS') {
+  if (method === 'OPTIONS') {
     return handlePreflight(request, env);
+  }
+
+  if (WRITE_METHODS.has(method)) {
+    const origin = request.headers.get('Origin') || '';
+    if (origin && !resolveCorsOrigin(request, env)) {
+      return error(403, 'Origin not allowed');
+    }
+
+    const contentLength = Number.parseInt(request.headers.get('content-length') || '', 10);
+    if (Number.isFinite(contentLength) && contentLength > MAX_WRITE_BYTES) {
+      return error(413, 'Payload too large');
+    }
   }
 
   if (segments[0] !== 'api') {
@@ -83,7 +114,7 @@ export default {
         path: new URL(request.url).pathname,
         status: response.status
       });
-      return withCors(request, env, response);
+      return withSecurityHeaders(withCors(request, env, response));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unexpected error';
       debugLog(env, 'api.error', {
@@ -92,13 +123,15 @@ export default {
         path: new URL(request.url).pathname,
         message
       });
-      return withCors(
-        request,
-        env,
-        new Response(JSON.stringify({ ok: false, error: message }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json; charset=utf-8' }
-        })
+      return withSecurityHeaders(
+        withCors(
+          request,
+          env,
+          new Response(JSON.stringify({ ok: false, error: message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+          })
+        )
       );
     }
   }

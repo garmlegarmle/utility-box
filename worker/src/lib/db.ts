@@ -72,6 +72,34 @@ export async function getPostTags(env: Env, postId: number): Promise<string[]> {
   return (rows.results || []).map((row) => row.name);
 }
 
+export async function getPostTagsMap(env: Env, postIds: number[]): Promise<Map<number, string[]>> {
+  const ids = postIds.filter((id) => Number.isFinite(id) && id > 0);
+  const out = new Map<number, string[]>();
+  if (ids.length === 0) return out;
+
+  const placeholders = ids.map(() => '?').join(', ');
+  const rows = await env.DB.prepare(
+    `SELECT pt.post_id AS post_id, t.name AS name
+     FROM post_tags pt
+     INNER JOIN tags t ON t.id = pt.tag_id
+     WHERE pt.post_id IN (${placeholders})
+     ORDER BY LOWER(t.name) ASC`
+  )
+    .bind(...ids)
+    .all<{ post_id: number; name: string }>();
+
+  for (const row of rows.results || []) {
+    const postId = Number(row.post_id);
+    const name = String(row.name || '').trim();
+    if (!postId || !name) continue;
+    const list = out.get(postId) || [];
+    list.push(name);
+    out.set(postId, list);
+  }
+
+  return out;
+}
+
 export async function listDistinctTags(
   env: Env,
   options?: { lang?: 'en' | 'ko'; publishedOnly?: boolean }

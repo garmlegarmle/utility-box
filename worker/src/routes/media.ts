@@ -18,12 +18,18 @@ export async function handleGetMedia(request: Request, env: Env, mediaIdRaw: str
     variantNames: variants.map((variant) => variant.variant)
   });
 
-  return ok({
-    ok: true,
-    media,
-    variants,
-    urls
-  });
+  return ok(
+    {
+      ok: true,
+      media,
+      variants,
+      urls
+    },
+    200,
+    {
+      'Cache-Control': 'public, max-age=300, s-maxage=1800, stale-while-revalidate=3600'
+    }
+  );
 }
 
 export async function handleGetMediaFile(request: Request, env: Env, mediaIdRaw: string): Promise<Response> {

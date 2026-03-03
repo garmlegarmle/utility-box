@@ -25,7 +25,9 @@ export async function onRequest(context) {
   });
 
   const responseHeaders = new Headers(upstreamResponse.headers);
-  responseHeaders.set('Cache-Control', 'no-store');
+  if (!responseHeaders.has('Cache-Control')) {
+    responseHeaders.set('Cache-Control', 'no-store');
+  }
 
   const proxied = new Response(upstreamResponse.body, {
     status: upstreamResponse.status,

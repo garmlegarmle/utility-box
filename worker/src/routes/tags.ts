@@ -30,10 +30,16 @@ async function handleListTags(request: Request, env: Env): Promise<Response> {
       count: items.length
     });
 
-    return ok({
-      ok: true,
-      items
-    });
+    return ok(
+      {
+        ok: true,
+        items
+      },
+      200,
+      publishedOnly
+        ? { 'Cache-Control': 'public, max-age=120, s-maxage=600, stale-while-revalidate=900' }
+        : { 'Cache-Control': 'no-store' }
+    );
   }
 
   const items = await listDistinctTags(env, {
@@ -49,10 +55,16 @@ async function handleListTags(request: Request, env: Env): Promise<Response> {
     count: items.length
   });
 
-  return ok({
-    ok: true,
-    items
-  });
+  return ok(
+    {
+      ok: true,
+      items
+    },
+    200,
+    publishedOnly
+      ? { 'Cache-Control': 'public, max-age=120, s-maxage=600, stale-while-revalidate=900' }
+      : { 'Cache-Control': 'no-store' }
+  );
 }
 
 async function handleDeleteTag(request: Request, env: Env, tagParam: string): Promise<Response> {
