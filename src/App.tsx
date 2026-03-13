@@ -3,12 +3,13 @@ import { Navigate, Link, Route, Routes, useLocation, useNavigate, useParams } fr
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { AdminDock } from './components/AdminDock';
+import { AdminLoginModal } from './components/AdminLoginModal';
 import { EntryCard } from './components/EntryCard';
 import { PageManagerModal } from './components/PageManagerModal';
 import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
-import { buildAuthUrl, getPostBySlug, getSession, listPosts, listTagCounts, logout } from './lib/api';
+import { getPostBySlug, getSession, listPosts, listTagCounts, login, logout } from './lib/api';
 import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel, t } from './lib/site';
 import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from './types';
 
@@ -933,63 +934,16 @@ function AppInner() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [savedPost, setSavedPost] = useState<PostSaveSnapshot | null>(null);
   const [pageManagerOpen, setPageManagerOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const currentLang = useMemo(() => {
     const first = location.pathname.split('/').filter(Boolean)[0];
     return normalizeLang(first);
   }, [location.pathname]);
 
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      const payload = event.data as { type?: string; ok?: boolean; message?: string; redirectPath?: string };
-      if (!payload || payload.type !== 'ub-admin-auth-success') return;
-
-      if (payload.ok === false) {
-        const message = payload.message || 'Authentication failed';
-        window.alert(`Admin login failed: ${message}`);
-        return;
-      }
-
-      void refresh();
-      if (payload.ok && payload.redirectPath && typeof payload.redirectPath === 'string') {
-        navigate(payload.redirectPath, { replace: true });
-      }
-    };
-
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, [navigate, refresh]);
-
   const requestAdmin = useCallback(() => {
-    const redirectPath = `${location.pathname}${location.search}`;
-    const authUrl = buildAuthUrl(redirectPath);
-    const popup = window.open(authUrl, 'ubAdminAuth', 'width=620,height=760');
-
-    if (!popup) {
-      window.alert('Popup was blocked. Please allow popups and try again.');
-      return;
-    }
-
-    let attempts = 0;
-    const timer = window.setInterval(async () => {
-      attempts += 1;
-
-      if (popup.closed || attempts >= 45) {
-        window.clearInterval(timer);
-      }
-
-      try {
-        const session = await getSession();
-        if (session.authenticated && session.isAdmin) {
-          window.clearInterval(timer);
-          await refresh();
-          if (!popup.closed) popup.close();
-        }
-      } catch {
-        // ignore polling errors and continue until timeout
-      }
-    }, 1000);
-  }, [location.pathname, location.search, refresh]);
+    setLoginOpen(true);
+  }, []);
 
   const openCreate = useCallback(
     (section: SiteSection, post?: PostItem, forcedLang?: SiteLang) => {
@@ -1111,6 +1065,17 @@ function AppInner() {
         }}
         onChanged={() => {
           setRefreshKey((prev) => prev + 1);
+        }}
+      />
+
+      <AdminLoginModal
+        open={loginOpen}
+        lang={currentLang}
+        onClose={() => setLoginOpen(false)}
+        onSubmit={async (username, password) => {
+          await login(username, password);
+          await refresh();
+          navigate(`${location.pathname}${location.search}`, { replace: true });
         }}
       />
     </>

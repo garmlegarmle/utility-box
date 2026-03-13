@@ -30,6 +30,7 @@ import {
   makeSetCookie,
   randomState,
   safeRedirectPath,
+  verifyAdminPassword,
   verifySignedValue
 } from './auth.js';
 import {
@@ -139,9 +140,42 @@ app.get('/health', (_req, res) => {
   jsonOk(res, { ok: true, service: 'utility-box-api' });
 });
 
+app.post('/api/login', async (req, res) => {
+  const username = String(req.body?.username || '').trim().toLowerCase();
+  const password = String(req.body?.password || '');
+
+  if (!config.adminLoginUser || !config.adminLoginPassword) {
+    return jsonError(res, 500, 'Admin login is not configured');
+  }
+  if (!username || !password) {
+    return jsonError(res, 400, 'username and password are required');
+  }
+  if (!isAllowedAdmin(username, config) || !verifyAdminPassword(password, config)) {
+    return jsonError(res, 401, 'Invalid username or password');
+  }
+
+  const sessionValue = createSignedValue(
+    {
+      username,
+      exp: Date.now() + 1000 * 60 * 60 * 12,
+      via: 'local'
+    },
+    config.adminSessionSecret
+  );
+
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Set-Cookie', makeSetCookie(SESSION_COOKIE, sessionValue, 60 * 60 * 12, config));
+  return jsonOk(res, {
+    ok: true,
+    authenticated: true,
+    isAdmin: true,
+    username
+  });
+});
+
 app.get('/api/auth', async (req, res) => {
   if (!config.githubClientId) {
-    return res.status(500).send('Missing GITHUB_CLIENT_ID');
+    return res.status(410).send('GitHub OAuth login is disabled');
   }
   const redirectPath = safeRedirectPath(req.query.redirect);
   const targetOriginParam = req.query.origin || req.get('origin') || config.siteOrigin || '*';

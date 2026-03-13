@@ -76,8 +76,19 @@ export function randomState(length = 32) {
   return out;
 }
 
+function safeEqualText(left, right) {
+  const a = crypto.createHash('sha256').update(String(left || '')).digest();
+  const b = crypto.createHash('sha256').update(String(right || '')).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
 export function isAllowedAdmin(username, config) {
-  return Boolean(config.adminGithubUser) && String(username || '').toLowerCase() === config.adminGithubUser;
+  return Boolean(config.adminLoginUser) && String(username || '').toLowerCase() === config.adminLoginUser;
+}
+
+export function verifyAdminPassword(password, config) {
+  if (!config.adminLoginPassword) return false;
+  return safeEqualText(password, config.adminLoginPassword);
 }
 
 export function safeRedirectPath(input) {
@@ -100,12 +111,12 @@ export function getAdminSession(req, config) {
   const value = cookies[SESSION_COOKIE] || '';
   const payload = verifySignedValue(value, config.adminSessionSecret);
   if (!payload || typeof payload !== 'object') return null;
-  if (!payload.username || !payload.token || !payload.exp) return null;
+  if (!payload.username || !payload.exp) return null;
   if (Date.now() > Number(payload.exp)) return null;
   if (!isAllowedAdmin(String(payload.username), config)) return null;
   return {
     username: String(payload.username),
-    token: String(payload.token),
+    token: payload.token ? String(payload.token) : '',
     exp: Number(payload.exp)
   };
 }

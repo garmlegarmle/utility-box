@@ -28,6 +28,11 @@ export type UiTextKey =
   | 'admin.menu'
   | 'admin.actions'
   | 'admin.login'
+  | 'admin.loginTitle'
+  | 'admin.username'
+  | 'admin.password'
+  | 'admin.cancel'
+  | 'admin.submit'
   | 'admin.editCurrent'
   | 'admin.write'
   | 'admin.pageManager'
@@ -60,6 +65,11 @@ const UI_TEXT: Record<SiteLang, Record<UiTextKey, string>> = {
     'admin.menu': 'Admin menu',
     'admin.actions': 'Admin actions',
     'admin.login': 'admin login',
+    'admin.loginTitle': 'Admin login',
+    'admin.username': 'Username',
+    'admin.password': 'Password',
+    'admin.cancel': 'Cancel',
+    'admin.submit': 'Login',
     'admin.editCurrent': 'edit current post',
     'admin.write': 'write post',
     'admin.pageManager': 'page manager',
@@ -91,6 +101,11 @@ const UI_TEXT: Record<SiteLang, Record<UiTextKey, string>> = {
     'admin.menu': '관리자 메뉴',
     'admin.actions': '관리자 동작',
     'admin.login': '관리자 로그인',
+    'admin.loginTitle': '관리자 로그인',
+    'admin.username': '아이디',
+    'admin.password': '비밀번호',
+    'admin.cancel': '취소',
+    'admin.submit': '로그인',
     'admin.editCurrent': '현재 글 수정',
     'admin.write': '글쓰기',
     'admin.pageManager': '페이지 관리',

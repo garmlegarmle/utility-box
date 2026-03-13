@@ -202,6 +202,16 @@ export async function logout(): Promise<{ ok: true }> {
   });
 }
 
+export async function login(username: string, password: string): Promise<SessionResponse> {
+  return apiFetch<SessionResponse>('/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8'
+    },
+    body: JSON.stringify({ username, password })
+  });
+}
+
 export async function uploadMedia(file: File, alt?: string): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
@@ -225,13 +235,4 @@ export async function deleteTag(
       method: 'DELETE'
     }
   );
-}
-
-export function buildAuthUrl(redirectPath: string): string {
-  const query = new URLSearchParams({
-    redirect: redirectPath,
-    origin: window.location.origin
-  });
-
-  return `/api/auth?${query.toString()}`;
 }

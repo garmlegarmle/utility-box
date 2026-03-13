@@ -80,6 +80,13 @@ deploy/vps/env/utility-box.api.env
 API_UPSTREAM=http://utility-box-api:8200
 ```
 
+Set local admin credentials in `deploy/vps/env/utility-box.api.env`:
+
+```text
+ADMIN_LOGIN_USER=your-admin-id
+ADMIN_LOGIN_PASSWORD=strong-password
+```
+
 6. Run preflight:
 
 ```bash
