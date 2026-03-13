@@ -113,12 +113,15 @@ export async function listDistinctTags(pool, { lang, publishedOnly = false }) {
     where.push(`p.status = 'published'`);
   }
   const rows = await pool.query(
-    `SELECT DISTINCT t.name AS name
-     FROM tags t
-     INNER JOIN post_tags pt ON pt.tag_id = t.id
-     INNER JOIN posts p ON p.id = pt.post_id
-     WHERE ${where.join(' AND ')}
-     ORDER BY LOWER(t.name) ASC`,
+    `SELECT name
+     FROM (
+       SELECT DISTINCT t.name AS name
+       FROM tags t
+       INNER JOIN post_tags pt ON pt.tag_id = t.id
+       INNER JOIN posts p ON p.id = pt.post_id
+       WHERE ${where.join(' AND ')}
+     ) tag_names
+     ORDER BY LOWER(name) ASC`,
     binds
   );
   return rows.rows.map((row) => String(row.name || '').trim()).filter(Boolean);
@@ -151,9 +154,19 @@ export async function getMediaVariants(pool, mediaId) {
   return rows.rows;
 }
 
+function requestOrigin(request) {
+  const forwardedProto = String(request.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const forwardedHost = String(request.get('x-forwarded-host') || '').split(',')[0].trim();
+  const protocol = forwardedProto || request.protocol;
+  const host = forwardedHost || request.get('host');
+  return { protocol, host };
+}
+
 export function mapPostRow(row, tags, request) {
-  const coverUrl = row.cover_image_id ? `${request.protocol}://${request.get('host')}/api/media/${row.cover_image_id}/file` : null;
-  const cardImageUrl = row.card_image_id ? `${request.protocol}://${request.get('host')}/api/media/${row.card_image_id}/file` : null;
+  const { protocol, host } = requestOrigin(request);
+  const origin = `${protocol}://${host}`;
+  const coverUrl = row.cover_image_id ? `${origin}/api/media/${row.cover_image_id}/file` : null;
+  const cardImageUrl = row.card_image_id ? `${origin}/api/media/${row.card_image_id}/file` : null;
   const rankValue = row.card_rank ? `#${row.card_rank}` : null;
   const resolvedOgImageUrl = row.og_image_url || cardImageUrl || coverUrl || null;
   return {

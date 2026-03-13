@@ -540,8 +540,15 @@ export function PostEditorModal({
     insertNodeAtCursor(spacer);
   }
 
+  function requireAltText(currentValue: string, fallbackLabel: string): string | null {
+    const trimmed = currentValue.trim();
+    if (trimmed) return trimmed;
+    const prompted = window.prompt('Image alt text is required.', fallbackLabel)?.trim() || '';
+    return prompted || null;
+  }
+
   async function uploadAndInsertBodyImage(file: File) {
-    const alt = bodyImageAlt.trim();
+    const alt = requireAltText(bodyImageAlt, file.name.replace(/\.[^.]+$/, ''));
     if (!alt) {
       setError('Image alt text is required.');
       return;
@@ -577,7 +584,7 @@ export function PostEditorModal({
   }
 
   async function uploadCardImage(file: File) {
-    const alt = cardImageAlt.trim();
+    const alt = requireAltText(cardImageAlt, file.name.replace(/\.[^.]+$/, ''));
     if (!alt) {
       setError('Card image alt text is required.');
       return;
@@ -870,6 +877,7 @@ export function PostEditorModal({
                       </button>
                     </span>
                   ))}
+                {availableTags.length === 0 ? <span className="list-tags">No saved tags yet.</span> : null}
               </div>
             </div>
 
@@ -966,6 +974,7 @@ export function PostEditorModal({
                         </button>
                       </span>
                     ))}
+                  {availableTags.length === 0 ? <span className="list-tags">No saved tags yet.</span> : null}
                 </div>
               </div>
 

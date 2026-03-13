@@ -44,8 +44,16 @@ export function resolveStoragePath(config, key) {
   return path.join(config.uploadRoot, key);
 }
 
+function requestOrigin(request) {
+  const forwardedProto = String(request.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const forwardedHost = String(request.get('x-forwarded-host') || '').split(',')[0].trim();
+  const protocol = forwardedProto || request.protocol;
+  const host = forwardedHost || request.get('host');
+  return `${protocol}://${host}`;
+}
+
 export function buildMediaUrls({ request, mediaId, variantNames = [] }) {
-  const base = `${request.protocol}://${request.get('host')}/api/media/${mediaId}/file`;
+  const base = `${requestOrigin(request)}/api/media/${mediaId}/file`;
   const out = { original: base };
   for (const variant of variantNames) {
     out[variant] = `${base}?variant=${encodeURIComponent(variant)}`;
