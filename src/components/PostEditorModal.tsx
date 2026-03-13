@@ -540,19 +540,15 @@ export function PostEditorModal({
     insertNodeAtCursor(spacer);
   }
 
-  function requireAltText(currentValue: string, fallbackLabel: string): string | null {
+  function resolveImageAlt(currentValue: string, fallbackLabel: string): string {
     const trimmed = currentValue.trim();
     if (trimmed) return trimmed;
-    const prompted = window.prompt('Image alt text is required.', fallbackLabel)?.trim() || '';
-    return prompted || null;
+    const prompted = window.prompt('Image alt text is recommended. Leave blank to use the file name.', fallbackLabel)?.trim() || '';
+    return prompted || fallbackLabel || 'image';
   }
 
   async function uploadAndInsertBodyImage(file: File) {
-    const alt = requireAltText(bodyImageAlt, file.name.replace(/\.[^.]+$/, ''));
-    if (!alt) {
-      setError('Image alt text is required.');
-      return;
-    }
+    const alt = resolveImageAlt(bodyImageAlt, file.name.replace(/\.[^.]+$/, ''));
 
     setLoading(true);
     setError('');
@@ -575,7 +571,7 @@ export function PostEditorModal({
       insertNodeAtCursor(paragraph);
 
       selectedImageRef.current = image;
-      setBodyImageAlt('');
+      setBodyImageAlt(alt);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Image upload failed');
     } finally {
@@ -584,11 +580,7 @@ export function PostEditorModal({
   }
 
   async function uploadCardImage(file: File) {
-    const alt = requireAltText(cardImageAlt, file.name.replace(/\.[^.]+$/, ''));
-    if (!alt) {
-      setError('Card image alt text is required.');
-      return;
-    }
+    const alt = resolveImageAlt(cardImageAlt, file.name.replace(/\.[^.]+$/, ''));
 
     setLoading(true);
     setError('');
@@ -597,7 +589,7 @@ export function PostEditorModal({
       const result = await uploadMedia(file, alt);
       setCardImageId(result.mediaId);
       setCardImageUrl(result.urls.thumb_webp || result.urls.original);
-      setCardImageAlt('');
+      setCardImageAlt(alt);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Card image upload failed');
     } finally {
