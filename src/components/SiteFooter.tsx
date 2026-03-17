@@ -8,7 +8,7 @@ interface SiteFooterProps {
 
 export function SiteFooter({ lang }: SiteFooterProps) {
   void lang;
-  const meta = '© 2026–Present Utility Box. All rights reserved.';
+  const meta = '© 2026–Present GA-ML. All rights reserved.';
 
   return (
     <footer className="site-footer">

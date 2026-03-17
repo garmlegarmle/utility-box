@@ -22,7 +22,7 @@ export function SiteHeader({ lang, active }: SiteHeaderProps) {
     <header className="site-header">
       <div className="container header-inner">
         <Link className="site-title" to={`/${lang}/`}>
-          Utility Box
+          GA-ML
         </Link>
         <nav className="site-nav" aria-label={lang === 'ko' ? '주요 탐색' : 'Primary navigation'}>
           <Link to={`/${lang}/`} aria-current={active === 'home' ? 'page' : undefined}>
