@@ -751,7 +751,7 @@ function DetailPage({
     const ogImage = post.card?.imageUrl || post.cover?.url || '';
 
     const previousTitle = document.title;
-    document.title = `${metaTitle} | Utility Box`;
+    document.title = `${metaTitle} | GA-ML`;
 
     const cleanup = [
       upsertHeadMeta('meta[name="description"]', 'name', 'description', metaDescription),

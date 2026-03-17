@@ -21,10 +21,10 @@ export async function ensureSchema(pool) {
 
 export async function ensureSeedPages(pool) {
   const pages = [
-    ['about', 'About', 'About Utility Box.', '# About\n\nUtility Box provides practical tools and guides.', 'en'],
-    ['contact', 'Contact', 'Contact Utility Box.', '# Contact\n\nFor inquiries, use the official contact channel.', 'en'],
+    ['about', 'About', 'About GA-ML.', '# About\n\nGA-ML provides practical tools and guides.', 'en'],
+    ['contact', 'Contact', 'Contact GA-ML.', '# Contact\n\nFor inquiries, use the official contact channel.', 'en'],
     ['privacy-policy', 'Privacy Policy', 'Privacy policy details.', '# Privacy Policy\n\nWe only store data required for operating the service.', 'en'],
-    ['about', '소개', 'Utility Box 소개', '# 소개\n\nUtility Box는 실용적인 도구와 가이드를 제공합니다.', 'ko'],
+    ['about', '소개', 'GA-ML 소개', '# 소개\n\nGA-ML은 실용적인 도구와 가이드를 제공합니다.', 'ko'],
     ['contact', '문의하기', '문의 안내', '# 문의하기\n\n문의는 공식 채널로 보내주세요.', 'ko'],
     ['privacy-policy', '개인정보 처리방침', '개인정보 처리방침 안내', '# 개인정보 처리방침\n\n서비스 운영에 필요한 최소한의 정보만 처리합니다.', 'ko']
   ];

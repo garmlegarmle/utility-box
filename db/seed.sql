@@ -14,8 +14,8 @@ VALUES
   (
     'about',
     'About',
-    'About Utility Box.',
-    '# About\n\nUtility Box provides practical tools and guides.',
+    'About GA-ML.',
+    '# About\n\nGA-ML provides practical tools and guides.',
     'published',
     strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
     'en',
@@ -24,7 +24,7 @@ VALUES
   (
     'contact',
     'Contact',
-    'Contact Utility Box.',
+    'Contact GA-ML.',
     '# Contact\n\nFor inquiries, use the official contact channel.',
     'published',
     strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
@@ -44,8 +44,8 @@ VALUES
   (
     'about',
     '소개',
-    'Utility Box 소개',
-    '# 소개\n\nUtility Box는 실용적인 도구와 가이드를 제공합니다.',
+    'GA-ML 소개',
+    '# 소개\n\nGA-ML은 실용적인 도구와 가이드를 제공합니다.',
     'published',
     strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
     'ko',

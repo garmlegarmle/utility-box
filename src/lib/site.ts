@@ -1,6 +1,6 @@
 import type { SiteLang, SiteSection } from '../types';
 
-export const SITE_NAME = 'Utility Box';
+export const SITE_NAME = 'GA-ML';
 
 export type UiTextKey =
   | 'nav.home'
