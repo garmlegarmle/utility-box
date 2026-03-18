@@ -64,12 +64,65 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX
 const config = getConfig();
 const pool = createPool(config);
 const publicBaseUrl = config.mediaPublicBaseUrl || config.siteOrigin || '';
+const SITEMAP_LANGS = ['en', 'ko'];
+const SITEMAP_SECTIONS = ['tools', 'games', 'blog'];
 
 function withSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+}
+
+function resolvePublicOrigin(req) {
+  if (config.siteOrigin) {
+    return String(config.siteOrigin).replace(/\/+$/, '');
+  }
+
+  const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const forwardedHost = String(req.get('x-forwarded-host') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol;
+  const host = forwardedHost || req.get('host');
+  return `${protocol}://${host}`;
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function formatSitemapDate(value) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString();
+}
+
+function trackLatest(map, key, dateValue) {
+  if (!dateValue) return;
+  const previous = map.get(key);
+  if (!previous || previous < dateValue) {
+    map.set(key, dateValue);
+  }
+}
+
+function renderSitemapXml(entries) {
+  const body = entries
+    .map((entry) => {
+      const lines = ['  <url>', `    <loc>${escapeXml(entry.loc)}</loc>`];
+      if (entry.lastmod) {
+        lines.push(`    <lastmod>${escapeXml(entry.lastmod)}</lastmod>`);
+      }
+      lines.push('  </url>');
+      return lines.join('\n');
+    })
+    .join('\n');
+
+  return ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', body, '</urlset>'].join('\n');
 }
 
 function requireAdmin(req, res) {
@@ -111,6 +164,63 @@ app.use(express.json({ limit: '2mb' }));
 
 app.get('/health', (_req, res) => {
   jsonOk(res, { ok: true, service: 'utility-box-api' });
+});
+
+app.get('/sitemap.xml', async (req, res, next) => {
+  try {
+    const origin = resolvePublicOrigin(req);
+    const result = await pool.query(
+      `SELECT lang, section, slug, COALESCE(updated_at, published_at, created_at) AS lastmod
+       FROM posts
+       WHERE is_deleted = FALSE
+         AND status = 'published'
+       ORDER BY lang ASC, section ASC, COALESCE(updated_at, published_at, created_at) DESC, id DESC`
+    );
+
+    const latestByLang = new Map();
+    const latestBySection = new Map();
+    const postEntries = [];
+
+    for (const row of result.rows) {
+      const lang = String(row.lang || '').trim().toLowerCase();
+      const section = String(row.section || '').trim().toLowerCase();
+      const slug = String(row.slug || '').trim();
+      if (!lang || !section || !slug) continue;
+
+      const lastmod = formatSitemapDate(row.lastmod);
+      trackLatest(latestByLang, lang, lastmod);
+      if (section !== 'pages') {
+        trackLatest(latestBySection, `${lang}:${section}`, lastmod);
+      }
+
+      postEntries.push({
+        loc: `${origin}/${lang}/${section}/${slug}/`,
+        lastmod
+      });
+    }
+
+    const staticEntries = [];
+    for (const lang of SITEMAP_LANGS) {
+      staticEntries.push({
+        loc: `${origin}/${lang}/`,
+        lastmod: latestByLang.get(lang) || ''
+      });
+
+      for (const section of SITEMAP_SECTIONS) {
+        staticEntries.push({
+          loc: `${origin}/${lang}/${section}/`,
+          lastmod: latestBySection.get(`${lang}:${section}`) || ''
+        });
+      }
+    }
+
+    const entries = [...staticEntries, ...postEntries];
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=3600');
+    res.send(renderSitemapXml(entries));
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post('/api/login', async (req, res) => {
