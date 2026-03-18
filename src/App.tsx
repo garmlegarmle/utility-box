@@ -10,6 +10,7 @@ import { PageManagerModal } from './components/PageManagerModal';
 import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
+import { trackPageView } from './lib/analytics';
 import { changeAdminPassword, getPostBySlug, getSession, listPosts, listTagCounts, login, logout } from './lib/api';
 import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel, t } from './lib/site';
 import type { PostItem, PostSaveSnapshot, SiteLang, SiteSection } from './types';
@@ -1021,6 +1022,11 @@ function AppInner() {
     const first = location.pathname.split('/').filter(Boolean)[0];
     return normalizeLang(first);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const pagePath = `${location.pathname}${location.search}${location.hash}`;
+    trackPageView(pagePath);
+  }, [location.hash, location.pathname, location.search]);
 
   const requestAdmin = useCallback(() => {
     setLoginOpen(true);
