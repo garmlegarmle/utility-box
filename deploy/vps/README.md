@@ -1,13 +1,12 @@
-# Utility Box VPS Deployment Prep
+# Utility Box VPS Deployment
 
-This directory prepares a safe VPS migration path for `Utility Box` without colliding with `HSE_PWA`.
+This directory documents the VPS deployment for `Utility Box` without colliding with `HSE_PWA`.
 
 ## Current intent
 
 - Run `Utility Box` as a separate Docker project on the same VPS.
 - Keep Cloudflare only for DNS / TLS / WAF / CDN.
 - Move the frontend and API to the VPS.
-- Keep the Cloudflare Worker API only as a rollback path during cutover.
 - Store Utility Box content in its own PostgreSQL container and upload volume.
 
 ## Isolation rules
@@ -45,7 +44,7 @@ This repo now includes:
 - `scripts/preflight-utility-box.sh`: checks path, port, Docker, and compose validity
 - `scripts/deploy-utility-box.sh`: pull + rebuild + restart
 
-## Phase 1: move frontend + API to VPS safely
+## Deployment flow
 
 1. On the VPS, create directories:
 
@@ -99,11 +98,11 @@ sh /opt/utility-box/app/deploy/vps/scripts/preflight-utility-box.sh /opt/utility
 sh /opt/utility-box/app/deploy/vps/scripts/deploy-utility-box.sh /opt/utility-box
 ```
 
-8. Import published content into the VPS database before pointing the web upstream to the local API:
+8. If you need to bootstrap from an existing public API, import published content:
 
 ```bash
 cd /opt/utility-box/app/server
-SOURCE_API_BASE=https://www.utility-box.org/api npm run import:published
+SOURCE_API_BASE=https://www.ga-ml.com/api npm run import:published
 ```
 
 9. Install the host-level Nginx snippet from `nginx/utility-box.host.nginx.conf`.
@@ -111,17 +110,7 @@ SOURCE_API_BASE=https://www.utility-box.org/api npm run import:published
    If the VPS already terminates TLS on port 443, merge the same proxy rules into the
    existing HTTPS vhost instead of using the plain HTTP example as-is.
 
-10. Point `www.utility-box.org` to the VPS in Cloudflare once the local proxy is confirmed.
-
-## Rollback option
-
-If the local API is not ready yet, `utility-box.web.env` can temporarily point back to:
-
-```text
-API_UPSTREAM=https://api.utility-box.org
-```
-
-That keeps the frontend on the VPS while the old Worker API still answers requests.
+10. Point `www.ga-ml.com` to the VPS in Cloudflare once the local proxy is confirmed.
 
 ## Rollback
 
@@ -130,4 +119,3 @@ If the VPS cutover goes wrong:
 1. Leave HSE untouched
 2. Stop the Utility Box compose project
 3. Point Cloudflare back to the previous frontend origin
-4. Change `API_UPSTREAM` back to the Worker if needed

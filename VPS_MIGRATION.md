@@ -15,14 +15,13 @@ Move `Utility Box` away from Cloudflare Pages hosting into a VPS-based deploymen
 
 ### Phase 1
 
-Move the frontend and API onto the VPS while keeping Worker rollback available.
+Move the frontend and API onto the VPS.
 
 - Deploy the React/Vite frontend to the VPS on host port `3100`
 - Run a dedicated `utility-box-api` Node service inside the same Compose project
 - Run a dedicated `utility-box-db` PostgreSQL service inside the same Compose project
-- Use host Nginx to route `www.utility-box.org` to the frontend container
+- Use host Nginx to route `www.ga-ml.com` to the frontend container
 - Point the frontend `/api` proxy to `http://utility-box-api:8200`
-- Keep the Worker available only as rollback during verification
 
 ### Phase 2
 
@@ -30,8 +29,7 @@ Import runtime content into PostgreSQL and decommission Cloudflare runtime servi
 
 - Import existing posts/tags/media metadata from the current runtime source
 - Verify admin login, CRUD, uploads, and image delivery against the VPS API
-- Remove dependency on `api.utility-box.org`
-- Retire D1/R2/Worker once VPS API is the single source of truth
+- Retire old runtime services once the VPS API is the single source of truth
 
 ## Non-negotiable separation from HSE
 
@@ -73,5 +71,4 @@ Import runtime content into PostgreSQL and decommission Cloudflare runtime servi
 ## What still needs implementation later
 
 - Published/draft content import into PostgreSQL
-- Final cutover from Worker OAuth/session to VPS OAuth/session only
 - Optional object-storage offload if uploads outgrow the VPS volume

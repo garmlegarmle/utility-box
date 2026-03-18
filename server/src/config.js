@@ -15,7 +15,7 @@ export function getConfig() {
     databaseUrl: required('DATABASE_URL'),
     adminToken: String(process.env.ADMIN_TOKEN || '').trim(),
     adminSessionSecret: required('ADMIN_SESSION_SECRET'),
-    adminLoginUser: String(process.env.ADMIN_LOGIN_USER || process.env.ADMIN_GITHUB_USER || '').trim().toLowerCase(),
+    adminLoginUser: String(process.env.ADMIN_LOGIN_USER || '').trim().toLowerCase(),
     adminLoginPassword: String(process.env.ADMIN_LOGIN_PASSWORD || '').trim(),
     cookieDomain: String(process.env.COOKIE_DOMAIN || '').trim(),
     uploadRoot,
