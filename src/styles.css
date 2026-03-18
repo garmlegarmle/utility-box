@@ -6,9 +6,9 @@
   --border: #000000;
   --accent: #000000;
   --container: 1180px;
-  --card-width: 280px;
-  --card-height: 356px;
-  --card-media-height: 276px;
+  --card-width: 272px;
+  --card-height: 348px;
+  --card-media-height: 268px;
 }
 
 * {
@@ -180,7 +180,7 @@ main {
 
 .listing-grid {
   display: grid;
-  gap: 20px;
+  gap: 24px;
 }
 
 .listing-grid--four {
