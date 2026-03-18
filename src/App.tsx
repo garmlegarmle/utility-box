@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
@@ -1004,6 +1004,7 @@ function AppInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const { state: admin, refresh } = useAdminSession();
+  const hasTrackedInitialPageView = useRef(false);
 
   const [editorState, setEditorState] = useState<EditorState>({
     open: false,
@@ -1024,6 +1025,11 @@ function AppInner() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!hasTrackedInitialPageView.current) {
+      hasTrackedInitialPageView.current = true;
+      return;
+    }
+
     const pagePath = `${location.pathname}${location.search}${location.hash}`;
     trackPageView(pagePath);
   }, [location.hash, location.pathname, location.search]);
