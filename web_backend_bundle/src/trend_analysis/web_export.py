@@ -325,7 +325,6 @@ class WebAnalysisExporter:
             linewidth=0,
         )
 
-    @staticmethod
     def _build_text_bundle(
         self,
         trend_state_label: str,

@@ -31,7 +31,16 @@ const TOOL_COPY = {
     downloadBody: 'Use the standalone app to generate the CSV locally, then upload that file here.',
     downloadNote:
       'macOS may block the first launch because the current build is unsigned. Use Control-click > Open, or allow it once from Privacy & Security.',
-    pythonGuide: 'Run with Python',
+    pythonGuide: 'Python setup guide',
+    pythonIntro: 'If the unsigned app is blocked, you can run the downloader directly with Python:',
+    pythonCommands: [
+      'git clone https://github.com/garmlegarmle/ga-ml-trend-fetcher.git',
+      'cd ga-ml-trend-fetcher',
+      'python3 -m venv .venv',
+      'source .venv/bin/activate',
+      'pip install -r requirements.txt',
+      'python main.py'
+    ],
     macDownload: 'macOS app',
     windowsDownload: 'Windows app',
     repoLink: 'Source repo',
@@ -99,7 +108,16 @@ const TOOL_COPY = {
     downloadBody: '독립 실행 앱으로 로컬 CSV를 만든 뒤, 그 파일을 이 화면에 업로드해서 분석하세요.',
     downloadNote:
       '현재 macOS 빌드는 서명되지 않아 첫 실행 시 차단될 수 있습니다. Control-클릭 후 열기 또는 개인 정보 보호 및 보안에서 한 번 허용해 주세요.',
-    pythonGuide: 'Python으로 실행',
+    pythonGuide: 'Python 실행 안내',
+    pythonIntro: 'unsigned 앱이 막히면 아래처럼 Python으로 직접 실행할 수 있습니다:',
+    pythonCommands: [
+      'git clone https://github.com/garmlegarmle/ga-ml-trend-fetcher.git',
+      'cd ga-ml-trend-fetcher',
+      'python3 -m venv .venv',
+      'source .venv/bin/activate',
+      'pip install -r requirements.txt',
+      'python main.py'
+    ],
     macDownload: 'macOS 앱',
     windowsDownload: 'Windows 앱',
     repoLink: '소스 레포',
@@ -661,6 +679,12 @@ export function TrendAnalyzerToolScreen({ lang }: { lang: SiteLang }) {
               </a>
             </div>
             <p className="trend-tool-downloads__note">{copy.downloadNote}</p>
+            <div className="trend-tool-python-fallback">
+              <p>{copy.pythonIntro}</p>
+              <pre>
+                <code>{copy.pythonCommands.join('\n')}</code>
+              </pre>
+            </div>
           </section>
 
           <form className="trend-tool-form" onSubmit={handleSubmit}>

@@ -1465,6 +1465,32 @@ body.is-resizing-editor-image {
   line-height: 1.6;
 }
 
+.trend-tool-python-fallback {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.trend-tool-python-fallback p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.trend-tool-python-fallback pre {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: #fffef8;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.trend-tool-python-fallback code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+
 .trend-tool-downloads__link {
   display: inline-flex;
   align-items: center;
