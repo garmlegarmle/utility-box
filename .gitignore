@@ -24,3 +24,8 @@ CLAUDE_LOCAL_NOTES.md
 # Common private key files
 *.pem
 *.key
+
+# Python cache / generated bundle outputs
+__pycache__/
+*.pyc
+web_backend_bundle/out/

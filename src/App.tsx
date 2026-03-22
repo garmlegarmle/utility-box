@@ -10,6 +10,7 @@ import { PageManagerModal } from './components/PageManagerModal';
 import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
 import { SiteHeader } from './components/SiteHeader';
+import { TrendAnalyzerFeatureCard, TrendAnalyzerToolScreen } from './components/TrendAnalyzerTool';
 import { trackPageView } from './lib/analytics';
 import { changeAdminPassword, getPostBySlug, getSession, listPosts, login, logout } from './lib/api';
 import { detectBrowserLang, normalizeLang, normalizeSection, sectionLabel, t } from './lib/site';
@@ -301,6 +302,17 @@ function SiteShell({
 function RootRoute() {
   const lang = detectBrowserLang();
   return <Navigate to={`/${lang}/`} replace />;
+}
+
+function TrendAnalyzerToolRoute() {
+  const params = useParams();
+  const lang = normalizeLang(params.lang);
+
+  return (
+    <SiteShell lang={lang} active="tools" languageTogglePath={`/${oppositeLang(lang)}/tools/trend-analyzer/`}>
+      <TrendAnalyzerToolScreen lang={lang} />
+    </SiteShell>
+  );
 }
 
 function HomePage({
@@ -709,6 +721,8 @@ function SectionListPage({
 
           {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           {error ? <p>{error}</p> : null}
+
+          {section === 'tools' ? <TrendAnalyzerFeatureCard lang={lang} /> : null}
 
           <div className="listing-grid listing-grid--four listing-grid--center">
             {visiblePosts.map((post) => (
@@ -1202,6 +1216,10 @@ function AppInner() {
               savedPost={savedPost}
             />
           }
+        />
+        <Route
+          path="/:lang/tools/trend-analyzer"
+          element={<TrendAnalyzerToolRoute />}
         />
         <Route
           path="/:lang/:section/:slug"
