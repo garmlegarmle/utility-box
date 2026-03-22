@@ -1449,6 +1449,10 @@ body.is-resizing-editor-image {
   background: #f8f3e2;
 }
 
+.trend-tool-panel--summary {
+  background: #f4efe1;
+}
+
 .trend-tool-downloads {
   display: flex;
   flex-wrap: wrap;
@@ -1498,6 +1502,19 @@ body.is-resizing-editor-image {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.trend-tool-bullet-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.trend-tool-bullet-list li {
+  margin: 0;
 }
 
 .trend-tool-legend {
@@ -1655,6 +1672,11 @@ body.is-resizing-editor-image {
   margin: 0;
   font-size: 16px;
   line-height: 1.7;
+}
+
+.trend-tool-detail-stack {
+  display: grid;
+  gap: 12px;
 }
 
 .trend-tool-tag-line {

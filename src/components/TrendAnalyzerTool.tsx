@@ -5,6 +5,7 @@ import type { SiteLang, TrendCandle, TrendPayload } from '../types';
 
 const TREND_TOOL_SLUG = 'trend-analyzer';
 const TREND_FETCHER_REPO_URL = 'https://github.com/garmlegarmle/ga-ml-trend-fetcher';
+const TREND_FETCHER_LOCAL_RUN_URL = `${TREND_FETCHER_REPO_URL}#local-run`;
 const TREND_FETCHER_MAC_URL = `${TREND_FETCHER_REPO_URL}/releases/latest/download/GA-ML-TrendFetcher-macos.zip`;
 const TREND_FETCHER_WINDOWS_URL = `${TREND_FETCHER_REPO_URL}/releases/latest/download/GA-ML-TrendFetcher-windows.zip`;
 
@@ -30,6 +31,7 @@ const TOOL_COPY = {
     downloadBody: 'Use the standalone app to generate the CSV locally, then upload that file here.',
     downloadNote:
       'macOS may block the first launch because the current build is unsigned. Use Control-click > Open, or allow it once from Privacy & Security.',
+    pythonGuide: 'Run with Python',
     macDownload: 'macOS app',
     windowsDownload: 'Windows app',
     repoLink: 'Source repo',
@@ -39,6 +41,7 @@ const TOOL_COPY = {
     window: 'Window',
     chartTitle: 'Candles + Indicator Stack',
     chartSubtitle: 'Last 200 daily sessions with moving averages, Ichimoku, MACD, and RSI',
+    keySummaryTitle: 'Key Summary',
     resultTitle: 'Analysis Result',
     summaryTitle: 'Interpretation',
     snapshotTitle: 'Latest Snapshot',
@@ -96,6 +99,7 @@ const TOOL_COPY = {
     downloadBody: '독립 실행 앱으로 로컬 CSV를 만든 뒤, 그 파일을 이 화면에 업로드해서 분석하세요.',
     downloadNote:
       '현재 macOS 빌드는 서명되지 않아 첫 실행 시 차단될 수 있습니다. Control-클릭 후 열기 또는 개인 정보 보호 및 보안에서 한 번 허용해 주세요.',
+    pythonGuide: 'Python으로 실행',
     macDownload: 'macOS 앱',
     windowsDownload: 'Windows 앱',
     repoLink: '소스 레포',
@@ -105,6 +109,7 @@ const TOOL_COPY = {
     window: '구간',
     chartTitle: '일봉 캔들 + 지표 차트',
     chartSubtitle: '최근 200개 일봉 세션에 이동평균선, 일목균형표, MACD, RSI를 함께 표시합니다.',
+    keySummaryTitle: '핵심 요약',
     resultTitle: '분석 결과',
     summaryTitle: '해석',
     snapshotTitle: '최신 스냅샷',
@@ -492,11 +497,14 @@ export function TrendAnalyzerToolScreen({ lang }: { lang: SiteLang }) {
       ? payload.current_state.trend_state_label_ko
       : titleCase(payload.current_state.trend_state_label)
     : '-';
-  const localizedSummary = payload
-    ? lang === 'ko'
-      ? payload.current_state.interpretation_text_ko
-      : payload.current_state.summary_text
-    : '';
+  const summaryBullets =
+    payload && (lang === 'ko' ? payload.current_state.summary_bullets_ko : payload.current_state.summary_bullets_en)
+      ? (lang === 'ko' ? payload.current_state.summary_bullets_ko : payload.current_state.summary_bullets_en) || []
+      : [];
+  const detailSections =
+    payload && (lang === 'ko' ? payload.current_state.detail_sections_ko : payload.current_state.detail_sections_en)
+      ? (lang === 'ko' ? payload.current_state.detail_sections_ko : payload.current_state.detail_sections_en) || []
+      : [];
   const fileLabel = fileNameOrFallback(selectedFile, copy.fileEmpty);
 
   const rangeMetrics: RangeMetric[] = payload
@@ -645,6 +653,9 @@ export function TrendAnalyzerToolScreen({ lang }: { lang: SiteLang }) {
               <a className="trend-tool-downloads__link" href={TREND_FETCHER_WINDOWS_URL} target="_blank" rel="noreferrer">
                 {copy.windowsDownload}
               </a>
+              <a className="trend-tool-downloads__link trend-tool-downloads__link--ghost" href={TREND_FETCHER_LOCAL_RUN_URL} target="_blank" rel="noreferrer">
+                {copy.pythonGuide}
+              </a>
               <a className="trend-tool-downloads__link trend-tool-downloads__link--ghost" href={TREND_FETCHER_REPO_URL} target="_blank" rel="noreferrer">
                 {copy.repoLink}
               </a>
@@ -699,6 +710,20 @@ export function TrendAnalyzerToolScreen({ lang }: { lang: SiteLang }) {
 
           {payload ? (
             <>
+              <section className="trend-tool-panel trend-tool-panel--summary">
+                <div className="trend-tool-panel__head">
+                  <div>
+                    <h2>{copy.keySummaryTitle}</h2>
+                    <p>{localizedTrendLabel}</p>
+                  </div>
+                </div>
+                <ul className="trend-tool-bullet-list">
+                  {summaryBullets.map((item, index) => (
+                    <li key={`summary-bullet-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+
               <section className="trend-tool-panel">
                 <div className="trend-tool-panel__head">
                   <div>
@@ -757,7 +782,13 @@ export function TrendAnalyzerToolScreen({ lang }: { lang: SiteLang }) {
                         <p>{localizedTrendLabel}</p>
                       </div>
                     </div>
-                    <p className="trend-tool-summary">{localizedSummary}</p>
+                    <div className="trend-tool-detail-stack">
+                      {detailSections.map((item, index) => (
+                        <p key={`detail-section-${index}`} className="trend-tool-summary">
+                          {item}
+                        </p>
+                      ))}
+                    </div>
                   </article>
 
                   <article className="trend-tool-panel">

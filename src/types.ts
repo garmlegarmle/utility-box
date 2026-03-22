@@ -137,7 +137,14 @@ export interface TrendPayload {
     volume_confirmation_score?: number;
     tags?: string[];
     summary_text: string;
+    interpretation_text_en?: string;
     interpretation_text_ko: string;
+    summary_brief_en?: string;
+    summary_brief_ko?: string;
+    summary_bullets_en?: string[];
+    summary_bullets_ko?: string[];
+    detail_sections_en?: string[];
+    detail_sections_ko?: string[];
   };
   chart_200d: {
     candles: TrendCandle[];
