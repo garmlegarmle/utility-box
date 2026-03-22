@@ -16,7 +16,10 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "holdem/*": ["apps/games/holdem-tournament/src/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "apps/games/holdem-tournament/src"]
 }

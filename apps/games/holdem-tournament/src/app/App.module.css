@@ -1,0 +1,12 @@
+.shell {
+  width: 100%;
+  min-height: 0;
+}
+
+.fullscreen {
+  height: 100%;
+}
+
+.embedded {
+  height: 100%;
+}

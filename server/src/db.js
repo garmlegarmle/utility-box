@@ -60,6 +60,7 @@ export async function ensureSeedProgramPosts(pool) {
   const posts = [
     {
       slug: 'trend-analyzer',
+      section: 'tools',
       title: 'Trend Analyzer',
       excerpt: 'Upload a local OHLCV CSV and review a 200-session trend analysis with chart overlays.',
       content:
@@ -69,12 +70,33 @@ export async function ensureSeedProgramPosts(pool) {
     },
     {
       slug: 'trend-analyzer',
+      section: 'tools',
       title: '추세 분석기',
       excerpt: '로컬 OHLCV CSV를 업로드해 최근 200세션 기준 추세 분석과 차트 오버레이를 확인하세요.',
       content:
         '# 추세 분석기\n\n아래 내장 분석기에 데이터 다운로더가 만든 CSV를 업로드하면 차트, 범위형 점수, 해석 결과를 확인할 수 있습니다.',
       lang: 'ko',
       tags: ['분석', '추세']
+    },
+    {
+      slug: 'texas-holdem-tournament',
+      section: 'games',
+      title: "Texas Hold'em Tournament",
+      excerpt: 'Play a browser-based single-table tournament against eight local AI opponents.',
+      content:
+        "# Texas Hold'em Tournament\n\nPlay a built-in single-table Texas Hold'em tournament against local AI opponents directly in the page below.",
+      lang: 'en',
+      tags: ['holdem', 'poker']
+    },
+    {
+      slug: 'texas-holdem-tournament',
+      section: 'games',
+      title: '텍사스 홀덤 토너먼트',
+      excerpt: '로컬 AI 8명을 상대로 브라우저 안에서 싱글 테이블 토너먼트를 플레이할 수 있습니다.',
+      content:
+        '# 텍사스 홀덤 토너먼트\n\n아래 내장 게임에서 로컬 AI 8명을 상대로 싱글 테이블 텍사스 홀덤 토너먼트를 바로 플레이할 수 있습니다.',
+      lang: 'ko',
+      tags: ['홀덤', '포커']
     }
   ];
 
@@ -85,10 +107,10 @@ export async function ensureSeedProgramPosts(pool) {
          slug, title, excerpt, content_md, status, published_at, lang, section,
          card_title, card_category, card_rank, schema_type
        )
-       VALUES ($1, $2, $3, $4, 'published', NOW(), $5, 'tools', $2, 'tools', $6, 'Service')
+       VALUES ($1, $2, $3, $4, 'published', NOW(), $5, $6, $2, $6, $7, 'Service')
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [item.slug, item.title, item.excerpt, item.content, item.lang, nextRank]
+      [item.slug, item.title, item.excerpt, item.content, item.lang, item.section, nextRank]
     );
 
     const postId = inserted.rows[0]?.id ? Number(inserted.rows[0].id) : 0;
@@ -100,9 +122,9 @@ export async function ensureSeedProgramPosts(pool) {
     const existing = await pool.query(
       `SELECT id, card_rank
        FROM posts
-       WHERE slug = $1 AND lang = $2 AND section = 'tools' AND is_deleted = FALSE
+       WHERE slug = $1 AND lang = $2 AND section = $3 AND is_deleted = FALSE
        LIMIT 1`,
-      [item.slug, item.lang]
+      [item.slug, item.lang, item.section]
     );
     const existingPost = existing.rows[0];
     if (existingPost?.id && Number(existingPost.card_rank || 0) === 1) {

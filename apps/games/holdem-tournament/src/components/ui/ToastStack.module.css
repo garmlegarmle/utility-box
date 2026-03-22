@@ -1,0 +1,45 @@
+.stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 40;
+}
+
+.toast {
+  min-width: 260px;
+  max-width: 360px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  animation: toastIn 180ms ease-out;
+}
+
+.info {
+  background: rgba(21, 59, 82, 0.94);
+}
+
+.success {
+  background: rgba(19, 93, 62, 0.94);
+}
+
+.warning {
+  background: rgba(113, 66, 18, 0.94);
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

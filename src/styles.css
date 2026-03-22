@@ -446,6 +446,12 @@ main {
   background: transparent;
 }
 
+.detail-program--game {
+  border: 0;
+  margin-bottom: 28px;
+  background: transparent;
+}
+
 .detail-program img {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -1550,6 +1556,37 @@ body.is-resizing-editor-image {
 
 .trend-tool-python-fallback code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+}
+
+.holdem-game-shell {
+  display: grid;
+  gap: 20px;
+}
+
+.holdem-game-head {
+  display: grid;
+  gap: 8px;
+}
+
+.holdem-game-head__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.holdem-game-head h1,
+.holdem-game-head p {
+  margin: 0;
+}
+
+.holdem-game-stage {
+  min-height: 960px;
+}
+
+.holdem-game-shell--embedded .holdem-game-stage {
+  min-height: 900px;
 }
 
 .trend-tool-downloads__link {

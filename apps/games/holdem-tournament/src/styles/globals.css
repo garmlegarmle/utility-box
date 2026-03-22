@@ -1,0 +1,23 @@
+.holdem-app-theme,
+.holdem-app-theme *,
+.holdem-app-theme *::before,
+.holdem-app-theme *::after {
+  box-sizing: border-box;
+}
+
+.holdem-app-theme {
+  color: var(--text);
+  font-family:
+    "Trebuchet MS",
+    "Segoe UI",
+    sans-serif;
+}
+
+.holdem-app-theme button,
+.holdem-app-theme input {
+  font: inherit;
+}
+
+.holdem-app-theme button {
+  cursor: pointer;
+}

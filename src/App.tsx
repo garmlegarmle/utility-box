@@ -6,6 +6,7 @@ import { AdminDock } from './components/AdminDock';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminPasswordModal } from './components/AdminPasswordModal';
 import { EntryCard } from './components/EntryCard';
+import { HoldemTournamentGameContent, TEXAS_HOLDEM_TOURNAMENT_SLUG } from './components/HoldemTournamentGame';
 import { PageManagerModal } from './components/PageManagerModal';
 import { PostEditorModal } from './components/PostEditorModal';
 import { SiteFooter } from './components/SiteFooter';
@@ -945,19 +946,21 @@ function DetailPage({
     section === 'pages' && lang === 'en' && slug === 'privacy-policy' && !admin.isAdmin;
   const isStandalonePage = section === 'pages';
   const isTrendAnalyzerTool = section === 'tools' && slug === TREND_ANALYZER_TOOL_SLUG;
+  const isHoldemTournamentGame = section === 'games' && slug === TEXAS_HOLDEM_TOURNAMENT_SLUG;
+  const isEmbeddedProgramPost = isTrendAnalyzerTool || isHoldemTournamentGame;
   const programTopHtml = useMemo(
-    () => (isTrendAnalyzerTool ? renderRichContent(post?.content_before_md) : ''),
-    [isTrendAnalyzerTool, post?.content_before_md]
+    () => (isEmbeddedProgramPost ? renderRichContent(post?.content_before_md) : ''),
+    [isEmbeddedProgramPost, post?.content_before_md]
   );
   const programBottomSource = useMemo(() => {
-    if (!isTrendAnalyzerTool) return '';
+    if (!isEmbeddedProgramPost) return '';
     if (post?.content_after_md) return post.content_after_md;
     if (!post?.content_before_md) return post?.content_md || '';
     return '';
-  }, [isTrendAnalyzerTool, post?.content_after_md, post?.content_before_md, post?.content_md]);
+  }, [isEmbeddedProgramPost, post?.content_after_md, post?.content_before_md, post?.content_md]);
   const programBottomHtml = useMemo(
-    () => (isTrendAnalyzerTool ? renderRichContent(programBottomSource) : ''),
-    [isTrendAnalyzerTool, programBottomSource]
+    () => (isEmbeddedProgramPost ? renderRichContent(programBottomSource) : ''),
+    [isEmbeddedProgramPost, programBottomSource]
   );
   const schemaJson = useMemo(() => {
     if (!post?.schemaType) return '';
@@ -995,7 +998,7 @@ function DetailPage({
       languageToggleState={languageToggle.state}
     >
       <article className="page-section">
-        <div className={`container detail-layout${isTrendAnalyzerTool ? ' detail-layout--program' : ''}`}>
+        <div className={`container detail-layout${isEmbeddedProgramPost ? ' detail-layout--program' : ''}`}>
           {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           {error ? <p>{error}</p> : null}
           {!loading && !error && post ? (
@@ -1052,13 +1055,17 @@ function DetailPage({
                 </div>
               </header>
 
-              {isTrendAnalyzerTool && programTopHtml ? (
+              {isEmbeddedProgramPost && programTopHtml ? (
                 <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: programTopHtml }} />
               ) : null}
 
               {isTrendAnalyzerTool ? (
                 <section className="detail-program detail-program--tool" aria-label="Tool area">
                   <TrendAnalyzerToolContent lang={lang} embedded />
+                </section>
+              ) : isHoldemTournamentGame ? (
+                <section className="detail-program detail-program--game" aria-label="Game area">
+                  <HoldemTournamentGameContent lang={lang} embedded />
                 </section>
               ) : (section === 'tools' || section === 'games') && (
                 <section className="detail-program" aria-label="Program area">
@@ -1072,7 +1079,7 @@ function DetailPage({
                 </section>
               )}
 
-              {isTrendAnalyzerTool ? (
+              {isEmbeddedProgramPost ? (
                 programBottomHtml ? (
                   <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: programBottomHtml }} />
                 ) : null

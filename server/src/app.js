@@ -126,7 +126,10 @@ function shouldTrackViewCount(row) {
 }
 
 function hasEmbeddedProgram(section, slug) {
-  return section === 'tools' && slug === 'trend-analyzer';
+  return (
+    (section === 'tools' && slug === 'trend-analyzer') ||
+    (section === 'games' && slug === 'texas-holdem-tournament')
+  );
 }
 
 function renderSitemapXml(entries) {

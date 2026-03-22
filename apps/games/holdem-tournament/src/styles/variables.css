@@ -1,0 +1,22 @@
+.holdem-app-theme {
+  --bg: #09211e;
+  --felt: radial-gradient(circle at center, #1e6f58 0%, #11483a 62%, #0b3028 100%);
+  --panel: rgba(6, 20, 17, 0.84);
+  --panel-border: rgba(215, 226, 220, 0.14);
+  --text: #f6f2de;
+  --muted: #bfd0c4;
+  --accent: #e0b35a;
+  --danger: #f06d5d;
+  --success: #6ed7a6;
+  --card-back: linear-gradient(135deg, #7a1f2b 0%, #51101a 100%);
+  --table-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+  --chip-dark: #16231f;
+  --chip-light: #f2e7c8;
+  --seat-width: 154px;
+  --transition-fast: 160ms ease;
+  --transition-medium: 260ms ease;
+  font-family:
+    "Trebuchet MS",
+    "Segoe UI",
+    sans-serif;
+}

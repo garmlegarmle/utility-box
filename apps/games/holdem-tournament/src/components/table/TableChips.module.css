@@ -1,0 +1,280 @@
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.stack {
+  position: absolute;
+  top: var(--top, 50%);
+  left: var(--left, 50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+}
+
+.effectStack {
+  top: var(--to-top);
+  left: var(--to-left);
+}
+
+.betStack {
+  animation: moveToBet 560ms cubic-bezier(0.16, 0.88, 0.18, 1);
+}
+
+.potStack {
+  animation: collectToPot 620ms cubic-bezier(0.15, 0.82, 0.2, 1);
+}
+
+.winStack {
+  animation: moveToSeat 680ms cubic-bezier(0.18, 0.86, 0.24, 1);
+}
+
+.effectBet {
+  animation: flyBet 620ms cubic-bezier(0.12, 0.88, 0.18, 1);
+}
+
+.effectCollect {
+  animation: flyCollect 700ms cubic-bezier(0.15, 0.82, 0.2, 1);
+}
+
+.effectWin {
+  animation: flyWin 760ms cubic-bezier(0.18, 0.86, 0.24, 1);
+}
+
+.chips {
+  display: inline-flex;
+  align-items: center;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.34));
+}
+
+.chip {
+  position: relative;
+  width: 19px;
+  height: 19px;
+  margin-left: -4px;
+  border-radius: 50%;
+  border: 1px solid rgba(8, 8, 8, 0.74);
+  box-shadow:
+    0 6px 12px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.24);
+}
+
+.chip:first-child {
+  margin-left: 0;
+}
+
+.chip::before {
+  content: '';
+  position: absolute;
+  inset: 0.5px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 54%, rgba(17, 17, 17, 0.94) 54% 60%, transparent 60%),
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(10, 10, 10, 0.92) 0deg 9deg,
+      transparent 9deg 45deg
+    ),
+    radial-gradient(circle at 28% 24%, rgba(255, 255, 255, 0.86), transparent 24%),
+    radial-gradient(circle at 70% 76%, rgba(0, 0, 0, 0.16), transparent 28%),
+    linear-gradient(180deg, var(--chip-light) 0%, var(--chip-dark) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+.chip::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.76), transparent 28%),
+    linear-gradient(180deg, var(--chip-core-light) 0%, var(--chip-core-dark) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(14, 14, 14, 0.2);
+}
+
+.white {
+  --chip-light: #f8f5ee;
+  --chip-dark: #d6cfc4;
+  --chip-core-light: #ffffff;
+  --chip-core-dark: #ece6db;
+}
+
+.red {
+  --chip-light: #db685d;
+  --chip-dark: #8e241d;
+  --chip-core-light: #f49b90;
+  --chip-core-dark: #bf4137;
+}
+
+.blue {
+  --chip-light: #5a82cb;
+  --chip-dark: #1d3e80;
+  --chip-core-light: #88ace8;
+  --chip-core-dark: #315b9e;
+}
+
+.yellow {
+  --chip-light: #f0d97d;
+  --chip-dark: #b78815;
+  --chip-core-light: #fff1aa;
+  --chip-core-dark: #d7b13f;
+}
+
+.amount {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(8, 21, 18, 0.78);
+  color: rgba(245, 236, 202, 0.96);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+@keyframes moveToBet {
+  from {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--from-x)), calc(-50% + var(--from-y) + 12px)) scale(0.46) rotate(-16deg);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 8px)) scale(1.16) rotate(4deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes collectToPot {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 18px)) scale(0.4) rotate(-14deg);
+  }
+
+  48% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% - 10px)) scale(1.22) rotate(8deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes moveToSeat {
+  from {
+    opacity: 0.08;
+    transform: translate(calc(-50% + var(--from-x)), calc(-50% + var(--from-y))) scale(0.48) rotate(-12deg);
+  }
+
+  62% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50% + 5px)) scale(1.14) rotate(6deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes flyBet {
+  from {
+    opacity: 0;
+    top: var(--from-top);
+    left: var(--from-left);
+    transform: translate(-50%, -50%) scale(0.42) rotate(-18deg);
+  }
+
+  60% {
+    opacity: 1;
+    top: calc((var(--from-top) * 0.35) + (var(--to-top) * 0.65));
+    left: calc((var(--from-left) * 0.35) + (var(--to-left) * 0.65));
+    transform: translate(-50%, -50%) scale(1.14) rotate(4deg);
+  }
+
+  to {
+    opacity: 0;
+    top: var(--to-top);
+    left: var(--to-left);
+    transform: translate(-50%, -50%) scale(0.92) rotate(0deg);
+  }
+}
+
+@keyframes flyCollect {
+  from {
+    opacity: 1;
+    top: var(--from-top);
+    left: var(--from-left);
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  55% {
+    opacity: 1;
+    top: calc((var(--from-top) * 0.4) + (var(--to-top) * 0.6));
+    left: calc((var(--from-left) * 0.4) + (var(--to-left) * 0.6));
+    transform: translate(-50%, -50%) scale(1.16);
+  }
+
+  to {
+    opacity: 0;
+    top: var(--to-top);
+    left: var(--to-left);
+    transform: translate(-50%, -50%) scale(0.68);
+  }
+}
+
+@keyframes flyWin {
+  from {
+    opacity: 1;
+    top: var(--from-top);
+    left: var(--from-left);
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+
+  58% {
+    opacity: 1;
+    top: calc((var(--from-top) * 0.34) + (var(--to-top) * 0.66));
+    left: calc((var(--from-left) * 0.34) + (var(--to-left) * 0.66));
+    transform: translate(-50%, -50%) scale(1.18) rotate(5deg);
+  }
+
+  to {
+    opacity: 0;
+    top: var(--to-top);
+    left: var(--to-left);
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+}
+
+@media (max-width: 760px) {
+  .stack {
+    gap: 4px;
+  }
+
+  .chip {
+    width: 15px;
+    height: 15px;
+    margin-left: -3px;
+  }
+
+  .chip::after {
+    inset: 4px;
+  }
+
+  .amount {
+    padding: 2px 6px;
+    font-size: 0.58rem;
+  }
+}

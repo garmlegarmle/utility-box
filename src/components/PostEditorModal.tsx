@@ -183,12 +183,20 @@ function clearEdgeHoverStyles(editor: HTMLDivElement | null) {
     .forEach((node) => node.classList.remove('is-edge-hover'));
 }
 
-function isLockedBuiltinToolPost(post: PostItem | null | undefined): boolean {
-  return Boolean(post && post.section === 'tools' && post.slug === 'trend-analyzer');
+function isLockedBuiltinProgramPost(post: PostItem | null | undefined): boolean {
+  return Boolean(
+    post &&
+      ((post.section === 'tools' && post.slug === 'trend-analyzer') ||
+        (post.section === 'games' && post.slug === 'texas-holdem-tournament'))
+  );
 }
 
 function hasEmbeddedProgram(section: SiteSection, slug: string): boolean {
-  return section === 'tools' && slugify(slug) === 'trend-analyzer';
+  const normalizedSlug = slugify(slug);
+  return (
+    (section === 'tools' && normalizedSlug === 'trend-analyzer') ||
+    (section === 'games' && normalizedSlug === 'texas-holdem-tournament')
+  );
 }
 
 export function PostEditorModal({
@@ -245,7 +253,7 @@ export function PostEditorModal({
 
   const canDelete = mode === 'edit' && Boolean(initialPost?.id);
   const titleText = useMemo(() => (mode === 'edit' ? 'Edit Post' : 'Write Post'), [mode]);
-  const isBuiltinToolPost = useMemo(() => isLockedBuiltinToolPost(initialPost), [initialPost]);
+  const isBuiltinProgramPost = useMemo(() => isLockedBuiltinProgramPost(initialPost), [initialPost]);
   const normalizedEditorSlug = useMemo(() => slugify(slug || title), [slug, title]);
   const hasEmbeddedProgramPost = useMemo(
     () => hasEmbeddedProgram(section, normalizedEditorSlug),
@@ -908,13 +916,13 @@ export function PostEditorModal({
               Slug
               <input
                 value={slug}
-                disabled={isBuiltinToolPost}
+                disabled={isBuiltinProgramPost}
                 onChange={(event) => setSlug(event.target.value)}
                 onBlur={() => setSlug((prev) => slugify(prev || title))}
                 placeholder="post-slug"
               />
-              {isBuiltinToolPost ? (
-                <span className="list-tags">This slug is reserved for the built-in tool route and cannot be changed.</span>
+              {isBuiltinProgramPost ? (
+                <span className="list-tags">This slug is reserved for a built-in program route and cannot be changed.</span>
               ) : null}
             </label>
 
@@ -962,7 +970,7 @@ export function PostEditorModal({
             <div className="admin-inline-grid">
               <label>
                 Language
-                <select value={lang} disabled={isBuiltinToolPost} onChange={(event) => setLang(event.target.value as SiteLang)}>
+                <select value={lang} disabled={isBuiltinProgramPost} onChange={(event) => setLang(event.target.value as SiteLang)}>
                   <option value="en">en</option>
                   <option value="ko">ko</option>
                 </select>
@@ -972,7 +980,7 @@ export function PostEditorModal({
                 Category
                 <select
                   value={section}
-                  disabled={isBuiltinToolPost}
+                  disabled={isBuiltinProgramPost}
                   onChange={(event) => setSection(event.target.value as SiteSection)}
                 >
                   <option value="blog">blog</option>
