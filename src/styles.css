@@ -2388,6 +2388,27 @@ body.is-resizing-editor-image {
   cursor: ew-resize;
 }
 
+.admin-editor-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-editor-block {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-editor-block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.admin-editor-block--active .editor-surface {
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
 .editor-image-tools {
   display: flex;
   flex-wrap: wrap;

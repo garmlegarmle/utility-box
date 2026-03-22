@@ -39,6 +39,23 @@ export async function ensureSeedPages(pool) {
   }
 }
 
+async function getPublishedContentCardCount(pool, lang) {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count
+     FROM posts
+     WHERE is_deleted = FALSE
+       AND status = 'published'
+       AND lang = $1
+       AND section IN ('blog', 'tools', 'games')`,
+    [lang]
+  );
+  return Number(result.rows[0]?.count || 0);
+}
+
+export async function getNextPublishedContentCardRank(pool, lang) {
+  return (await getPublishedContentCardCount(pool, lang)) + 1;
+}
+
 export async function ensureSeedProgramPosts(pool) {
   const posts = [
     {
@@ -62,20 +79,37 @@ export async function ensureSeedProgramPosts(pool) {
   ];
 
   for (const item of posts) {
+    const nextRank = await getNextPublishedContentCardRank(pool, item.lang);
     const inserted = await pool.query(
       `INSERT INTO posts (
          slug, title, excerpt, content_md, status, published_at, lang, section,
          card_title, card_category, card_rank, schema_type
        )
-       VALUES ($1, $2, $3, $4, 'published', NOW(), $5, 'tools', $2, 'tools', 1, 'Service')
+       VALUES ($1, $2, $3, $4, 'published', NOW(), $5, 'tools', $2, 'tools', $6, 'Service')
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [item.slug, item.title, item.excerpt, item.content, item.lang]
+      [item.slug, item.title, item.excerpt, item.content, item.lang, nextRank]
     );
 
     const postId = inserted.rows[0]?.id ? Number(inserted.rows[0].id) : 0;
     if (postId > 0 && item.tags.length > 0) {
       await replacePostTags(pool, postId, item.tags);
+      continue;
+    }
+
+    const existing = await pool.query(
+      `SELECT id, card_rank
+       FROM posts
+       WHERE slug = $1 AND lang = $2 AND section = 'tools' AND is_deleted = FALSE
+       LIMIT 1`,
+      [item.slug, item.lang]
+    );
+    const existingPost = existing.rows[0];
+    if (existingPost?.id && Number(existingPost.card_rank || 0) === 1) {
+      const total = await getPublishedContentCardCount(pool, item.lang);
+      if (total > 1) {
+        await pool.query('UPDATE posts SET card_rank = $1, updated_at = NOW() WHERE id = $2', [total, Number(existingPost.id)]);
+      }
     }
   }
 }
@@ -258,6 +292,8 @@ export function mapPostRow(row, tags, request, publicOrigin = '') {
     title: row.title,
     excerpt: row.excerpt,
     content_md: row.content_md,
+    content_before_md: row.content_before_md || null,
+    content_after_md: row.content_after_md || null,
     status: row.status,
     published_at: row.published_at ? new Date(row.published_at).toISOString() : null,
     created_at: new Date(row.created_at).toISOString(),

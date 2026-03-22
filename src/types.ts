@@ -17,6 +17,8 @@ export interface PostItem {
   title: string;
   excerpt: string | null;
   content_md: string;
+  content_before_md: string | null;
+  content_after_md: string | null;
   status: 'draft' | 'published';
   published_at: string | null;
   created_at: string;
@@ -164,6 +166,9 @@ export interface PostSaveSnapshot {
   slug: string;
   title: string;
   excerpt: string | null;
+  content_md: string;
+  content_before_md: string | null;
+  content_after_md: string | null;
   status: 'draft' | 'published';
   lang: SiteLang;
   section: SiteSection;

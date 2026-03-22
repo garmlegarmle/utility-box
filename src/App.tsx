@@ -41,7 +41,9 @@ function toPostItem(snapshot: PostSaveSnapshot, existing?: PostItem): PostItem {
     slug: snapshot.slug,
     title: snapshot.title,
     excerpt: snapshot.excerpt,
-    content_md: existing?.content_md || '',
+    content_md: (snapshot.content_md ?? existing?.content_md) || '',
+    content_before_md: snapshot.content_before_md ?? existing?.content_before_md ?? null,
+    content_after_md: snapshot.content_after_md ?? existing?.content_after_md ?? null,
     status: snapshot.status,
     published_at: snapshot.status === 'published' ? existing?.published_at || snapshot.updated_at : null,
     created_at: existing?.created_at || snapshot.updated_at,
@@ -57,6 +59,18 @@ function toPostItem(snapshot: PostSaveSnapshot, existing?: PostItem): PostItem {
     cover: existing?.cover || null,
     card: snapshot.card
   };
+}
+
+function renderRichContent(raw: string | null | undefined): string {
+  if (!raw) return '';
+
+  const value = String(raw || '');
+  if (/<[a-z][\s\S]*>/i.test(value)) {
+    return DOMPurify.sanitize(value);
+  }
+
+  const parsed = marked.parse(value, { async: false }) as string;
+  return DOMPurify.sanitize(parsed);
 }
 
 function upsertPost(list: PostItem[], snapshot: PostSaveSnapshot, maxItems?: number): PostItem[] {
@@ -924,23 +938,27 @@ function DetailPage({
     };
   }, [post]);
 
-  const html = useMemo(() => {
-    if (!post?.content_md) return '';
-
-    const raw = String(post.content_md || '');
-    if (/<[a-z][\s\S]*>/i.test(raw)) {
-      return DOMPurify.sanitize(raw);
-    }
-
-    const parsed = marked.parse(raw, { async: false }) as string;
-    return DOMPurify.sanitize(parsed);
-  }, [post?.content_md]);
+  const html = useMemo(() => renderRichContent(post?.content_md), [post?.content_md]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
   const enableHiddenPolicyLogin =
     section === 'pages' && lang === 'en' && slug === 'privacy-policy' && !admin.isAdmin;
   const isStandalonePage = section === 'pages';
   const isTrendAnalyzerTool = section === 'tools' && slug === TREND_ANALYZER_TOOL_SLUG;
+  const programTopHtml = useMemo(
+    () => (isTrendAnalyzerTool ? renderRichContent(post?.content_before_md) : ''),
+    [isTrendAnalyzerTool, post?.content_before_md]
+  );
+  const programBottomSource = useMemo(() => {
+    if (!isTrendAnalyzerTool) return '';
+    if (post?.content_after_md) return post.content_after_md;
+    if (!post?.content_before_md) return post?.content_md || '';
+    return '';
+  }, [isTrendAnalyzerTool, post?.content_after_md, post?.content_before_md, post?.content_md]);
+  const programBottomHtml = useMemo(
+    () => (isTrendAnalyzerTool ? renderRichContent(programBottomSource) : ''),
+    [isTrendAnalyzerTool, programBottomSource]
+  );
   const schemaJson = useMemo(() => {
     if (!post?.schemaType) return '';
 
@@ -1034,6 +1052,10 @@ function DetailPage({
                 </div>
               </header>
 
+              {isTrendAnalyzerTool && programTopHtml ? (
+                <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: programTopHtml }} />
+              ) : null}
+
               {isTrendAnalyzerTool ? (
                 <section className="detail-program detail-program--tool" aria-label="Tool area">
                   <TrendAnalyzerToolContent lang={lang} embedded />
@@ -1050,7 +1072,13 @@ function DetailPage({
                 </section>
               )}
 
-              <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: html }} />
+              {isTrendAnalyzerTool ? (
+                programBottomHtml ? (
+                  <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: programBottomHtml }} />
+                ) : null
+              ) : (
+                <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: html }} />
+              )}
               {!isStandalonePage && relatedPosts.length > 0 ? (
                 <section className="detail-related" aria-label={t(lang, 'detail.related')}>
                   <h2>{`${t(lang, 'detail.related')}: #${post.tags[0]}`}</h2>

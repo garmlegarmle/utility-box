@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS posts (
   title TEXT NOT NULL,
   excerpt TEXT,
   content_md TEXT NOT NULL,
+  content_before_md TEXT,
+  content_after_md TEXT,
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
   cover_image_id BIGINT REFERENCES media(id) ON DELETE SET NULL,
   published_at TIMESTAMPTZ,
@@ -72,6 +74,12 @@ CREATE TABLE IF NOT EXISTS app_settings (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_slug_lang_section_active
   ON posts(slug, lang, section)
   WHERE is_deleted = FALSE;
+
+ALTER TABLE posts
+  ADD COLUMN IF NOT EXISTS content_before_md TEXT;
+
+ALTER TABLE posts
+  ADD COLUMN IF NOT EXISTS content_after_md TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_posts_status_published_at
   ON posts(status, published_at DESC NULLS LAST);

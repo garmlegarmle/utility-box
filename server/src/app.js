@@ -39,6 +39,7 @@ import {
   ensureSeedProgramPosts,
   ensureSchema,
   ensureSeedPages,
+  getNextPublishedContentCardRank,
   getAppSetting,
   getMediaById,
   getMediaVariants,
@@ -122,6 +123,10 @@ function shouldTrackViewCount(row) {
     row.section === 'pages' &&
     VIEW_COUNT_EXCLUDED_PAGE_SLUGS.has(String(row.slug || '').trim().toLowerCase())
   );
+}
+
+function hasEmbeddedProgram(section, slug) {
+  return section === 'tools' && slug === 'trend-analyzer';
 }
 
 function renderSitemapXml(entries) {
@@ -489,21 +494,24 @@ app.post('/api/posts', async (req, res, next) => {
     const payload = req.body || {};
     const title = String(payload.title || '').trim();
     const content = String(payload.content_md || '').trim();
+    const contentBefore = String(payload.content_before_md || '').trim();
+    const contentAfter = String(payload.content_after_md || '').trim();
     if (!title) return jsonError(res, 400, 'title is required');
-    if (!content) return jsonError(res, 400, 'content_md is required');
     const lang = normalizeLang(payload.lang || 'en');
     const section = normalizeSection(payload.section || 'blog');
     const slug = slugify(String(payload.slug || title));
     if (!slug) return jsonError(res, 400, 'slug is invalid');
+    const embeddedProgram = hasEmbeddedProgram(section, slug);
+    if (!embeddedProgram && !content) return jsonError(res, 400, 'content_md is required');
     const status = normalizeStatus(payload.status || 'draft');
     const tags = dedupeTags(payload.tags || []);
-    const excerpt = String(payload.excerpt || '').trim() || toExcerpt(content);
+    const excerpt = String(payload.excerpt || '').trim() || (content ? toExcerpt(content) : '');
     const publishedAt = status === 'published' ? parseDateOrNull(payload.published_at) || nowIso() : null;
     const pairSlug = payload.pair_slug ? slugify(String(payload.pair_slug)) : null;
     const cardCategory = String(payload.card?.category || section).trim() || section;
     const cardTitle = title;
     const cardTag = tags.join(', ') || null;
-    const cardRank = parseCardRank(payload.card?.rank);
+    const cardRank = parseCardRank(payload.card?.rank) || (status === 'published' ? await getNextPublishedContentCardRank(pool, lang) : null);
     const cardImageId = parseIntSafe(payload.card?.image_id, null);
     const metaTitle = String(payload.meta?.title || '').trim() || null;
     const metaDescription = String(payload.meta?.description || '').trim() || null;
@@ -520,15 +528,16 @@ app.post('/api/posts', async (req, res, next) => {
 
     const insert = await pool.query(
       `INSERT INTO posts (
-        slug, title, excerpt, content_md, status, cover_image_id, published_at,
+        slug, title, excerpt, content_md, content_before_md, content_after_md, status, cover_image_id, published_at,
         lang, section, pair_slug, created_at, updated_at,
         card_title, card_category, card_tag, card_rank, card_image_id,
         meta_title, meta_description, og_title, og_description, og_image_url, schema_type
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25
       ) RETURNING id`,
       [
-        slug, title, excerpt, content, status, null, publishedAt, lang, section, pairSlug, nowIso(), nowIso(),
+        slug, title, excerpt, content, embeddedProgram ? contentBefore || null : null, embeddedProgram ? contentAfter || null : null,
+        status, null, publishedAt, lang, section, pairSlug, nowIso(), nowIso(),
         cardTitle, cardCategory, cardTag, cardRank, cardImageId, metaTitle, metaDescription,
         ogTitle, ogDescription, null, schemaType
       ]
@@ -554,15 +563,22 @@ app.put('/api/posts/:id', async (req, res, next) => {
     const title = payload.title !== undefined ? String(payload.title || '').trim() : current.title;
     const content = payload.content_md !== undefined ? String(payload.content_md || '').trim() : current.content_md;
     if (!title) return jsonError(res, 400, 'title is required');
-    if (!content) return jsonError(res, 400, 'content_md is required');
     const lang = payload.lang !== undefined ? normalizeLang(payload.lang) : current.lang;
     const section = payload.section !== undefined ? normalizeSection(payload.section) : current.section;
     const slug = payload.slug !== undefined ? slugify(String(payload.slug || title)) : current.slug;
     if (!slug) return jsonError(res, 400, 'slug is invalid');
+    const embeddedProgram = hasEmbeddedProgram(section, slug);
+    if (!embeddedProgram && !content) return jsonError(res, 400, 'content_md is required');
+    const contentBefore = embeddedProgram
+      ? (payload.content_before_md !== undefined ? String(payload.content_before_md || '').trim() : current.content_before_md || '')
+      : '';
+    const contentAfter = embeddedProgram
+      ? (payload.content_after_md !== undefined ? String(payload.content_after_md || '').trim() : current.content_after_md || '')
+      : '';
     const status = payload.status !== undefined ? normalizeStatus(payload.status) : current.status;
     const tags = payload.tags !== undefined ? dedupeTags(payload.tags || []) : await getPostTags(pool, postId);
     const excerpt = payload.excerpt !== undefined
-      ? String(payload.excerpt || '').trim() || toExcerpt(content)
+      ? String(payload.excerpt || '').trim() || (content ? toExcerpt(content) : '')
       : current.excerpt;
     const publishedAt = payload.published_at !== undefined
       ? parseDateOrNull(payload.published_at)
@@ -590,13 +606,14 @@ app.put('/api/posts/:id', async (req, res, next) => {
 
     await pool.query(
       `UPDATE posts SET
-         slug=$1, title=$2, excerpt=$3, content_md=$4, status=$5, cover_image_id=$6,
-         published_at=$7, lang=$8, section=$9, pair_slug=$10, updated_at=$11,
-         card_title=$12, card_category=$13, card_tag=$14, card_rank=$15, card_image_id=$16,
-         meta_title=$17, meta_description=$18, og_title=$19, og_description=$20, og_image_url=$21, schema_type=$22
-       WHERE id = $23`,
+         slug=$1, title=$2, excerpt=$3, content_md=$4, content_before_md=$5, content_after_md=$6, status=$7, cover_image_id=$8,
+         published_at=$9, lang=$10, section=$11, pair_slug=$12, updated_at=$13,
+         card_title=$14, card_category=$15, card_tag=$16, card_rank=$17, card_image_id=$18,
+         meta_title=$19, meta_description=$20, og_title=$21, og_description=$22, og_image_url=$23, schema_type=$24
+       WHERE id = $25`,
       [
-        slug, title, excerpt, content, status, current.cover_image_id, publishedAt, lang, section, pairSlug, nowIso(),
+        slug, title, excerpt, content, embeddedProgram ? contentBefore || null : null, embeddedProgram ? contentAfter || null : null,
+        status, current.cover_image_id, publishedAt, lang, section, pairSlug, nowIso(),
         cardTitle, cardCategory, cardTag, cardRank, cardImageId,
         metaTitle, metaDescription, ogTitle, ogDescription, null, schemaType, postId
       ]

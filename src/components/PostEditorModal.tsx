@@ -14,6 +14,8 @@ interface PostEditorModalProps {
 }
 
 const RESIZE_EDGE_THRESHOLD = 14;
+type EditorPaneKey = 'body' | 'before' | 'after';
+type ProgramContentLayout = 'above' | 'below' | 'split';
 
 function slugify(value: string): string {
   return String(value || '')
@@ -185,6 +187,10 @@ function isLockedBuiltinToolPost(post: PostItem | null | undefined): boolean {
   return Boolean(post && post.section === 'tools' && post.slug === 'trend-analyzer');
 }
 
+function hasEmbeddedProgram(section: SiteSection, slug: string): boolean {
+  return section === 'tools' && slugify(slug) === 'trend-analyzer';
+}
+
 export function PostEditorModal({
   open,
   mode,
@@ -220,24 +226,79 @@ export function PostEditorModal({
   const [bodyImageAlt, setBodyImageAlt] = useState('');
   const [internalLinkQuery, setInternalLinkQuery] = useState('');
   const [internalLinkResults, setInternalLinkResults] = useState<PostItem[]>([]);
+  const [programContentLayout, setProgramContentLayout] = useState<ProgramContentLayout>('below');
+  const [activeEditor, setActiveEditor] = useState<EditorPaneKey>('body');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const editorRef = useRef<HTMLDivElement | null>(null);
+  const bodyEditorRef = useRef<HTMLDivElement | null>(null);
+  const beforeEditorRef = useRef<HTMLDivElement | null>(null);
+  const afterEditorRef = useRef<HTMLDivElement | null>(null);
   const selectedImageRef = useRef<HTMLImageElement | null>(null);
   const resizeStateRef = useRef<{
     image: HTMLImageElement;
     startX: number;
     startWidth: number;
+    editor: HTMLDivElement | null;
   } | null>(null);
 
   const canDelete = mode === 'edit' && Boolean(initialPost?.id);
   const titleText = useMemo(() => (mode === 'edit' ? 'Edit Post' : 'Write Post'), [mode]);
   const isBuiltinToolPost = useMemo(() => isLockedBuiltinToolPost(initialPost), [initialPost]);
+  const normalizedEditorSlug = useMemo(() => slugify(slug || title), [slug, title]);
+  const hasEmbeddedProgramPost = useMemo(
+    () => hasEmbeddedProgram(section, normalizedEditorSlug),
+    [normalizedEditorSlug, section]
+  );
+
+  function getEditorRef(key: EditorPaneKey) {
+    if (key === 'before') return beforeEditorRef;
+    if (key === 'after') return afterEditorRef;
+    return bodyEditorRef;
+  }
+
+  function getEditorElement(key: EditorPaneKey): HTMLDivElement | null {
+    return getEditorRef(key).current;
+  }
+
+  function preferredEditorKey(): EditorPaneKey {
+    if (!hasEmbeddedProgramPost) return 'body';
+    if (programContentLayout === 'above') return 'before';
+    if (programContentLayout === 'below') return 'after';
+    return activeEditor === 'before' || activeEditor === 'after' ? activeEditor : 'after';
+  }
+
+  function activeEditorLabel(): string {
+    const key = preferredEditorKey();
+    if (key === 'before') return 'content above the program';
+    if (key === 'after') return 'content below the program';
+    return 'body';
+  }
+
+  function hydrateEditor(ref: { current: HTMLDivElement | null }, html: string) {
+    if (!ref.current) return;
+    ref.current.innerHTML = html;
+    clearEdgeHoverStyles(ref.current);
+  }
+
+  function clearAllEditorEdgeHoverStyles() {
+    [bodyEditorRef.current, beforeEditorRef.current, afterEditorRef.current].forEach((editor) => clearEdgeHoverStyles(editor));
+  }
 
   useEffect(() => {
-    const nextHtml = toInitialEditorHtml(initialPost?.content_md || '');
+    const nextBodyHtml = toInitialEditorHtml(initialPost?.content_md || '');
+    const nextBeforeSource = initialPost?.content_before_md || '';
+    const nextAfterSource =
+      initialPost?.content_after_md || (!initialPost?.content_before_md && !initialPost?.content_after_md ? initialPost?.content_md || '' : '');
+    const nextBeforeHtml = toInitialEditorHtml(nextBeforeSource);
+    const nextAfterHtml = toInitialEditorHtml(nextAfterSource);
+    const embeddedInitial = hasEmbeddedProgram(initialPost?.section || defaultSection, initialPost?.slug || '');
+    const nextLayout: ProgramContentLayout = nextBeforeSource.trim()
+      ? nextAfterSource.trim()
+        ? 'split'
+        : 'above'
+      : 'below';
 
     setTitle(initialPost?.title || '');
     setSlug(initialPost?.slug || '');
@@ -266,6 +327,8 @@ export function PostEditorModal({
       Boolean(initialPost?.card.category && initialPost.card.category !== (initialPost.section || defaultSection))
     );
     setCardRankTouched(Boolean(stripRank(initialPost?.card.rank)));
+    setProgramContentLayout(embeddedInitial ? nextLayout : 'below');
+    setActiveEditor(embeddedInitial ? (nextLayout === 'above' ? 'before' : 'after') : 'body');
 
     selectedImageRef.current = null;
     resizeStateRef.current = null;
@@ -273,10 +336,9 @@ export function PostEditorModal({
     setLoading(false);
 
     requestAnimationFrame(() => {
-      if (editorRef.current) {
-        editorRef.current.innerHTML = nextHtml;
-        clearEdgeHoverStyles(editorRef.current);
-      }
+      hydrateEditor(bodyEditorRef, nextBodyHtml);
+      hydrateEditor(beforeEditorRef, nextBeforeHtml);
+      hydrateEditor(afterEditorRef, nextAfterHtml);
     });
   }, [defaultLang, defaultSection, initialPost, open]);
 
@@ -287,7 +349,7 @@ export function PostEditorModal({
       const state = resizeStateRef.current;
       if (!state) return;
 
-      const editorWidth = editorRef.current?.clientWidth || 900;
+      const editorWidth = state.editor?.clientWidth || 900;
       const delta = event.clientX - state.startX;
       const nextWidth = Math.max(120, Math.min(editorWidth - 24, state.startWidth + delta));
       state.image.style.width = `${nextWidth}px`;
@@ -308,7 +370,7 @@ export function PostEditorModal({
       window.removeEventListener('mouseup', onMouseUp);
       document.body.classList.remove('is-resizing-editor-image');
       resizeStateRef.current = null;
-      clearEdgeHoverStyles(editorRef.current);
+      clearAllEditorEdgeHoverStyles();
     };
   }, [open]);
 
@@ -400,25 +462,33 @@ export function PostEditorModal({
 
   if (!open) return null;
 
-  function syncEditorHtml(): string {
-    return editorRef.current?.innerHTML || '';
+  function syncEditorHtml(key: EditorPaneKey = preferredEditorKey()): string {
+    return getEditorElement(key)?.innerHTML || '';
   }
 
-  function focusEditor() {
-    editorRef.current?.focus();
+  function focusEditor(key: EditorPaneKey = preferredEditorKey()) {
+    const editor = getEditorElement(key);
+    if (!editor) return;
+    setActiveEditor(key);
+    editor.focus();
   }
 
   function exec(command: string, value?: string) {
-    focusEditor();
+    focusEditor(preferredEditorKey());
     document.execCommand(command, false, value || '');
   }
 
   function insertNodeAtCursor(node: Node) {
-    focusEditor();
+    const editorKey = preferredEditorKey();
+    const editor = getEditorElement(editorKey);
+    if (!editor) return;
+    focusEditor(editorKey);
 
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      editorRef.current?.appendChild(node);
+    const hasSelectionInEditor =
+      selection && selection.rangeCount > 0 && editor.contains(selection.getRangeAt(0).commonAncestorContainer);
+    if (!selection || selection.rangeCount === 0 || !hasSelectionInEditor) {
+      editor.appendChild(node);
       moveCaretAfter(node);
       return;
     }
@@ -442,7 +512,7 @@ export function PostEditorModal({
   function handleEditorMouseMove(event: ReactMouseEvent<HTMLDivElement>) {
     if (resizeStateRef.current) return;
 
-    const editor = editorRef.current;
+    const editor = event.currentTarget;
     const target = event.target as HTMLElement | null;
 
     if (target instanceof HTMLImageElement && target.classList.contains('editor-inline-image')) {
@@ -458,7 +528,7 @@ export function PostEditorModal({
     clearEdgeHoverStyles(editor);
   }
 
-  function startImageResize(event: ReactMouseEvent<HTMLDivElement>) {
+  function startImageResize(event: ReactMouseEvent<HTMLDivElement>, key: EditorPaneKey) {
     const target = event.target as HTMLElement | null;
     if (!(target instanceof HTMLImageElement)) return;
     if (!target.classList.contains('editor-inline-image')) return;
@@ -467,10 +537,12 @@ export function PostEditorModal({
     resizeStateRef.current = {
       image: target,
       startX: event.clientX,
-      startWidth: target.getBoundingClientRect().width
+      startWidth: target.getBoundingClientRect().width,
+      editor: event.currentTarget
     };
 
     selectedImageRef.current = target;
+    setActiveEditor(key);
     document.body.classList.add('is-resizing-editor-image');
     event.preventDefault();
   }
@@ -651,16 +723,31 @@ export function PostEditorModal({
 
     const normalizedTitle = title.trim();
     const normalizedSlug = slugify(slug || normalizedTitle);
-    const rawHtml = syncEditorHtml().trim();
+    const rawHtml = syncEditorHtml('body').trim();
     const html = normalizeBodyHtml(rawHtml).trim();
+    const rawBeforeHtml =
+      hasEmbeddedProgramPost && (programContentLayout === 'above' || programContentLayout === 'split')
+        ? syncEditorHtml('before').trim()
+        : '';
+    const beforeHtml = rawBeforeHtml ? normalizeBodyHtml(rawBeforeHtml).trim() : '';
+    const rawAfterHtml =
+      hasEmbeddedProgramPost && (programContentLayout === 'below' || programContentLayout === 'split')
+        ? syncEditorHtml('after').trim()
+        : '';
+    const afterHtml = rawAfterHtml ? normalizeBodyHtml(rawAfterHtml).trim() : '';
+    const combinedHtml = hasEmbeddedProgramPost ? [beforeHtml, afterHtml].filter(Boolean).join('\n') : html;
 
-    if (!normalizedTitle || !normalizedSlug || isEditorHtmlEmpty(html)) {
-      setError('title, slug, content are required.');
+    if (!normalizedTitle || !normalizedSlug) {
+      setError('title and slug are required.');
+      return;
+    }
+    if (!hasEmbeddedProgramPost && isEditorHtmlEmpty(html)) {
+      setError('content is required.');
       return;
     }
 
     const parsedTags = dedupeTagList(selectedTags);
-    const normalizedExcerpt = excerpt.trim() || toExcerptText(html) || null;
+    const normalizedExcerpt = excerpt.trim() || toExcerptText(combinedHtml || html) || null;
     const rankNumber = parseRankNumber(cardRank.trim());
     const normalizedMetaTitle = metaTitle.trim() || null;
     const normalizedMetaDescription = metaDescription.trim() || normalizedExcerpt;
@@ -674,6 +761,9 @@ export function PostEditorModal({
       slug: normalizedSlug,
       title: normalizedTitle,
       excerpt: normalizedExcerpt,
+      content_md: combinedHtml,
+      content_before_md: hasEmbeddedProgramPost ? beforeHtml || null : null,
+      content_after_md: hasEmbeddedProgramPost ? afterHtml || null : null,
       status,
       lang,
       section,
@@ -704,7 +794,9 @@ export function PostEditorModal({
       slug: normalizedSlug,
       title: normalizedTitle,
       excerpt: normalizedExcerpt || '',
-      content_md: html,
+      content_md: combinedHtml,
+      content_before_md: hasEmbeddedProgramPost ? beforeHtml : '',
+      content_after_md: hasEmbeddedProgramPost ? afterHtml : '',
       status,
       lang,
       section,
@@ -761,6 +853,34 @@ export function PostEditorModal({
     } finally {
       setLoading(false);
     }
+  }
+
+  function renderEditorSurface(key: EditorPaneKey, heading: string, hint: string) {
+    const ref = getEditorRef(key);
+    const isActive = preferredEditorKey() === key;
+
+    return (
+      <div className={`admin-editor-block${isActive ? ' admin-editor-block--active' : ''}`}>
+        <div className="admin-editor-block__head">
+          <strong>{heading}</strong>
+          <span className="list-tags">{hint}</span>
+        </div>
+        <div
+          ref={ref}
+          className="editor-surface"
+          contentEditable
+          suppressContentEditableWarning
+          onFocus={() => setActiveEditor(key)}
+          onClick={(event) => {
+            setActiveEditor(key);
+            setSelectedImageFromEvent(event.target);
+          }}
+          onMouseMove={handleEditorMouseMove}
+          onMouseLeave={() => clearEdgeHoverStyles(ref.current)}
+          onMouseDown={(event) => startImageResize(event, key)}
+        />
+      </div>
+    );
   }
 
   return (
@@ -958,7 +1078,9 @@ export function PostEditorModal({
                   />
                 </label>
               </div>
-              <p className="list-tags">Card title and card tag follow the post title and tag list automatically.</p>
+              <p className="list-tags">
+                Card title and card tag follow the post title and tag list automatically. Post number counts across blog, tool, and game posts in the same language. Static pages like About, Contact, and Privacy are excluded.
+              </p>
 
               <div className="admin-inline-grid">
                 <label>
@@ -988,6 +1110,26 @@ export function PostEditorModal({
             <div className="admin-card-settings">
               <h3>Body</h3>
               <p className="list-tags">H1 is generated automatically from the post title. Use H2/H3 in body.</p>
+              {hasEmbeddedProgramPost ? (
+                <>
+                  <div className="admin-inline-grid">
+                    <label>
+                      Program Content Layout
+                      <select
+                        value={programContentLayout}
+                        onChange={(event) => setProgramContentLayout(event.target.value as ProgramContentLayout)}
+                      >
+                        <option value="below">Program first, content below</option>
+                        <option value="above">Content above, program below</option>
+                        <option value="split">Content above and below the program</option>
+                      </select>
+                    </label>
+                  </div>
+                  <p className="list-tags">
+                    Use separate editors when this post contains a built-in program. Formatting tools apply to the currently focused area: {activeEditorLabel()}.
+                  </p>
+                </>
+              ) : null}
 
               <div className="editor-toolbar" role="toolbar" aria-label="Editor toolbar">
                 <label className="editor-toolbar__label">
@@ -1099,18 +1241,16 @@ export function PostEditorModal({
                 </div>
               </div>
 
-              <div
-                ref={editorRef}
-                className="editor-surface"
-                contentEditable
-                suppressContentEditableWarning
-                onClick={(event) => {
-                  setSelectedImageFromEvent(event.target);
-                }}
-                onMouseMove={handleEditorMouseMove}
-                onMouseLeave={() => clearEdgeHoverStyles(editorRef.current)}
-                onMouseDown={startImageResize}
-              />
+              {hasEmbeddedProgramPost ? (
+                <div className="admin-editor-stack">
+                  {(programContentLayout === 'above' || programContentLayout === 'split') &&
+                    renderEditorSurface('before', 'Content above the program', 'Rendered before the embedded tool/game.')}
+                  {(programContentLayout === 'below' || programContentLayout === 'split') &&
+                    renderEditorSurface('after', 'Content below the program', 'Rendered after the embedded tool/game.')}
+                </div>
+              ) : (
+                renderEditorSurface('body', 'Body content', 'Rendered as the main post body.')
+              )}
 
               <div className="editor-image-tools">
                 <span>Image</span>
