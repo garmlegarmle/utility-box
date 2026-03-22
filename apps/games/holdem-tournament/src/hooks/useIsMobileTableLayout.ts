@@ -14,9 +14,17 @@ export function useIsMobileTableLayout() {
     const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT);
     const update = () => setIsMobileLayout(mediaQuery.matches);
     update();
-    mediaQuery.addEventListener('change', update);
 
-    return () => mediaQuery.removeEventListener('change', update);
+    // Safari < 14 uses addListener/removeListener instead of addEventListener/removeEventListener.
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', update);
+
+      return () => mediaQuery.removeEventListener('change', update);
+    }
+
+    mediaQuery.addListener(update);
+
+    return () => mediaQuery.removeListener(update);
   }, []);
 
   return isMobileLayout;
