@@ -1317,6 +1317,12 @@ body.is-resizing-editor-image {
   gap: 0;
 }
 
+.trend-tool-intro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
 .trend-tool-form,
 .trend-tool-panel,
 .trend-tool-result {
@@ -1453,6 +1459,10 @@ body.is-resizing-editor-image {
   background: #f4efe1;
 }
 
+.trend-tool-panel--intro {
+  background: #f8f5ec;
+}
+
 .trend-tool-downloads {
   display: flex;
   flex-wrap: wrap;
@@ -1465,8 +1475,42 @@ body.is-resizing-editor-image {
   line-height: 1.6;
 }
 
-.trend-tool-python-fallback {
+.trend-tool-downloads__reason {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.trend-tool-disclosure {
   margin-top: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.trend-tool-disclosure summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.trend-tool-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.trend-tool-disclosure summary::after {
+  content: '+';
+  float: right;
+}
+
+.trend-tool-disclosure[open] summary::after {
+  content: '-';
+}
+
+.trend-tool-python-fallback {
+  padding: 0 14px 14px;
   display: grid;
   gap: 8px;
 }
@@ -1540,6 +1584,19 @@ body.is-resizing-editor-image {
 }
 
 .trend-tool-bullet-list li {
+  margin: 0;
+}
+
+.trend-tool-step-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.trend-tool-step-list li {
   margin: 0;
 }
 
@@ -1874,6 +1931,7 @@ body.is-resizing-editor-image {
   }
 
   .trend-tool-form__controls,
+  .trend-tool-intro-grid,
   .trend-tool-range-grid,
   .trend-tool-analysis-grid,
   .trend-tool-metric-list {
