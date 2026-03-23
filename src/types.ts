@@ -186,6 +186,7 @@ export interface HoldemStatsResponse {
 
 export interface HoldemPlayResponse extends HoldemStatsResponse {
   playCount: number;
+  runToken: string;
 }
 
 export interface HoldemCompleteResponse extends HoldemStatsResponse {

@@ -279,6 +279,7 @@ export async function recordHoldemPlayStart(playerName: string): Promise<HoldemP
 
 export async function recordHoldemCompletion(body: {
   playerName: string;
+  runToken: string;
   finalPlace: number;
   levelReached: number;
   handNumber: number;

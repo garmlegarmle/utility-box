@@ -91,6 +91,15 @@ CREATE TABLE IF NOT EXISTS game_leaderboard_entries (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS game_run_sessions (
+  run_token TEXT PRIMARY KEY,
+  game_slug TEXT NOT NULL,
+  player_name TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_posts_slug_lang_section_active
   ON posts(slug, lang, section)
   WHERE is_deleted = FALSE;
@@ -121,3 +130,9 @@ CREATE INDEX IF NOT EXISTS idx_media_variants_media_variant
 
 CREATE INDEX IF NOT EXISTS idx_game_leaderboard_slug_created
   ON game_leaderboard_entries(game_slug, created_at DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_game_run_sessions_slug_expires
+  ON game_run_sessions(game_slug, expires_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_game_run_sessions_slug_player
+  ON game_run_sessions(game_slug, player_name, created_at DESC);

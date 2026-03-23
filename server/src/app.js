@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import express from 'express';
@@ -41,10 +42,10 @@ import {
   ensureSeedPages,
   getNextPublishedContentCardRank,
   getAppSetting,
+  registerGamePlay,
   getMediaById,
   getMediaVariants,
   getGamePlaySummary,
-  incrementGamePlayCount,
   listGameLeaderboard,
   getPostTags,
   getPostTagsMap,
@@ -52,7 +53,7 @@ import {
   listTagCountsBySection,
   mapPostRow,
   normalizeDerivedPostCardFields,
-  recordGameLeaderboardEntry,
+  recordGameLeaderboardEntryForRun,
   replacePostTags,
   setAppSetting,
   softDeletePost,
@@ -80,6 +81,10 @@ const SITEMAP_SECTIONS = ['tools', 'games', 'blog'];
 const VIEW_COUNT_EXCLUDED_PAGE_SLUGS = new Set(['about', 'contact', 'privacy-policy']);
 const HOLDEM_GAME_SLUG = 'texas-holdem-tournament';
 const MAX_HOLDEM_PLAYER_NAME_LENGTH = 24;
+const HOLDEM_MAX_PLAYERS = 9;
+const HOLDEM_HANDS_PER_LEVEL = 8;
+const HOLDEM_RUN_TOKEN_TTL_SECONDS = 4 * 60 * 60;
+const rateLimitStore = new Map();
 
 function withSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -183,6 +188,53 @@ function normalizeHoldemPlayerName(value) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, MAX_HOLDEM_PLAYER_NAME_LENGTH);
+}
+
+function createRunToken() {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
+function getRateLimitKey(req, namespace) {
+  const forwardedFor = String(req.get('x-forwarded-for') || '').split(',')[0].trim();
+  const ip = forwardedFor || req.ip || req.socket?.remoteAddress || 'unknown';
+  return `${namespace}:${ip}`;
+}
+
+function rateLimit({ namespace, max, windowMs }) {
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = getRateLimitKey(req, namespace);
+    const existing = rateLimitStore.get(key);
+    const bucket =
+      existing && existing.resetAt > now
+        ? existing
+        : {
+            count: 0,
+            resetAt: now + windowMs
+          };
+
+    bucket.count += 1;
+    rateLimitStore.set(key, bucket);
+
+    res.setHeader('X-RateLimit-Limit', String(max));
+    res.setHeader('X-RateLimit-Remaining', String(Math.max(max - bucket.count, 0)));
+    res.setHeader('X-RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
+
+    if (bucket.count > max) {
+      res.setHeader('Retry-After', String(Math.max(Math.ceil((bucket.resetAt - now) / 1000), 1)));
+      return jsonError(res, 429, 'Too many requests. Please try again shortly.');
+    }
+
+    if (rateLimitStore.size > 5000) {
+      for (const [entryKey, entry] of rateLimitStore.entries()) {
+        if (entry.resetAt <= now) {
+          rateLimitStore.delete(entryKey);
+        }
+      }
+    }
+
+    return next();
+  };
 }
 
 async function buildHoldemGameStats(playerName = '') {
@@ -697,20 +749,25 @@ app.get('/api/tags', async (req, res, next) => {
   }
 });
 
-app.post('/api/tools/trend-analyzer/analyze', upload.single('file'), async (req, res, next) => {
-  try {
-    const file = req.file;
-    if (!file) return jsonError(res, 400, 'file is required');
-    if (!isCsvUpload(file)) return jsonError(res, 415, 'Only CSV uploads are supported');
+app.post(
+  '/api/tools/trend-analyzer/analyze',
+  rateLimit({ namespace: 'trend-analyzer-upload', max: 8, windowMs: 5 * 60 * 1000 }),
+  upload.single('file'),
+  async (req, res, next) => {
+    try {
+      const file = req.file;
+      if (!file) return jsonError(res, 400, 'file is required');
+      if (!isCsvUpload(file)) return jsonError(res, 415, 'Only CSV uploads are supported');
 
-    const ticker = normalizeTrendTicker(req.body?.ticker);
-    const payload = await analyzeTrendCsvUpload(file, ticker || undefined);
-    res.setHeader('Cache-Control', 'no-store');
-    jsonOk(res, { ok: true, payload });
-  } catch (error) {
-    next(error);
+      const ticker = normalizeTrendTicker(req.body?.ticker);
+      const payload = await analyzeTrendCsvUpload(file, ticker || undefined);
+      res.setHeader('Cache-Control', 'no-store');
+      jsonOk(res, { ok: true, payload });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 app.get('/api/games/texas-holdem-tournament/stats', async (req, res, next) => {
   try {
@@ -723,63 +780,89 @@ app.get('/api/games/texas-holdem-tournament/stats', async (req, res, next) => {
   }
 });
 
-app.post('/api/games/texas-holdem-tournament/play', async (req, res, next) => {
-  try {
-    const playerName = normalizeHoldemPlayerName(req.body?.playerName || '');
-    if (!playerName) return jsonError(res, 400, 'playerName is required');
+app.post(
+  '/api/games/texas-holdem-tournament/play',
+  rateLimit({ namespace: 'holdem-play-write', max: 30, windowMs: 10 * 60 * 1000 }),
+  async (req, res, next) => {
+    try {
+      const playerName = normalizeHoldemPlayerName(req.body?.playerName || '');
+      if (!playerName) return jsonError(res, 400, 'playerName is required');
 
-    const playCount = await incrementGamePlayCount(pool, {
-      gameSlug: HOLDEM_GAME_SLUG,
-      playerName
-    });
-    const stats = await buildHoldemGameStats(playerName);
+      const runToken = createRunToken();
+      const playCount = await registerGamePlay(pool, {
+        gameSlug: HOLDEM_GAME_SLUG,
+        playerName,
+        runToken,
+        ttlSeconds: HOLDEM_RUN_TOKEN_TTL_SECONDS
+      });
+      const stats = await buildHoldemGameStats(playerName);
 
-    res.setHeader('Cache-Control', 'no-store');
-    jsonOk(res, {
-      ok: true,
-      playerName,
-      playCount,
-      ...stats
-    });
-  } catch (error) {
-    next(error);
+      res.setHeader('Cache-Control', 'no-store');
+      jsonOk(res, {
+        ok: true,
+        playerName,
+        playCount,
+        runToken,
+        ...stats
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
-app.post('/api/games/texas-holdem-tournament/complete', async (req, res, next) => {
-  try {
-    const playerName = normalizeHoldemPlayerName(req.body?.playerName || '');
-    const finalPlace = parseIntSafe(req.body?.finalPlace);
-    const levelReached = parseIntSafe(req.body?.levelReached);
-    const handNumber = parseIntSafe(req.body?.handNumber, 0);
-    const playerWon = req.body?.playerWon === true || String(req.body?.playerWon || '').trim().toLowerCase() === 'true';
+app.post(
+  '/api/games/texas-holdem-tournament/complete',
+  rateLimit({ namespace: 'holdem-complete-write', max: 30, windowMs: 10 * 60 * 1000 }),
+  async (req, res, next) => {
+    try {
+      const playerName = normalizeHoldemPlayerName(req.body?.playerName || '');
+      const runToken = String(req.body?.runToken || '').trim();
+      const finalPlace = parseIntSafe(req.body?.finalPlace);
+      const levelReached = parseIntSafe(req.body?.levelReached);
+      const handNumber = parseIntSafe(req.body?.handNumber, 0);
+      const playerWon = req.body?.playerWon === true || String(req.body?.playerWon || '').trim().toLowerCase() === 'true';
+      const maxLevelForHand = Math.floor(Math.max(handNumber - 1, 0) / HOLDEM_HANDS_PER_LEVEL) + 1;
 
-    if (!playerName) return jsonError(res, 400, 'playerName is required');
-    if (!finalPlace || finalPlace < 1) return jsonError(res, 400, 'finalPlace is invalid');
-    if (!levelReached || levelReached < 1) return jsonError(res, 400, 'levelReached is invalid');
-    if (handNumber < 0) return jsonError(res, 400, 'handNumber is invalid');
+      if (!playerName) return jsonError(res, 400, 'playerName is required');
+      if (!runToken) return jsonError(res, 400, 'runToken is required');
+      if (!finalPlace || finalPlace < 1 || finalPlace > HOLDEM_MAX_PLAYERS) {
+        return jsonError(res, 400, 'finalPlace is invalid');
+      }
+      if (!levelReached || levelReached < 1) return jsonError(res, 400, 'levelReached is invalid');
+      if (handNumber < 1) return jsonError(res, 400, 'handNumber is invalid');
+      if (levelReached > maxLevelForHand) return jsonError(res, 400, 'levelReached is inconsistent with handNumber');
+      if (playerWon && finalPlace !== 1) return jsonError(res, 400, 'playerWon is inconsistent with finalPlace');
+      if (!playerWon && finalPlace === 1) return jsonError(res, 400, 'playerWon is inconsistent with finalPlace');
 
-    const result = await recordGameLeaderboardEntry(pool, {
-      gameSlug: HOLDEM_GAME_SLUG,
-      playerName,
-      finalPlace,
-      levelReached,
-      handNumber,
-      playerWon
-    });
-    const stats = await buildHoldemGameStats(playerName);
+      const result = await recordGameLeaderboardEntryForRun(pool, {
+        gameSlug: HOLDEM_GAME_SLUG,
+        playerName,
+        runToken,
+        finalPlace,
+        levelReached,
+        handNumber,
+        playerWon
+      });
 
-    res.setHeader('Cache-Control', 'no-store');
-    jsonOk(res, {
-      ok: true,
-      playerName,
-      madeLeaderboard: result.madeLeaderboard,
-      ...stats
-    });
-  } catch (error) {
-    next(error);
+      if (!result.accepted) {
+        return jsonError(res, 409, 'runToken is invalid or expired');
+      }
+
+      const stats = await buildHoldemGameStats(playerName);
+
+      res.setHeader('Cache-Control', 'no-store');
+      jsonOk(res, {
+        ok: true,
+        playerName,
+        madeLeaderboard: result.madeLeaderboard,
+        ...stats
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 app.delete('/api/tags/:tag', async (req, res, next) => {
   try {

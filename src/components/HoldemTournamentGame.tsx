@@ -102,6 +102,7 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
   const [leaderboard, setLeaderboard] = useState<HoldemLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [runToken, setRunToken] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,12 +154,15 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
     if (!normalized) return;
 
     handlePlayerNameChange(normalized);
+    setRunToken(null);
 
     try {
       const result = await recordHoldemPlayStart(normalized);
       applyStats(result);
+      setRunToken(result.runToken);
       setSyncMessage(null);
     } catch {
+      setRunToken(null);
       setSyncMessage(copy.syncPlayError);
     }
   }
@@ -170,19 +174,25 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
     level: number;
   }) {
     const normalized = normalizePlayerName(playerName);
-    if (!normalized) return;
+    if (!normalized || !runToken) {
+      setSyncMessage(copy.syncResultError);
+      return;
+    }
 
     try {
       const result = await recordHoldemCompletion({
         playerName: normalized,
+        runToken,
         playerWon: payload.playerWon,
         finalPlace: payload.finalPlace,
         handNumber: payload.handNumber,
         levelReached: payload.level,
       });
       applyStats(result);
+      setRunToken(null);
       setSyncMessage(result.madeLeaderboard ? copy.syncSavedTop10 : copy.syncSaved);
     } catch {
+      setRunToken(null);
       setSyncMessage(copy.syncResultError);
     }
   }

@@ -600,6 +600,45 @@ export async function incrementGamePlayCount(pool, { gameSlug, playerName }) {
   return Number(result.rows[0]?.play_count || 0);
 }
 
+export async function registerGamePlay(pool, { gameSlug, playerName, runToken, ttlSeconds }) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `DELETE FROM game_run_sessions
+       WHERE game_slug = $1
+         AND (expires_at <= NOW() OR consumed_at IS NOT NULL)`,
+      [gameSlug]
+    );
+
+    const playResult = await client.query(
+      `INSERT INTO game_play_counts (game_slug, player_name, play_count, created_at, updated_at)
+       VALUES ($1, $2, 1, NOW(), NOW())
+       ON CONFLICT (game_slug, player_name)
+       DO UPDATE SET play_count = game_play_counts.play_count + 1, updated_at = NOW()
+       RETURNING play_count`,
+      [gameSlug, playerName]
+    );
+
+    await client.query(
+      `INSERT INTO game_run_sessions (
+         run_token, game_slug, player_name, created_at, expires_at
+       ) VALUES ($1, $2, $3, NOW(), NOW() + make_interval(secs => $4))`,
+      [runToken, gameSlug, playerName, ttlSeconds]
+    );
+
+    await client.query('COMMIT');
+    return Number(playResult.rows[0]?.play_count || 0);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function getGamePlaySummary(pool, { gameSlug, playerName = null }) {
   const totalResult = await pool.query(
     `SELECT COALESCE(SUM(play_count), 0)::int AS total_plays
@@ -724,6 +763,98 @@ export async function recordGameLeaderboardEntry(
     return {
       entryId,
       madeLeaderboard: Boolean(kept.rows[0])
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function recordGameLeaderboardEntryForRun(
+  pool,
+  { gameSlug, playerName, runToken, finalPlace, levelReached, handNumber, playerWon }
+) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const sessionResult = await client.query(
+      `UPDATE game_run_sessions
+       SET consumed_at = NOW()
+       WHERE run_token = $1
+         AND game_slug = $2
+         AND player_name = $3
+         AND consumed_at IS NULL
+         AND expires_at > NOW()
+       RETURNING run_token`,
+      [runToken, gameSlug, playerName]
+    );
+
+    if (!sessionResult.rows[0]) {
+      await client.query('ROLLBACK');
+      return {
+        entryId: 0,
+        madeLeaderboard: false,
+        accepted: false
+      };
+    }
+
+    const insert = await client.query(
+      `INSERT INTO game_leaderboard_entries (
+         game_slug, player_name, final_place, level_reached, hand_number, player_won, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       RETURNING id`,
+      [gameSlug, playerName, finalPlace, levelReached, handNumber, playerWon]
+    );
+
+    const entryId = Number(insert.rows[0]?.id || 0);
+
+    await client.query(
+      `WITH ranked AS (
+         SELECT
+           id,
+           ROW_NUMBER() OVER (
+             ORDER BY
+               CASE WHEN player_won THEN 1 ELSE 0 END DESC,
+               final_place ASC,
+               level_reached DESC,
+               hand_number DESC,
+               created_at ASC,
+               id ASC
+           ) AS leaderboard_rank
+         FROM game_leaderboard_entries
+         WHERE game_slug = $1
+       )
+       DELETE FROM game_leaderboard_entries entry
+       USING ranked
+       WHERE entry.id = ranked.id
+         AND ranked.leaderboard_rank > $2`,
+      [gameSlug, GAME_LEADERBOARD_LIMIT]
+    );
+
+    const kept = await client.query(
+      `SELECT 1
+       FROM game_leaderboard_entries
+       WHERE id = $1
+       LIMIT 1`,
+      [entryId]
+    );
+
+    await client.query(
+      `DELETE FROM game_run_sessions
+       WHERE game_slug = $1
+         AND (expires_at <= NOW() OR consumed_at IS NOT NULL)`,
+      [gameSlug]
+    );
+
+    await client.query('COMMIT');
+    return {
+      entryId,
+      madeLeaderboard: Boolean(kept.rows[0]),
+      accepted: true
     };
   } catch (error) {
     await client.query('ROLLBACK');
