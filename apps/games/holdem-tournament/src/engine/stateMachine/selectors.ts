@@ -23,7 +23,9 @@ export function selectMainPot(state: GameState): number {
 }
 
 export function selectSidePots(state: GameState): number[] {
-  return state.hand.pots.filter((pot) => !pot.isMain).map((pot) => pot.amount);
+  return state.hand.pots
+    .filter((pot) => !pot.isMain && pot.eligiblePlayerIds.length >= 2)
+    .map((pot) => pot.amount);
 }
 
 export function selectHumanLegalActions(state: GameState) {
