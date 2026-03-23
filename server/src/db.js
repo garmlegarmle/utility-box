@@ -63,9 +63,61 @@ export async function ensureSeedProgramPosts(pool) {
       slug: 'trend-analyzer',
       section: 'tools',
       title: 'Trend Analyzer',
-      excerpt: 'Upload a local OHLCV CSV and review a 200-session trend analysis with chart overlays.',
-      content:
+      legacyExcerpt: 'Upload a local OHLCV CSV and review a 200-session trend analysis with chart overlays.',
+      legacyContent:
         '# Trend Analyzer\n\nUse the built-in analyzer below to upload a CSV from the data downloader and review the chart, score ranges, and interpretation.',
+      excerpt: 'Upload an OHLCV CSV to review a 200-session daily chart with moving averages, Ichimoku, MACD, RSI, and a plain-language trend interpretation.',
+      content:
+        '# Trend Analyzer\n\nUpload a daily OHLCV CSV from the GA-ML data downloader to review the recent 200-session trend, chart overlays, and plain-language interpretation.',
+      contentBefore: `# Trend Analyzer
+
+This page reviews the recent daily trend of a stock or ETF from your own OHLCV CSV. Upload a file from the GA-ML data downloader, then inspect the 200-session candle chart, overlay indicators, and interpretation in one place.
+
+## How To Use This Page
+
+1. Download a CSV with the GA-ML data downloader.
+2. Upload the file in the analyzer below.
+3. Review the summary block, chart overlays, RSI, MACD, and detailed explanation.
+4. Repeat the same workflow with another ticker when you want to compare names side by side.
+
+## What You Will See
+
+- A recent 200-session daily candle chart
+- EMA 20, EMA 50, SMA 200, and Ichimoku overlays
+- MACD and RSI panels
+- A summary block that describes the current regime
+- Range-based scores that show whether momentum, confidence, or transition risk are low, medium, or high`,
+      contentAfter: `## How To Read The Analysis
+
+### Trend And Moving Averages
+
+When price is above short and medium moving averages, the tape is usually in a healthier short-term state. When EMA 20 is above EMA 50 and price also holds above SMA 200, the market is often acting like a stronger continuation trend rather than a weak bounce.
+
+### RSI And MACD
+
+RSI helps show whether momentum is stretched. A high RSI can signal strong upside pressure, but it can also warn that the move is running hot. MACD helps confirm whether momentum is still improving or fading. A bullish crossover is more useful when it happens with supportive price structure instead of in isolation.
+
+### Ichimoku Interpretation
+
+The Ichimoku overlay helps frame trend context. Price above the cloud usually points to a healthier trend backdrop, price inside the cloud often suggests transition or noise, and price below the cloud can mean the market is still structurally weak. Tenkan and Kijun alignment can also show whether shorter-term momentum agrees with the broader setup.
+
+## Why This Tool Uses CSV Uploads
+
+This page analyzes market data that you provide locally. The downloader prepares a consistent daily OHLCV file, and the web analyzer focuses on calculation and explanation rather than live market-data collection.
+
+## Best Use Cases
+
+- Compare several ETFs or stocks with the same data format
+- Review whether a recent breakout still has momentum support
+- Check whether a pullback is happening above or below key averages
+- Study how multiple indicators agree or conflict before you make your own decision
+
+## Limits And Caution
+
+- This tool reads daily bars only
+- The result depends on the quality of the CSV you upload
+- Indicator signals can lag or fail in choppy markets
+- The output is for research and education, not personalized investment advice`,
       lang: 'en',
       tags: ['analysis', 'trend']
     },
@@ -73,9 +125,61 @@ export async function ensureSeedProgramPosts(pool) {
       slug: 'trend-analyzer',
       section: 'tools',
       title: '추세 분석기',
-      excerpt: '로컬 OHLCV CSV를 업로드해 최근 200세션 기준 추세 분석과 차트 오버레이를 확인하세요.',
-      content:
+      legacyExcerpt: '로컬 OHLCV CSV를 업로드해 최근 200세션 기준 추세 분석과 차트 오버레이를 확인하세요.',
+      legacyContent:
         '# 추세 분석기\n\n아래 내장 분석기에 데이터 다운로더가 만든 CSV를 업로드하면 차트, 범위형 점수, 해석 결과를 확인할 수 있습니다.',
+      excerpt: 'OHLCV CSV를 업로드해 최근 200세션 일봉 차트와 이평선, 일목균형표, MACD, RSI, 해석형 추세 분석을 함께 확인하세요.',
+      content:
+        '# 추세 분석기\n\nGA-ML 데이터 다운로더가 만든 일봉 OHLCV CSV를 업로드하면 최근 200세션 차트와 추세 해석을 한 번에 확인할 수 있습니다.',
+      contentBefore: `# 추세 분석기
+
+이 페이지는 사용자가 준비한 OHLCV CSV를 바탕으로 종목의 최근 일봉 흐름을 정리해 보여주는 분석 도구입니다. GA-ML 데이터 다운로더로 만든 파일을 업로드하면 최근 200세션 캔들차트, 보조지표, 해석 결과를 한 화면에서 확인할 수 있습니다.
+
+## 이 페이지 이용 방법
+
+1. GA-ML 데이터 다운로더로 원하는 티커의 CSV를 저장합니다.
+2. 아래 분석기에 CSV 파일을 업로드합니다.
+3. 핵심 요약, 캔들차트, RSI, MACD, 상세 해석을 순서대로 확인합니다.
+4. 다른 종목도 같은 형식의 CSV로 반복 업로드해 비교합니다.
+
+## 이 페이지에서 볼 수 있는 것
+
+- 최근 200세션 기준 일봉 캔들차트
+- EMA 20, EMA 50, SMA 200, 일목균형표 오버레이
+- MACD와 RSI 패널
+- 현재 상태를 요약한 핵심 해석 블록
+- 모멘텀, 신뢰도, 전환 위험을 범위형으로 보여주는 점수 카드`,
+      contentAfter: `## 분석 결과 읽는 법
+
+### 추세와 이동평균선
+
+가격이 단기, 중기 이동평균선 위에서 움직이고 있고 EMA 20이 EMA 50 위에 있다면 단기 흐름이 비교적 건강할 가능성이 큽니다. 여기에 SMA 200 위까지 유지하면 단기 반등이 아니라 더 큰 상위 추세 안에서 움직이는지 확인하는 데 도움이 됩니다.
+
+### RSI와 MACD
+
+RSI는 현재 모멘텀이 얼마나 과열되었는지 또는 약해졌는지 보는 데 유용합니다. RSI가 높다고 해서 바로 하락을 뜻하는 것은 아니지만, 과매수 구간에 가까워질수록 추격 매수 리스크를 더 조심해서 볼 필요가 있습니다. MACD는 모멘텀이 강해지는지 약해지는지, 그리고 시그널선과의 관계가 어떤지를 확인하는 데 적합합니다.
+
+### 일목균형표 해석
+
+일목균형표는 현재 가격이 어느 구조 위에 있는지 보는 데 좋습니다. 가격이 구름 위에 있으면 상대적으로 강한 구조일 수 있고, 구름 안에 있으면 방향성이 흐려졌을 수 있으며, 구름 아래에 있으면 아직 약한 흐름일 가능성이 큽니다. 전환선과 기준선의 위치 관계도 단기 모멘텀과 중기 균형을 함께 보는 데 도움을 줍니다.
+
+## 왜 CSV를 업로드해서 분석하나요
+
+이 페이지는 사용자가 로컬에서 준비한 데이터를 기준으로 계산과 해석에 집중하도록 설계되어 있습니다. 데이터 수집은 다운로더가 맡고, 웹 분석기는 그 CSV를 읽어 일관된 방식으로 차트와 해석을 제공합니다.
+
+## 이런 상황에서 유용합니다
+
+- 여러 ETF나 종목을 같은 기준으로 비교하고 싶을 때
+- 최근 돌파가 실제 추세 확장인지 확인하고 싶을 때
+- 조정 구간이 핵심 이동평균선 위인지 아래인지 보고 싶을 때
+- 여러 보조지표가 같은 방향을 말하는지, 서로 충돌하는지 확인하고 싶을 때
+
+## 한계와 주의사항
+
+- 현재 결과는 일봉 데이터 기준입니다
+- 업로드한 CSV 품질에 따라 결과도 달라집니다
+- 보조지표는 횡보장이나 급격한 전환 구간에서 늦거나 흔들릴 수 있습니다
+- 이 도구는 학습과 리서치용이며, 개인 맞춤형 투자 자문이 아닙니다`,
       lang: 'ko',
       tags: ['분석', '추세']
     },
@@ -83,9 +187,55 @@ export async function ensureSeedProgramPosts(pool) {
       slug: 'texas-holdem-tournament',
       section: 'games',
       title: "Texas Hold'em Tournament",
-      excerpt: 'Play a browser-based single-table tournament against eight local AI opponents.',
-      content:
+      legacyExcerpt: 'Play a browser-based single-table tournament against eight local AI opponents.',
+      legacyContent:
         "# Texas Hold'em Tournament\n\nPlay a built-in single-table Texas Hold'em tournament against local AI opponents directly in the page below.",
+      excerpt: "Play a browser-based single-table Texas Hold'em tournament against eight AI opponents and compare your result with the top 10 leaderboard.",
+      content:
+        "# Texas Hold'em Tournament\n\nPlay a built-in single-table Texas Hold'em tournament against eight local AI opponents directly in the page below.",
+      contentBefore: `# Texas Hold'em Tournament
+
+This page is a browser-based single-table tournament. You play against eight AI opponents, climb through blind levels, and try to finish first without installing anything extra.
+
+## How To Use This Page
+
+1. Enter the name you want to display at the table.
+2. Review the opponent profile summary.
+3. Start the tournament and play each hand directly in the browser.
+4. When a run ends, compare your finish with the public top 10 leaderboard.
+
+## Tournament Setup
+
+- 9 players at one table
+- 10,000 starting chips per player
+- Blind levels increase every 8 hands
+- Total plays count every started run
+- The leaderboard keeps the best 10 completed results`,
+      contentAfter: `## Strategy Guide
+
+### Early Levels
+
+In the early phase, chip preservation matters. You have room to fold marginal hands and wait for stronger spots. Strong position, selective aggression, and avoiding low-quality all-ins usually matter more than forcing action every hand.
+
+### Middle Levels
+
+As blinds rise, stack pressure becomes more important. Pay attention to how often you are posting blinds, whether your stack still gives you postflop flexibility, and whether open-raising or reshove spots are becoming more urgent.
+
+### Short-Stack And Late Stage
+
+When stacks get shallow, preflop discipline becomes critical. Hand value shifts, fold equity matters more, and one mistimed call can end the run. If you are near the endgame, survival and pressure both matter because a first-place finish is worth far more than simply staying alive with no plan.
+
+## How The Ranking Works
+
+Completed runs are ranked by whether you won the tournament, your final finishing place, the blind level you reached, and the hand count recorded for that run. Only the top 10 results are kept on the public leaderboard.
+
+## About Play Count And Saved Results
+
+The total play count is a lightweight public counter of started runs. The leaderboard stores only the strongest completed finishes so the page stays focused on best results rather than every session ever played.
+
+## Why This Game Works Well In The Browser
+
+The tournament flow, betting logic, eliminations, and showdown resolution all run directly in the page. That makes it fast to restart, easy to practice repeatedly, and convenient to play on demand without a separate install.`,
       lang: 'en',
       tags: ['holdem', 'poker']
     },
@@ -93,9 +243,55 @@ export async function ensureSeedProgramPosts(pool) {
       slug: 'texas-holdem-tournament',
       section: 'games',
       title: '텍사스 홀덤 토너먼트',
-      excerpt: '로컬 AI 8명을 상대로 브라우저 안에서 싱글 테이블 토너먼트를 플레이할 수 있습니다.',
+      legacyExcerpt: '로컬 AI 8명을 상대로 브라우저 안에서 싱글 테이블 토너먼트를 플레이할 수 있습니다.',
+      legacyContent:
+        '# 텍사스 홀덤 토너먼트\n\n아래 내장 게임에서 로컬 AI 8명을 상대로 싱글 테이블 텍사스 홀덤 토너먼트를 바로 플레이할 수 있습니다.',
+      excerpt: '브라우저에서 로컬 AI 8명을 상대로 싱글 테이블 텍사스 홀덤 토너먼트를 플레이하고 상위 10위 랭킹과 비교해보세요.',
       content:
         '# 텍사스 홀덤 토너먼트\n\n아래 내장 게임에서 로컬 AI 8명을 상대로 싱글 테이블 텍사스 홀덤 토너먼트를 바로 플레이할 수 있습니다.',
+      contentBefore: `# 텍사스 홀덤 토너먼트
+
+이 페이지는 브라우저에서 바로 플레이할 수 있는 싱글 테이블 텍사스 홀덤 토너먼트 게임입니다. 별도 설치 없이 로컬 AI 8명과 맞붙어 블라인드가 올라가는 환경에서 1위를 노릴 수 있습니다.
+
+## 이 페이지 이용 방법
+
+1. 테이블에서 표시할 이름을 입력합니다.
+2. 상대 프로필 요약을 확인합니다.
+3. 게임을 시작하고 브라우저 안에서 직접 액션을 진행합니다.
+4. 한 판이 끝나면 상위 10위 랭킹과 자신의 결과를 비교합니다.
+
+## 토너먼트 기본 설정
+
+- 한 테이블 9인 토너먼트
+- 모든 플레이어 시작 칩 10,000
+- 8핸드마다 블라인드 상승
+- 총 플레이 수는 시작된 판 기준으로 누적
+- 랭킹은 완료된 결과 중 상위 10개만 유지`,
+      contentAfter: `## 플레이 전략 가이드
+
+### 초반 레벨
+
+초반에는 무리하게 큰 팟을 만들기보다 스택을 지키는 판단이 중요합니다. 포지션이 좋을 때 더 넓게 열고, 좋지 않은 자리에서는 약한 핸드로 불필요한 충돌을 줄이는 편이 안정적입니다.
+
+### 중반 레벨
+
+블라인드가 올라가기 시작하면 한 번의 폴드와 한 번의 블라인드 납부가 스택에 미치는 영향이 커집니다. 자신의 유효 스택이 얼마나 남았는지, 오픈 레이즈와 올인 압박 중 어느 쪽이 더 적합한지 더 자주 판단해야 합니다.
+
+### 후반과 숏스택 구간
+
+후반으로 갈수록 프리플랍 선택의 무게가 커집니다. 핸드 강도, 폴드 이퀴티, 남은 상대 수를 함께 봐야 하고, 애매한 콜 한 번이 바로 탈락으로 이어질 수 있습니다. 상위권 진입 직전에는 생존과 압박을 함께 고려하는 운영이 중요합니다.
+
+## 랭킹은 어떻게 정해지나요
+
+완료된 기록은 우승 여부, 최종 순위, 도달 레벨, 해당 런의 핸드 수 순서로 비교해 정렬합니다. 공개 랭킹에는 상위 10개 결과만 남습니다.
+
+## 총 플레이 수와 결과 저장
+
+총 플레이 수는 시작된 판의 누적 횟수를 보여주는 가벼운 공용 카운터입니다. 랭킹은 모든 결과를 다 저장하는 방식이 아니라, 좋은 완료 기록만 남겨 페이지를 간결하게 유지합니다.
+
+## 이 게임이 웹에서 잘 맞는 이유
+
+토너먼트 진행, 베팅 로직, 탈락 처리, 쇼다운 계산이 모두 페이지 안에서 바로 돌아갑니다. 그래서 재시작이 빠르고, 여러 번 반복 플레이하며 연습하기에 적합합니다.`,
       lang: 'ko',
       tags: ['홀덤', '포커']
     }
@@ -105,13 +301,23 @@ export async function ensureSeedProgramPosts(pool) {
     const nextRank = await getNextPublishedContentCardRank(pool, item.lang);
     const inserted = await pool.query(
       `INSERT INTO posts (
-         slug, title, excerpt, content_md, status, published_at, lang, section,
+         slug, title, excerpt, content_md, content_before_md, content_after_md, status, published_at, lang, section,
          card_title, card_category, card_rank, schema_type
        )
-       VALUES ($1, $2, $3, $4, 'published', NOW(), $5, $6, $2, $6, $7, 'Service')
+       VALUES ($1, $2, $3, $4, $5, $6, 'published', NOW(), $7, $8, $2, $8, $9, 'Service')
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [item.slug, item.title, item.excerpt, item.content, item.lang, item.section, nextRank]
+      [
+        item.slug,
+        item.title,
+        item.excerpt,
+        item.content,
+        item.contentBefore,
+        item.contentAfter,
+        item.lang,
+        item.section,
+        nextRank
+      ]
     );
 
     const postId = inserted.rows[0]?.id ? Number(inserted.rows[0].id) : 0;
@@ -121,13 +327,32 @@ export async function ensureSeedProgramPosts(pool) {
     }
 
     const existing = await pool.query(
-      `SELECT id, card_rank
+      `SELECT id, card_rank, excerpt, content_md, content_before_md, content_after_md
        FROM posts
        WHERE slug = $1 AND lang = $2 AND section = $3 AND is_deleted = FALSE
        LIMIT 1`,
       [item.slug, item.lang, item.section]
     );
     const existingPost = existing.rows[0];
+    const hasLegacyProgramContent =
+      existingPost?.id &&
+      !existingPost.content_before_md &&
+      !existingPost.content_after_md &&
+      String(existingPost.content_md || '').trim() === String(item.legacyContent || '').trim();
+
+    if (hasLegacyProgramContent) {
+      await pool.query(
+        `UPDATE posts
+         SET excerpt = $1,
+             content_md = $2,
+             content_before_md = $3,
+             content_after_md = $4,
+             updated_at = NOW()
+         WHERE id = $5`,
+        [item.excerpt, item.content, item.contentBefore, item.contentAfter, Number(existingPost.id)]
+      );
+    }
+
     if (existingPost?.id && Number(existingPost.card_rank || 0) === 1) {
       const total = await getPublishedContentCardCount(pool, item.lang);
       if (total > 1) {
