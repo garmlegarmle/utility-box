@@ -893,7 +893,7 @@ export function PostEditorModal({
 
   return (
     <div className="admin-modal" role="dialog" aria-modal="true" aria-label={titleText}>
-      <div className="admin-modal__backdrop" onClick={onClose} />
+      <div className="admin-modal__backdrop" aria-hidden="true" />
       <div className="admin-modal__panel admin-editor-modal">
         <div className="admin-modal__header">
           <div>
