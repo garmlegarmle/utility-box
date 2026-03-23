@@ -149,19 +149,19 @@
 
 @media (max-width: 760px) {
   .seat {
-    width: 72px;
-    padding: 5px 4px;
-    border-radius: 12px;
+    width: 64px;
+    padding: 4px 3px;
+    border-radius: 11px;
   }
 
   .humanSeat {
-    width: 84px;
-    padding: 6px 5px;
+    width: 76px;
+    padding: 5px 4px;
   }
 
   .badges {
-    top: -9px;
-    right: 6px;
+    top: -8px;
+    right: 5px;
     gap: 4px;
   }
 
@@ -177,26 +177,26 @@
   }
 
   .name {
-    font-size: 0.64rem;
+    font-size: 0.6rem;
   }
 
   .stack {
     margin-top: 3px;
-    font-size: 0.56rem;
+    font-size: 0.52rem;
   }
 
   .cards {
-    gap: 5px;
-    margin-top: 4px;
+    gap: 4px;
+    margin-top: 3px;
   }
 
   .statusRow {
-    margin-top: 4px;
-    min-height: 16px;
+    margin-top: 3px;
+    min-height: 14px;
   }
 
   .betRow {
-    min-height: 0.8rem;
-    font-size: 0.52rem;
+    min-height: 0.72rem;
+    font-size: 0.48rem;
   }
 }

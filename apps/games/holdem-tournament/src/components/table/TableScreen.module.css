@@ -405,26 +405,27 @@
 
 @media (max-width: 760px) {
   .embeddedPage {
+    height: auto;
     min-height: 0;
     border-radius: 18px;
   }
 
   .page {
-    height: 100dvh;
-    min-height: 100dvh;
-    padding: 6px 8px 8px;
-    gap: 4px;
-    overflow-x: hidden;
-    overflow-y: hidden;
+    height: auto;
+    min-height: 100svh;
+    padding: 8px 8px 12px;
+    gap: 6px;
+    overflow: visible;
   }
 
   .headerBar {
-    gap: 4px;
+    gap: 6px;
   }
 
   .headerButtons {
     justify-content: flex-start;
     flex-wrap: wrap;
+    row-gap: 4px;
   }
 
   .headerButton {
@@ -434,28 +435,28 @@
   }
 
   .mainStage {
-    gap: 6px;
-    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+    grid-template-rows: auto auto;
   }
 
   .tableWrap {
     align-items: flex-start;
-    padding-top: 0;
+    padding-top: 2px;
     min-height: 0;
   }
 
   .tableArena,
   .mobileTableArena {
-    width: min(100%, calc((100dvh - 250px) * 0.64), 360px);
-    aspect-ratio: 0.64 / 1;
+    width: min(100%, clamp(292px, 86vw, 342px));
+    aspect-ratio: 0.7 / 1;
     margin: 0 auto;
   }
 
   .tableSurface {
-    width: 93%;
-    height: 89%;
-    margin-top: 4%;
-    border-radius: 160px;
+    width: 94%;
+    height: 86%;
+    margin-top: 6%;
+    border-radius: 150px;
   }
 
   .tableSurface::before {
@@ -467,17 +468,17 @@
   }
 
   .innerGuide {
-    inset: 11% 10%;
-    border-radius: 160px;
+    inset: 12% 10%;
+    border-radius: 150px;
   }
 
   .boardZone {
-    gap: 8px;
+    gap: 9px;
   }
 
   .potPanel {
-    padding: 7px 12px;
-    transform: translateY(-2px);
+    padding: 7px 11px;
+    transform: translateY(-6px);
   }
 
   .potValue {
@@ -485,35 +486,36 @@
   }
 
   .potMetaStrip {
-    width: min(100%, 220px);
-    margin-top: -6px;
+    width: min(100%, 236px);
+    margin-top: -10px;
     font-size: 0.58rem;
   }
 
   .communityBoard {
-    padding: 6px 8px;
+    padding: 6px 10px;
     border-radius: 18px;
     margin-top: 0;
   }
 
   .communityRow {
-    gap: 4px;
-    min-height: 48px;
+    gap: 5px;
+    min-height: 50px;
   }
 
   .handMessage {
-    min-height: 14px;
-    font-size: 0.62rem;
+    min-height: 16px;
+    padding: 0 6px;
+    font-size: 0.64rem;
   }
 
   .controlDock {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 2px);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 6px);
   }
 
   .bottomRail {
     grid-template-columns: 1fr;
-    gap: 6px;
-    width: min(100%, 360px);
+    gap: 8px;
+    width: min(100%, 342px);
   }
 
   .leftDock,

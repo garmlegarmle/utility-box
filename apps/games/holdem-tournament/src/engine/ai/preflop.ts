@@ -68,13 +68,13 @@ export function getPreflopCandidates(context: BotDecisionContext, profile: BotPr
       : 1;
   const pressuredFoldBoost =
     context.facingRaise && context.aggressionFaced >= 2 && strength < 0.74
-      ? 1.22 + profile.foldToRaise * 0.14
+      ? 1.12 + profile.foldToRaise * 0.1
       : 1;
   const jamCallPenalty =
     context.facingAllInPressure && strength < 0.94
-      ? Math.max(0.08, 0.46 - context.callPortionOfStack * 0.18 + profile.callDownLooseness * 0.08)
+      ? Math.max(0.1, 0.4 - context.callPortionOfStack * 0.14 + profile.callDownLooseness * 0.12)
       : 1;
-  const jamFoldBoost = context.facingAllInPressure && strength < 0.94 ? 1.44 : 1;
+  const jamFoldBoost = context.facingAllInPressure && strength < 0.94 ? 1.28 : 1;
   const jamRaisePenalty =
     context.facingAllInPressure && context.stackDepthTier !== 'short' && context.startingHandTier !== 'premium-pair'
       ? 0.06

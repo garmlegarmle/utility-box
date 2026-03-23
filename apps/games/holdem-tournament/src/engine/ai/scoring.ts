@@ -59,9 +59,9 @@ export function scoreFold(context: BotDecisionContext, profile: BotProfile): num
         : 0;
   const strength = context.street === 'preflop' ? getPreflopStrength(context) : getPostflopStrength(context);
   const stackPressure = context.amountToCall > 0 ? context.callPortionOfStack * 0.55 : 0;
-  const jamPressure = context.facingAllInPressure ? 0.36 : 0;
+  const jamPressure = context.facingAllInPressure ? 0.28 : 0;
 
-  return Math.max(0.01, 0.7 - strength + pressurePenalty + context.amountToCallInBigBlinds * 0.04 + stackPressure + jamPressure);
+  return Math.max(0.01, 0.62 - strength + pressurePenalty + context.amountToCallInBigBlinds * 0.03 + stackPressure + jamPressure);
 }
 
 export function scoreCall(context: BotDecisionContext, profile: BotProfile): number {
@@ -80,11 +80,11 @@ export function scoreCall(context: BotDecisionContext, profile: BotProfile): num
 
   return Math.max(
     0.01,
-    strength * 0.72 +
-      profile.callDownLooseness * 0.28 +
+    strength * 0.76 +
+      profile.callDownLooseness * 0.3 +
       drawBonus +
       potOddsBonus -
-      context.amountToCallInBigBlinds * 0.03 -
+      context.amountToCallInBigBlinds * 0.026 -
       stackPenalty -
       jamPenalty,
   );
@@ -102,5 +102,5 @@ export function scoreBetOrRaise(context: BotDecisionContext, profile: BotProfile
   const jamDiscipline =
     context.facingAllInPressure && !context.hasStrongShowdownValue && context.startingHandTier !== 'premium-pair' ? 0.28 : 0;
 
-  return Math.max(0.01, strength * 0.82 + aggressionFactor * 0.56 + drawBonus + bluffWindow - jamDiscipline);
+  return Math.max(0.01, strength * 0.86 + aggressionFactor * 0.6 + drawBonus + bluffWindow - jamDiscipline);
 }

@@ -61,13 +61,13 @@ export function getPostflopCandidates(context: BotDecisionContext, profile: BotP
       : 1;
   const pressuredFoldBoost =
     context.aggressionFaced >= 2 && !context.hasStrongShowdownValue && context.drawTier === 'none'
-      ? 1.24
+      ? 1.12
       : 1;
   const jamCallPenalty =
     context.facingAllInPressure && !hasPremiumMadeHand(context)
-      ? Math.max(0.12, 0.52 - context.callPortionOfStack * 0.2 + profile.callDownLooseness * 0.1)
+      ? Math.max(0.14, 0.44 - context.callPortionOfStack * 0.16 + profile.callDownLooseness * 0.14)
       : 1;
-  const jamFoldBoost = context.facingAllInPressure && !hasPremiumMadeHand(context) ? 1.36 : 1;
+  const jamFoldBoost = context.facingAllInPressure && !hasPremiumMadeHand(context) ? 1.24 : 1;
   const jamRaisePenalty = context.facingAllInPressure && !hasPremiumMadeHand(context) ? 0.08 : 1;
 
   for (const legalAction of context.legalActions) {

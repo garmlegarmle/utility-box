@@ -17,7 +17,7 @@ export function CommunityCards({ cards, handNumber }: CommunityCardsProps) {
           large
           placeholder={!cards[index]}
           animate={Boolean(cards[index])}
-          delayMs={index * 90}
+          delayMs={index < 3 ? index * 110 : 140}
           motion="board"
         />
       ))}

@@ -1623,6 +1623,13 @@ body.is-resizing-editor-image {
   min-height: 900px;
 }
 
+@media (max-width: 760px) {
+  .holdem-game-stage,
+  .holdem-game-shell--embedded .holdem-game-stage {
+    min-height: auto;
+  }
+}
+
 .holdem-game-sync-note {
   margin: -6px 0 0;
   font-size: 14px;
