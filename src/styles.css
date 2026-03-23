@@ -2431,6 +2431,9 @@ body.is-resizing-editor-image {
 }
 
 .editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -2545,6 +2548,7 @@ body.is-resizing-editor-image {
 .editor-surface {
   border: 1px solid var(--border);
   min-height: 340px;
+  max-height: min(62vh, 760px);
   max-width: 740px;
   margin: 0 auto;
   padding: 18px 22px;
@@ -2553,6 +2557,9 @@ body.is-resizing-editor-image {
   line-height: 1.6;
   outline: none;
   cursor: text;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .editor-surface:focus {
@@ -2662,6 +2669,7 @@ body.is-resizing-editor-image {
 
   .editor-surface {
     max-width: 100%;
+    max-height: min(58vh, 680px);
     padding: 14px;
   }
 }
