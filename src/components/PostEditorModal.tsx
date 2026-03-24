@@ -296,6 +296,7 @@ export function PostEditorModal({
   const beforeEditorRef = useRef<HTMLDivElement | null>(null);
   const afterEditorRef = useRef<HTMLDivElement | null>(null);
   const selectedImageRef = useRef<HTMLImageElement | null>(null);
+  const savedSelectionRef = useRef<{ key: EditorPaneKey; range: Range } | null>(null);
   const resizeStateRef = useRef<{
     image: HTMLImageElement;
     startX: number;
@@ -392,6 +393,7 @@ export function PostEditorModal({
     setActiveEditor(embeddedInitial ? (nextLayout === 'above' ? 'before' : 'after') : 'body');
 
     selectedImageRef.current = null;
+    savedSelectionRef.current = null;
     resizeStateRef.current = null;
     setError('');
     setLoading(false);
@@ -549,6 +551,32 @@ export function PostEditorModal({
     return range;
   }
 
+  function rememberSelection(key: EditorPaneKey = preferredEditorKey()) {
+    const range = getSelectionRange(key);
+    if (!range) return;
+    savedSelectionRef.current = {
+      key,
+      range: range.cloneRange()
+    };
+  }
+
+  function restoreRememberedSelection(key: EditorPaneKey = preferredEditorKey()): Range | null {
+    const editor = getEditorElement(key);
+    const saved = savedSelectionRef.current;
+    if (!editor || !saved || saved.key !== key) return null;
+
+    try {
+      const selection = window.getSelection();
+      if (!selection) return null;
+      const range = saved.range.cloneRange();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      return range;
+    } catch {
+      return null;
+    }
+  }
+
   function exec(command: string, value?: string) {
     focusEditor(preferredEditorKey());
     document.execCommand(command, false, value || '');
@@ -593,7 +621,7 @@ export function PostEditorModal({
 
     const editorKey = preferredEditorKey();
     focusEditor(editorKey);
-    const range = getSelectionRange(editorKey);
+    const range = getSelectionRange(editorKey) || restoreRememberedSelection(editorKey);
 
     if (range && !range.collapsed) {
       document.execCommand('createLink', false, normalizedHref);
@@ -623,6 +651,10 @@ export function PostEditorModal({
     const selection = window.getSelection();
     const hasSelectionInEditor =
       selection && selection.rangeCount > 0 && editor.contains(selection.getRangeAt(0).commonAncestorContainer);
+    if ((!selection || selection.rangeCount === 0 || !hasSelectionInEditor) && restoreRememberedSelection(editorKey)) {
+      return insertNodeAtCursor(node);
+    }
+
     if (!selection || selection.rangeCount === 0 || !hasSelectionInEditor) {
       editor.appendChild(node);
       moveCaretAfter(node);
@@ -739,13 +771,22 @@ export function PostEditorModal({
   }
 
   function insertInternalLink(post: PostItem) {
-    const anchor = document.createElement('a');
-    anchor.href = `/${post.lang}/${post.section}/${post.slug}/`;
-    anchor.textContent = post.title;
-    insertNodeAtCursor(anchor);
+    const href = `/${post.lang}/${post.section}/${post.slug}/`;
+    const editorKey = preferredEditorKey();
+    focusEditor(editorKey);
+    const range = getSelectionRange(editorKey) || restoreRememberedSelection(editorKey);
 
-    const spacer = document.createTextNode(' ');
-    insertNodeAtCursor(spacer);
+    if (range && !range.collapsed) {
+      document.execCommand('createLink', false, href);
+      normalizeLegacyFontTags(getEditorElement(editorKey));
+    } else {
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.textContent = post.title;
+      insertNodeAtCursor(anchor);
+      insertNodeAtCursor(document.createTextNode(' '));
+    }
+
     closeLinkComposer();
   }
 
@@ -769,6 +810,7 @@ export function PostEditorModal({
 
   async function uploadAndInsertBodyImage(file: File) {
     const alt = resolveImageAlt(bodyImageAlt, file.name.replace(/\.[^.]+$/, ''));
+    rememberSelection(preferredEditorKey());
 
     setLoading(true);
     setError('');
@@ -792,6 +834,7 @@ export function PostEditorModal({
   async function uploadAndInsertBodyImages(files: FileList | File[]) {
     const nextFiles = Array.from(files || []).filter(Boolean);
     if (nextFiles.length === 0) return;
+    rememberSelection(preferredEditorKey());
     if (nextFiles.length === 1) {
       await uploadAndInsertBodyImage(nextFiles[0]);
       return;
@@ -1340,6 +1383,7 @@ export function PostEditorModal({
                   </button>
                   <button
                     type="button"
+                    onMouseDown={() => rememberSelection(preferredEditorKey())}
                     onClick={() => {
                       setLinkComposerOpen((prev) => !prev);
                       setLinkDraft('');
@@ -1390,7 +1434,7 @@ export function PostEditorModal({
                       placeholder="Used for uploads, numbered for multi-image rows"
                     />
                   </label>
-                  <label className="editor-toolbar__upload">
+                  <label className="editor-toolbar__upload" onMouseDown={() => rememberSelection(preferredEditorKey())}>
                     Image
                     <input
                       type="file"
@@ -1398,8 +1442,9 @@ export function PostEditorModal({
                       multiple
                       hidden
                       onChange={async (event) => {
-                        if (event.target.files?.length) await uploadAndInsertBodyImages(event.target.files);
+                        const { files } = event.currentTarget;
                         event.currentTarget.value = '';
+                        if (files?.length) await uploadAndInsertBodyImages(files);
                       }}
                     />
                   </label>
