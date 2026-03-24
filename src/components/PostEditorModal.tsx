@@ -577,6 +577,20 @@ export function PostEditorModal({
     }
   }
 
+  function getUsableSelectionRange(
+    key: EditorPaneKey = preferredEditorKey(),
+    options: { preferRemembered?: boolean } = {}
+  ): Range | null {
+    const { preferRemembered = false } = options;
+    const hasRememberedSelection = savedSelectionRef.current?.key === key;
+
+    if (preferRemembered && hasRememberedSelection) {
+      return restoreRememberedSelection(key) || getSelectionRange(key);
+    }
+
+    return getSelectionRange(key) || restoreRememberedSelection(key);
+  }
+
   function exec(command: string, value?: string) {
     focusEditor(preferredEditorKey());
     document.execCommand(command, false, value || '');
@@ -621,11 +635,12 @@ export function PostEditorModal({
 
     const editorKey = preferredEditorKey();
     focusEditor(editorKey);
-    const range = getSelectionRange(editorKey) || restoreRememberedSelection(editorKey);
+    const range = getUsableSelectionRange(editorKey, { preferRemembered: true });
 
     if (range && !range.collapsed) {
       document.execCommand('createLink', false, normalizedHref);
       normalizeLegacyFontTags(getEditorElement(editorKey));
+      savedSelectionRef.current = null;
       return;
     }
 
@@ -634,6 +649,7 @@ export function PostEditorModal({
     anchor.textContent = normalizedHref;
     insertNodeAtCursor(anchor);
     insertNodeAtCursor(document.createTextNode(' '));
+    savedSelectionRef.current = null;
   }
 
   function closeLinkComposer() {
@@ -648,6 +664,10 @@ export function PostEditorModal({
     if (!editor) return;
     focusEditor(editorKey);
 
+    if (savedSelectionRef.current?.key === editorKey) {
+      restoreRememberedSelection(editorKey);
+    }
+
     const selection = window.getSelection();
     const hasSelectionInEditor =
       selection && selection.rangeCount > 0 && editor.contains(selection.getRangeAt(0).commonAncestorContainer);
@@ -658,6 +678,7 @@ export function PostEditorModal({
     if (!selection || selection.rangeCount === 0 || !hasSelectionInEditor) {
       editor.appendChild(node);
       moveCaretAfter(node);
+      savedSelectionRef.current = null;
       return;
     }
 
@@ -665,6 +686,7 @@ export function PostEditorModal({
     range.deleteContents();
     range.insertNode(node);
     moveCaretAfter(node);
+    savedSelectionRef.current = null;
   }
 
   function setSelectedImageFromEvent(target: EventTarget | null) {
@@ -774,17 +796,19 @@ export function PostEditorModal({
     const href = `/${post.lang}/${post.section}/${post.slug}/`;
     const editorKey = preferredEditorKey();
     focusEditor(editorKey);
-    const range = getSelectionRange(editorKey) || restoreRememberedSelection(editorKey);
+    const range = getUsableSelectionRange(editorKey, { preferRemembered: true });
 
     if (range && !range.collapsed) {
       document.execCommand('createLink', false, href);
       normalizeLegacyFontTags(getEditorElement(editorKey));
+      savedSelectionRef.current = null;
     } else {
       const anchor = document.createElement('a');
       anchor.href = href;
       anchor.textContent = post.title;
       insertNodeAtCursor(anchor);
       insertNodeAtCursor(document.createTextNode(' '));
+      savedSelectionRef.current = null;
     }
 
     closeLinkComposer();
@@ -1442,9 +1466,9 @@ export function PostEditorModal({
                       multiple
                       hidden
                       onChange={async (event) => {
-                        const { files } = event.currentTarget;
+                        const files = Array.from(event.currentTarget.files || []);
                         event.currentTarget.value = '';
-                        if (files?.length) await uploadAndInsertBodyImages(files);
+                        if (files.length) await uploadAndInsertBodyImages(files);
                       }}
                     />
                   </label>
