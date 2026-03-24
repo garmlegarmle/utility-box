@@ -310,6 +310,12 @@ main {
   -webkit-line-clamp: 4;
 }
 
+.entry-card__title--ultra-tight {
+  font-size: 11px;
+  line-height: 1.16;
+  -webkit-line-clamp: 5;
+}
+
 .entry-card__rank {
   flex-shrink: 0;
   font-size: 20px;
@@ -2021,6 +2027,10 @@ body.is-resizing-editor-image {
     font-size: 13px;
   }
 
+  .entry-card__title--ultra-tight {
+    font-size: 11px;
+  }
+
   .entry-card__rank {
     font-size: 26px;
   }
@@ -2192,6 +2202,10 @@ body.is-resizing-editor-image {
 
   .entry-card__title--tight {
     font-size: 12px;
+  }
+
+  .entry-card__title--ultra-tight {
+    font-size: 10px;
   }
 
   .entry-card__rank {

@@ -38,6 +38,7 @@ function displayTag(rawTag: string | null | undefined, tags: string[], lang: Sit
 
 function titleClassName(title: string): string {
   const length = [...String(title || '')].length;
+  if (length >= 64) return 'entry-card__title entry-card__title--ultra-tight';
   if (length >= 46) return 'entry-card__title entry-card__title--tight';
   if (length >= 28) return 'entry-card__title entry-card__title--compact';
   return 'entry-card__title';
