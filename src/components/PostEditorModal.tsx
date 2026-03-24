@@ -283,6 +283,8 @@ export function PostEditorModal({
   const [cardCategoryTouched, setCardCategoryTouched] = useState(false);
   const [cardRankTouched, setCardRankTouched] = useState(false);
   const [bodyImageAlt, setBodyImageAlt] = useState('');
+  const [cardImageInputVersion, setCardImageInputVersion] = useState(0);
+  const [bodyImageInputVersion, setBodyImageInputVersion] = useState(0);
   const [linkDraft, setLinkDraft] = useState('');
   const [linkResults, setLinkResults] = useState<PostItem[]>([]);
   const [linkComposerOpen, setLinkComposerOpen] = useState(false);
@@ -382,6 +384,8 @@ export function PostEditorModal({
     setCardImageUrl(initialPost?.card.imageUrl || '');
     setCardImageAlt('');
     setBodyImageAlt('');
+    setCardImageInputVersion(0);
+    setBodyImageInputVersion(0);
     setLinkDraft('');
     setLinkResults([]);
     setLinkComposerOpen(false);
@@ -1298,12 +1302,16 @@ export function PostEditorModal({
                 <label>
                   Card Image Upload
                   <input
+                    key={`card-image-input-${cardImageInputVersion}`}
                     type="file"
                     accept="image/*"
-                    onChange={async (event) => {
-                      const file = event.target.files?.[0];
-                      if (file) await uploadCardImage(file);
+                    onClick={(event) => {
                       event.currentTarget.value = '';
+                    }}
+                    onChange={async (event) => {
+                      const file = event.currentTarget.files?.[0];
+                      setCardImageInputVersion((version) => version + 1);
+                      if (file) await uploadCardImage(file);
                     }}
                   />
                 </label>
@@ -1461,13 +1469,17 @@ export function PostEditorModal({
                   <label className="editor-toolbar__upload" onMouseDown={() => rememberSelection(preferredEditorKey())}>
                     Image
                     <input
+                      key={`body-image-input-${bodyImageInputVersion}`}
                       type="file"
                       accept="image/*"
                       multiple
                       hidden
+                      onClick={(event) => {
+                        event.currentTarget.value = '';
+                      }}
                       onChange={async (event) => {
                         const files = Array.from(event.currentTarget.files || []);
-                        event.currentTarget.value = '';
+                        setBodyImageInputVersion((version) => version + 1);
                         if (files.length) await uploadAndInsertBodyImages(files);
                       }}
                     />
