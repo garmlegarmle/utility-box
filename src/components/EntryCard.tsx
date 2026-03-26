@@ -12,9 +12,10 @@ interface EntryCardProps {
 const DEFAULT_CARD_IMAGE_URL = '/card-1.png';
 
 function rankText(post: PostItem, fallback: number): string {
-  if (post.card.rank) return post.card.rank;
-  if (post.card.rankNumber) return `#${post.card.rankNumber}`;
-  return `#${fallback}`;
+  const rawRank = String(post.card.rank || '').trim();
+  if (rawRank) return rawRank.replace(/^#+\s*/, '');
+  if (post.card.rankNumber) return String(post.card.rankNumber);
+  return String(fallback);
 }
 
 function displayCategory(rawCategory: string | null | undefined, post: PostItem, lang: SiteLang): string {
@@ -71,6 +72,7 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
   const tags = Array.isArray(post.tags) ? post.tags : [];
   const titleClass = titleClassName(cardTitle, post.card.titleSize || 'auto');
   const rank = rankText(post, 1);
+  const rankClass = showDraftBadge && post.status === 'draft' ? 'entry-card__rank entry-card__rank--draft' : 'entry-card__rank';
   const image = post.card.imageUrl || DEFAULT_CARD_IMAGE_URL;
   const categoryText = displayCategory(post.card.category, post, lang);
   const tagText = displayTag(post.card.tag, tags, lang);
@@ -85,14 +87,9 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
           <p className="entry-card__meta">
             <span className="entry-card__meta-side entry-card__meta-side--start">{categoryText}</span>
             <span className="entry-card__meta-center">
-              <span className="entry-card__rank">{rank}</span>
+              <span className={rankClass}>{rank}</span>
             </span>
-            <span className="entry-card__meta-side entry-card__meta-side--end">
-              {showDraftBadge && post.status === 'draft' ? (
-                <span className="entry-card__draft">{t(lang, 'card.draft')}</span>
-              ) : null}
-              <span>{tagText}</span>
-            </span>
+            <span className="entry-card__meta-side entry-card__meta-side--end">{tagText}</span>
           </p>
           <p className={titleClass}>{cardTitle}</p>
         </div>

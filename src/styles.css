@@ -277,16 +277,8 @@ main {
   justify-content: center;
 }
 
-.entry-card__draft {
-  border: 1px solid var(--border);
-  padding: 0 4px;
-  font-size: 11px;
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
 .entry-card__title {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   font-size: 20px;
   line-height: 1.08;
   font-weight: 500;
@@ -327,6 +319,10 @@ main {
   line-height: inherit;
   font-weight: inherit;
   letter-spacing: inherit;
+}
+
+.entry-card__rank--draft {
+  color: #ba2b2b;
 }
 
 .home-row-section {
