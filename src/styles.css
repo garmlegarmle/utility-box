@@ -245,24 +245,36 @@ main {
   flex-direction: column;
 }
 
-.entry-card__meta,
-.entry-card__title-row {
-  margin: 0;
-}
-
 .entry-card__meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
   font-size: 13px;
   line-height: 1.2;
 }
 
-.entry-card__meta-right {
+.entry-card__meta-side {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.entry-card__meta-side--start {
+  justify-content: flex-start;
+}
+
+.entry-card__meta-side--end {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.entry-card__meta-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .entry-card__draft {
@@ -273,29 +285,23 @@ main {
   text-transform: uppercase;
 }
 
-.entry-card__title-row {
-  margin-top: 6px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 10px;
-  min-height: 0;
-  flex: 1;
-}
-
 .entry-card__title {
+  margin: 6px 0 0;
   font-size: 20px;
   line-height: 1.08;
   font-weight: 500;
   letter-spacing: -0.02em;
   min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-self: stretch;
   overflow: hidden;
   overflow-wrap: anywhere;
   word-break: break-word;
   white-space: normal;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
 }
 
 .entry-card__title--compact {
@@ -307,25 +313,20 @@ main {
 .entry-card__title--tight {
   font-size: 13px;
   line-height: 1.14;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
 }
 
 .entry-card__title--ultra-tight {
   font-size: 10px;
   line-height: 1.16;
-  -webkit-line-clamp: 6;
+  -webkit-line-clamp: 3;
 }
 
 .entry-card__rank {
-  flex-shrink: 0;
-  font-size: 20px;
-  line-height: 1;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-.entry-card__rank--compact {
-  font-size: 17px;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
 }
 
 .home-row-section {
@@ -2031,14 +2032,6 @@ body.is-resizing-editor-image {
     font-size: 10px;
   }
 
-  .entry-card__rank {
-    font-size: 26px;
-  }
-
-  .entry-card__rank--compact {
-    font-size: 21px;
-  }
-
   .content-prose p,
   .content-prose li {
     font-size: 15px;
@@ -2206,14 +2199,6 @@ body.is-resizing-editor-image {
 
   .entry-card__title--ultra-tight {
     font-size: 9px;
-  }
-
-  .entry-card__rank {
-    font-size: 22px;
-  }
-
-  .entry-card__rank--compact {
-    font-size: 18px;
   }
 
   .cols-2,

@@ -54,7 +54,7 @@ function weightedTitleLength(title: string): number {
 
 function titleClassName(title: string, titleSize: CardTitleSize = 'auto'): string {
   if (titleSize === 'default') return 'entry-card__title';
-  if (titleSize === 'compact') return 'entry-card__title entry-card__title--compact';
+  if (titleSize === 'compact' || titleSize === 'auto') return 'entry-card__title entry-card__title--compact';
   if (titleSize === 'tight') return 'entry-card__title entry-card__title--tight';
   if (titleSize === 'ultra-tight') return 'entry-card__title entry-card__title--ultra-tight';
 
@@ -71,8 +71,6 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
   const tags = Array.isArray(post.tags) ? post.tags : [];
   const titleClass = titleClassName(cardTitle, post.card.titleSize || 'auto');
   const rank = rankText(post, 1);
-  const rankDigits = rank.replace(/\D/g, '').length;
-  const rankClass = rankDigits >= 3 || rank.length >= 4 ? 'entry-card__rank entry-card__rank--compact' : 'entry-card__rank';
   const image = post.card.imageUrl || DEFAULT_CARD_IMAGE_URL;
   const categoryText = displayCategory(post.card.category, post, lang);
   const tagText = displayTag(post.card.tag, tags, lang);
@@ -85,18 +83,18 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
         </div>
         <div className="entry-card__info">
           <p className="entry-card__meta">
-            <span>{categoryText}</span>
-            <span className="entry-card__meta-right">
+            <span className="entry-card__meta-side entry-card__meta-side--start">{categoryText}</span>
+            <span className="entry-card__meta-center">
+              <span className="entry-card__rank">{rank}</span>
+            </span>
+            <span className="entry-card__meta-side entry-card__meta-side--end">
               {showDraftBadge && post.status === 'draft' ? (
                 <span className="entry-card__draft">{t(lang, 'card.draft')}</span>
               ) : null}
               <span>{tagText}</span>
             </span>
           </p>
-          <p className="entry-card__title-row">
-            <span className={titleClass}>{cardTitle}</span>
-            <span className={rankClass}>{rank}</span>
-          </p>
+          <p className={titleClass}>{cardTitle}</p>
         </div>
       </Link>
     </article>
