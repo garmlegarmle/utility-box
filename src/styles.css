@@ -321,7 +321,7 @@ main {
   letter-spacing: inherit;
 }
 
-.entry-card__rank--draft {
+.entry-card__title--draft {
   color: #ba2b2b;
 }
 

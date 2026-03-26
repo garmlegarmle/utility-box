@@ -70,9 +70,13 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
   const targetHref = href || `/${lang}/${post.section}/${post.slug}/`;
   const cardTitle = post.card.title || post.title;
   const tags = Array.isArray(post.tags) ? post.tags : [];
-  const titleClass = titleClassName(cardTitle, post.card.titleSize || 'auto');
+  const titleClass = [
+    titleClassName(cardTitle, post.card.titleSize || 'auto'),
+    showDraftBadge && post.status === 'draft' ? 'entry-card__title--draft' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
   const rank = rankText(post, 1);
-  const rankClass = showDraftBadge && post.status === 'draft' ? 'entry-card__rank entry-card__rank--draft' : 'entry-card__rank';
   const image = post.card.imageUrl || DEFAULT_CARD_IMAGE_URL;
   const categoryText = displayCategory(post.card.category, post, lang);
   const tagText = displayTag(post.card.tag, tags, lang);
@@ -87,7 +91,7 @@ export function EntryCard({ post, href, lang, showDraftBadge = false }: EntryCar
           <p className="entry-card__meta">
             <span className="entry-card__meta-side entry-card__meta-side--start">{categoryText}</span>
             <span className="entry-card__meta-center">
-              <span className={rankClass}>{rank}</span>
+              <span className="entry-card__rank">{rank}</span>
             </span>
             <span className="entry-card__meta-side entry-card__meta-side--end">{tagText}</span>
           </p>
