@@ -13,6 +13,7 @@ from .data import MarketDataHandler, PreparedData
 from .features import FeatureEngine
 from .indicators import IndicatorEngine
 from .models import TrendAnalysisResult
+from .pattern_analysis import ChartPatternAnalyzer
 from .scoring import ScoringEngine
 from .utils import to_builtin
 
@@ -27,6 +28,7 @@ class TrendAnalysisEngine:
         self.feature_engine = FeatureEngine(self.config)
         self.scoring_engine = ScoringEngine(self.config)
         self.classifier = RegimeClassifier(self.config)
+        self.pattern_analyzer = ChartPatternAnalyzer(self.config)
 
     def analyze(self, frame: pd.DataFrame) -> TrendAnalysisResult:
         """Run the full analysis pipeline on a dataframe."""
@@ -40,6 +42,40 @@ class TrendAnalysisEngine:
         raw_frame = pd.read_csv(path)
         prepared = self.data_handler.prepare_bundle(raw_frame, date_column=date_column)
         return self._analyze_prepared_bundle(prepared)
+
+    def analyze_patterns(self, frame: pd.DataFrame):
+        """Run only the chart-pattern analyzer on a dataframe."""
+
+        prepared = self.data_handler.prepare_bundle(frame)
+        indicator_frame = self.indicator_engine.compute(prepared.current_window)
+        return self.pattern_analyzer.analyze(prepared.current_window, indicator_frame=indicator_frame)
+
+    def analyze_csv_patterns(self, path: str | Path, date_column: str = "date"):
+        """Run only the chart-pattern analyzer on a CSV file."""
+
+        raw_frame = pd.read_csv(path)
+        prepared = self.data_handler.prepare_bundle(raw_frame, date_column=date_column)
+        indicator_frame = self.indicator_engine.compute(prepared.current_window)
+        return self.pattern_analyzer.analyze(prepared.current_window, indicator_frame=indicator_frame)
+
+    def analyze_chart_image(
+        self,
+        image_path: str | Path,
+        annotated_output_path: str | Path | None = None,
+        expected_bars: int | None = None,
+        chart_style: str = "auto",
+    ):
+        """Run the heuristic chart-image analyzer on an uploaded screenshot."""
+
+        from .chart_image_analysis import ChartImageAnalyzer
+
+        analyzer = ChartImageAnalyzer(self.config)
+        return analyzer.analyze_image(
+            image_path=image_path,
+            annotated_output_path=annotated_output_path,
+            expected_bars=expected_bars,
+            chart_style=chart_style,
+        )
 
     def analyze_history(
         self,
@@ -144,6 +180,18 @@ class TrendAnalysisEngine:
         feature_snapshot = self.feature_engine.compute(indicator_frame)
         component_scores = self.scoring_engine.score(feature_snapshot)
         classification = self.classifier.classify(feature_snapshot, component_scores)
+        pattern_analysis = self.pattern_analyzer.analyze(
+            prepared.current_window,
+            indicator_frame=indicator_frame,
+            trend_context={
+                "regime_label": classification["regime_label"],
+                "trend_state_label": classification["trend_state_label"],
+                "trend_direction_score": component_scores.trend_direction.score,
+                "trend_strength_score": component_scores.trend_strength.score,
+                "momentum_score": component_scores.momentum.score,
+                "transition_risk_score": component_scores.transition_risk.score,
+            },
+        )
 
         latest_row = indicator_frame.iloc[-1]
         as_of_date = self._as_of_datetime(indicator_frame.index[-1])
@@ -211,6 +259,7 @@ class TrendAnalysisEngine:
             indicator_snapshot=to_builtin(indicator_snapshot),
             diagnostics=to_builtin(diagnostics),
             component_scores=component_scores,
+            pattern_analysis=pattern_analysis,
         )
 
     @staticmethod

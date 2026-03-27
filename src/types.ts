@@ -101,6 +101,7 @@ export interface TrendCandle {
   regime_label?: string;
   trend_strength_score: number;
   transition_risk_score: number;
+  state_transition_probability_10d?: number | null;
   confidence_score: number;
   composite_trend_score?: number;
   ema20?: number | null;
@@ -132,6 +133,9 @@ export interface TrendPayload {
     regime_label_internal?: string;
     trend_strength_score: number;
     trend_conviction_score: number;
+    breakdown_risk_score?: number;
+    breakdown_risk_label?: string;
+    state_transition_probability_10d?: number;
     transition_risk_score: number;
     transition_risk_label: string;
     confidence_score: number;

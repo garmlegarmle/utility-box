@@ -12,7 +12,7 @@ const TOOL_COPY = {
     featureEyebrow: 'Built-in Tool',
     featureTitle: 'Trend Analyzer',
     featureDescription:
-      'Upload the downloader-generated OHLCV CSV to inspect the last 200 daily candles, moving averages, Ichimoku, MACD, RSI, and the current regime readout.',
+      'Upload the downloader-generated OHLCV CSV to inspect the last 200 daily candles, moving averages, Ichimoku, MACD, RSI, breakdown risk, and the calibrated 10-day state-transition probability.',
     featureCta: 'Open tool',
     eyebrow: 'Tool / Market Trend',
     title: 'Trend Analyzer',
@@ -20,7 +20,7 @@ const TOOL_COPY = {
       'This page reads a locally prepared OHLCV CSV and returns a trend analysis for the latest 200 daily sessions with structure, momentum, and confirmation indicators.',
     introTitle: 'What This Page Does',
     introBody:
-      'The tool analyzes one ticker from an uploaded CSV, draws a 200-session daily candle chart, overlays moving averages and Ichimoku, and summarizes MACD, RSI, trend strength, confidence, and transition risk.',
+      'The tool analyzes one ticker from an uploaded CSV, draws a 200-session daily candle chart, overlays moving averages and Ichimoku, and summarizes MACD, RSI, trend strength, confidence, breakdown risk, and the calibrated 10-day state-transition probability.',
     usageTitle: 'How To Use It',
     usageSteps: [
       'Open the data downloader and export a CSV for one ticker.',
@@ -66,7 +66,8 @@ const TOOL_COPY = {
     trend: 'Trend',
     strength: 'Trend strength',
     conviction: 'Trend conviction',
-    risk: 'Transition risk',
+    breakdownRisk: 'Breakdown risk',
+    transitionProbability: '10d state transition',
     confidence: 'Confidence',
     direction: 'Direction score',
     momentum: 'Momentum score',
@@ -100,7 +101,7 @@ const TOOL_COPY = {
     featureEyebrow: '내장 도구',
     featureTitle: '추세 분석기',
     featureDescription:
-      '다운로더가 만든 OHLCV CSV를 업로드하면 최근 200일 일봉, 이동평균선, 일목균형표, MACD, RSI와 현재 추세 판독 결과를 확인할 수 있습니다.',
+      '다운로더가 만든 OHLCV CSV를 업로드하면 최근 200일 일봉, 이동평균선, 일목균형표, MACD, RSI, 구조 붕괴 위험, 10거래일 상태 전환 확률을 함께 확인할 수 있습니다.',
     featureCta: '도구 열기',
     eyebrow: '도구 / 주식 추세',
     title: '추세 분석기',
@@ -108,7 +109,7 @@ const TOOL_COPY = {
       '이 페이지는 로컬에서 준비한 OHLCV CSV를 읽고, 최근 200개 일봉 세션을 기준으로 구조·모멘텀·확인 신호를 종합한 추세 분석 결과를 돌려줍니다.',
     introTitle: '이 페이지는 무엇을 하나요',
     introBody:
-      '업로드한 CSV 안의 한 종목 데이터를 기준으로 200세션 일봉 차트를 만들고, 이동평균선, 일목균형표, MACD, RSI, 추세 강도, 신뢰도, 전환 위험을 함께 해석합니다.',
+      '업로드한 CSV 안의 한 종목 데이터를 기준으로 200세션 일봉 차트를 만들고, 이동평균선, 일목균형표, MACD, RSI, 추세 강도, 신뢰도, 구조 붕괴 위험, 10거래일 상태 전환 확률을 함께 해석합니다.',
     usageTitle: '이용 방법',
     usageSteps: [
       '데이터 다운로더를 열고 원하는 티커의 CSV를 저장합니다.',
@@ -154,7 +155,8 @@ const TOOL_COPY = {
     trend: '현재 추세',
     strength: '추세 강도',
     conviction: '추세 확신도',
-    risk: '전환 위험',
+    breakdownRisk: '구조 붕괴 위험',
+    transitionProbability: '10일 상태 전환 확률',
     confidence: '신뢰도',
     direction: '방향 점수',
     momentum: '모멘텀 점수',
@@ -549,8 +551,19 @@ export function TrendAnalyzerToolContent({ lang, embedded = false }: { lang: Sit
           highLabel: copy.highLabel
         },
         {
-          label: copy.risk,
-          value: payload.current_state.transition_risk_score,
+          label: copy.breakdownRisk,
+          value: payload.current_state.breakdown_risk_score ?? payload.current_state.transition_risk_score,
+          min: 0,
+          max: 100,
+          lowLabel: copy.stableLabel,
+          midLabel: copy.elevatedLabel,
+          highLabel: copy.riskHighLabel
+        },
+        {
+          label: copy.transitionProbability,
+          value: Number(
+            payload.current_state.state_transition_probability_10d ?? payload.current_state.transition_risk_score
+          ),
           min: 0,
           max: 100,
           lowLabel: copy.stableLabel,

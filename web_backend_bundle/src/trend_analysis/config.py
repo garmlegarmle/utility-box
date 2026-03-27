@@ -229,6 +229,7 @@ class ClassifierConfig:
     strong_direction_threshold: float = 40.0
     strong_strength_threshold: float = 60.0
     sideways_strength_max: float = 35.0
+    sideways_requires_neutral_composite_and_low_strength: bool = True
     transition_low_max: float = 34.0
     transition_moderate_max: float = 64.0
     composite_sign_neutral_threshold: float = 10.0
@@ -301,6 +302,37 @@ class SummaryConfig:
 
 
 @dataclass(slots=True)
+class PatternConfig:
+    """Thresholds and lookbacks used by the chart pattern analyzer."""
+
+    analysis_window_bars: int = 140
+    pivot_span: int = 3
+    pivot_lookback_bars: int = 90
+    min_candidate_score: float = 35.0
+    top_candidates: int = 2
+    price_similarity_tolerance_pct: float = 2.5
+    shoulder_tolerance_pct: float = 4.0
+    neckline_break_buffer_pct: float = 0.4
+    breakout_buffer_pct: float = 0.3
+    breakout_lookback_bars: int = 20
+    flag_pole_bars: int = 20
+    flag_window_min: int = 6
+    flag_window_max: int = 15
+    triangle_window: int = 24
+    range_window: int = 20
+    squeeze_window: int = 40
+    rounded_window: int = 60
+    volume_surge_ratio: float = 1.5
+    volume_dryup_ratio: float = 0.8
+    climax_volume_ratio: float = 2.0
+    wide_range_bar_ratio: float = 1.8
+    gap_atr_threshold: float = 0.6
+    vcp_pullback_tolerance: float = 0.12
+    candle_body_doji_ratio: float = 0.12
+    candle_long_wick_ratio: float = 0.55
+
+
+@dataclass(slots=True)
 class EngineConfig:
     """Top-level configuration container.
 
@@ -321,6 +353,7 @@ class EngineConfig:
     confidence: ConfidenceConfig = field(default_factory=ConfidenceConfig)
     tags: TagConfig = field(default_factory=TagConfig)
     summary: SummaryConfig = field(default_factory=SummaryConfig)
+    patterns: PatternConfig = field(default_factory=PatternConfig)
 
     def to_dict(self) -> dict[str, object]:
         """Return a nested plain dictionary for inspection or future optimization."""

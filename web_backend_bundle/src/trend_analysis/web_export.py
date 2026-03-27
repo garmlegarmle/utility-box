@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from .config import EngineConfig
+from .transition_probability import load_state_transition_calibrator
 from .engine import TrendAnalysisEngine
 from .best_params import load_optimized_config
 from .utils import clamp, trend_state_label_ko
@@ -58,10 +59,12 @@ class WebAnalysisExporter:
         config: EngineConfig | None = None,
         config_source: str = "default",
         metadata: dict[str, Any] | None = None,
+        state_transition_calibrator: Any | None = None,
     ) -> None:
         self.config = config or EngineConfig()
         self.config_source = config_source
         self.metadata = metadata or {}
+        self.state_transition_calibrator = state_transition_calibrator
         self.engine = TrendAnalysisEngine(self.config)
 
     @classmethod
@@ -71,10 +74,12 @@ class WebAnalysisExporter:
         base_config: EngineConfig | None = None,
     ) -> WebAnalysisExporter:
         config, metadata = load_optimized_config(best_params_csv, base_config=base_config)
+        calibrator = load_state_transition_calibrator(best_params_csv)
         return cls(
             config=config,
             config_source=str(Path(best_params_csv).expanduser().resolve()),
             metadata=metadata,
+            state_transition_calibrator=calibrator,
         )
 
     def export_from_csv(
@@ -125,10 +130,23 @@ class WebAnalysisExporter:
         current_result = self.engine.analyze_csv(csv_path, date_column=normalized_date_column)
         history_df = self.engine.build_history_frame(raw_frame, date_column="date")
         history_df["as_of_date"] = pd.to_datetime(history_df["as_of_date"])
+        if self.state_transition_calibrator is not None:
+            history_df = self.state_transition_calibrator.apply(history_df)
+        else:
+            history_df["state_transition_probability_10d"] = history_df["transition_risk_score"].clip(0.0, 100.0)
         chart_df = history_df.tail(window_bars).copy()
+        current_result_payload = current_result.to_dict()
+        latest_transition_probability = None
+        if not chart_df.empty:
+            latest_transition_probability = self._safe_float(chart_df.iloc[-1].get("state_transition_probability_10d"))
+        if latest_transition_probability is None:
+            latest_transition_probability = self._safe_float(current_result_payload.get("state_transition_probability_10d"))
+        if latest_transition_probability is None:
+            latest_transition_probability = clamp(float(current_result_payload["transition_risk_score"]), 0.0, 100.0)
+        current_result_payload["state_transition_probability_10d"] = latest_transition_probability
         payload = self._build_payload(
             ticker=ticker_label,
-            current_result=current_result.to_dict(),
+            current_result=current_result_payload,
             chart_df=chart_df,
         )
         return payload, chart_df
@@ -141,7 +159,13 @@ class WebAnalysisExporter:
     ) -> dict[str, Any]:
         trend_state_label = str(current_result["trend_state_label"])
         trend_strength_score = float(current_result["trend_strength_score"])
-        transition_risk_score = float(current_result["transition_risk_score"])
+        breakdown_risk_score = float(current_result["transition_risk_score"])
+        breakdown_risk_label = str(current_result["transition_risk_label"])
+        state_transition_probability_10d = self._safe_float(current_result.get("state_transition_probability_10d"))
+        if state_transition_probability_10d is None and not chart_df.empty:
+            state_transition_probability_10d = self._safe_float(chart_df.iloc[-1].get("state_transition_probability_10d"))
+        if state_transition_probability_10d is None:
+            state_transition_probability_10d = clamp(breakdown_risk_score, 0.0, 100.0)
         confidence_score = float(current_result["confidence_score"])
         composite_score = float(current_result["diagnostics"]["classification"]["composite_trend_score"])
         text_bundle = self._build_text_bundle(
@@ -164,6 +188,7 @@ class WebAnalysisExporter:
                     "regime_label": str(row["regime_label"]),
                     "trend_strength_score": self._safe_float(row["trend_strength_score"]),
                     "transition_risk_score": self._safe_float(row["transition_risk_score"]),
+                    "state_transition_probability_10d": self._safe_float(row.get("state_transition_probability_10d")),
                     "confidence_score": self._safe_float(row["confidence_score"]),
                     "composite_trend_score": self._safe_float(row["composite_trend_score"]),
                     "ema20": self._safe_float(row.get("ema20")),
@@ -196,8 +221,11 @@ class WebAnalysisExporter:
                 "regime_label_internal": current_result["regime_label"],
                 "trend_strength_score": trend_strength_score,
                 "trend_conviction_score": abs(composite_score),
-                "transition_risk_score": transition_risk_score,
-                "transition_risk_label": current_result["transition_risk_label"],
+                "breakdown_risk_score": breakdown_risk_score,
+                "breakdown_risk_label": breakdown_risk_label,
+                "state_transition_probability_10d": state_transition_probability_10d,
+                "transition_risk_score": breakdown_risk_score,
+                "transition_risk_label": breakdown_risk_label,
                 "confidence_score": confidence_score,
                 "direction_score": float(current_result["trend_direction_score"]),
                 "momentum_score": float(current_result["momentum_score"]),
@@ -240,7 +268,8 @@ class WebAnalysisExporter:
             f"- 3단계 추세: {current['trend_state_label']} ({current['trend_state_label_ko']})",
             f"- 추세 강도: {current['trend_strength_score']:.1f}",
             f"- 추세 확신도: {current['trend_conviction_score']:.1f}",
-            f"- 전환 위험: {current['transition_risk_score']:.1f} ({current['transition_risk_label']})",
+            f"- 구조 붕괴 위험: {current['breakdown_risk_score']:.1f} ({current['breakdown_risk_label']})",
+            f"- 10일 상태 전환 확률: {current['state_transition_probability_10d']:.1f}",
             f"- 신뢰도: {current['confidence_score']:.1f}",
             f"- 해석 요약: {current['summary_brief_ko']}",
             f"- 상세 해석: {current['interpretation_text_ko']}",
@@ -282,12 +311,20 @@ class WebAnalysisExporter:
         axes[1].set_ylabel("0-100")
         axes[1].legend(loc="upper left", ncol=2)
 
-        axes[2].plot(dates, chart_df["transition_risk_score"], color="#dc2626", linewidth=1.1, label="Transition risk")
+        axes[2].plot(dates, chart_df["transition_risk_score"], color="#dc2626", linewidth=1.1, label="Breakdown risk")
+        if "state_transition_probability_10d" in chart_df.columns:
+            axes[2].plot(
+                dates,
+                chart_df["state_transition_probability_10d"],
+                color="#f97316",
+                linewidth=1.1,
+                label="10d state transition",
+            )
         axes[2].plot(dates, chart_df["confidence_score"], color="#15803d", linewidth=1.0, label="Confidence")
         axes[2].axhline(60.0, color="#ef4444", linestyle="--", linewidth=0.8, alpha=0.6)
         axes[2].set_ylim(0, 100)
         axes[2].set_ylabel("0-100")
-        axes[2].legend(loc="upper left", ncol=2)
+        axes[2].legend(loc="upper left", ncol=3)
 
         for axis in axes:
             axis.grid(True, alpha=0.18, linewidth=0.6)
@@ -338,7 +375,12 @@ class WebAnalysisExporter:
 
         state_en = self._trend_state_label_en(trend_state_label)
         state_ko = trend_state_label_ko(trend_state_label)
-        transition_score = float(current_result["transition_risk_score"])
+        breakdown_score = float(current_result["transition_risk_score"])
+        transition_probability = self._safe_float(current_result.get("state_transition_probability_10d"))
+        if transition_probability is None:
+            transition_probability = self._safe_float(latest.get("state_transition_probability_10d"))
+        if transition_probability is None:
+            transition_probability = clamp(breakdown_score, 0.0, 100.0)
         confidence_score = clamp(float(current_result["confidence_score"]), 0.0, 100.0)
         strength_score = float(current_result["trend_strength_score"])
         conviction_score = abs(float(current_result["diagnostics"]["classification"]["composite_trend_score"]))
@@ -418,7 +460,8 @@ class WebAnalysisExporter:
             kijun=kijun,
         )
         risk_en, risk_ko = self._risk_text(
-            transition_score=transition_score,
+            breakdown_score=breakdown_score,
+            transition_probability=transition_probability,
             confidence_score=confidence_score,
             tags=tags,
         )
@@ -431,11 +474,13 @@ class WebAnalysisExporter:
 
         summary_brief_en = (
             f"{state_en} bias remains the base case. Strength is {strength_score:.1f}/100, "
-            f"confidence is {confidence_score:.1f}/100, and transition risk is {transition_score:.1f}/100."
+            f"confidence is {confidence_score:.1f}/100, breakdown risk is {breakdown_score:.1f}/100, "
+            f"and 10-day state-transition probability is {transition_probability:.1f}/100."
         )
         summary_brief_ko = (
             f"현재 기본 시나리오는 {state_ko}입니다. 추세 강도는 {strength_score:.1f}/100, "
-            f"신뢰도는 {confidence_score:.1f}/100, 전환 위험은 {transition_score:.1f}/100입니다."
+            f"신뢰도는 {confidence_score:.1f}/100, 구조 붕괴 위험은 {breakdown_score:.1f}/100, "
+            f"10거래일 상태 전환 확률은 {transition_probability:.1f}/100입니다."
         )
 
         summary_bullets_en = [
@@ -667,19 +712,48 @@ class WebAnalysisExporter:
 
     @staticmethod
     def _risk_text(
-        transition_score: float,
+        breakdown_score: float,
+        transition_probability: float,
         confidence_score: float,
         tags: list[str],
     ) -> tuple[str, str]:
-        if transition_score >= 65:
-            risk_en = "Transition risk is high, so the current trend state is more vulnerable to sharp reversals or failed continuation."
-            risk_ko = "전환 위험이 높아 현재 추세 상태가 급격한 반전이나 추세 실패에 더 취약합니다."
-        elif transition_score >= 35:
-            risk_en = "Transition risk is moderate, so the current move still deserves follow-through confirmation."
-            risk_ko = "전환 위험이 중간 수준이어서 현재 움직임이 이어지는지 추가 확인이 필요합니다."
+        if breakdown_score >= 65:
+            risk_en = "Breakdown risk is high, so the current structure is vulnerable to abrupt failure or a sharp reversal."
+            risk_ko = "구조 붕괴 위험이 높아 현재 추세 구조가 급격히 무너지거나 빠르게 반전될 가능성에 더 취약합니다."
+        elif breakdown_score >= 35:
+            risk_en = "Breakdown risk is moderate, so the current structure still needs follow-through confirmation."
+            risk_ko = "구조 붕괴 위험이 중간 수준이어서 현재 구조가 유지되는지 추가 확인이 필요합니다."
         else:
-            risk_en = "Transition risk is low, so there is not much evidence yet that the current regime is immediately breaking."
-            risk_ko = "전환 위험이 낮아 현재 국면이 당장 무너진다는 신호는 아직 크지 않습니다."
+            risk_en = "Breakdown risk is low, so there is limited evidence that the current regime is immediately failing."
+            risk_ko = "구조 붕괴 위험이 낮아 현재 국면이 당장 무너진다는 신호는 아직 크지 않습니다."
+
+        if transition_probability >= 65:
+            probability_en = (
+                f"The calibrated 10-day state-transition probability is {transition_probability:.1f}/100, "
+                "so a bullish/sideways/bearish state change is materially elevated."
+            )
+            probability_ko = (
+                f"보정된 10거래일 상태 전환 확률은 {transition_probability:.1f}/100으로, "
+                "bullish·sideways·bearish 상태 자체가 바뀔 가능성이 꽤 높습니다."
+            )
+        elif transition_probability >= 35:
+            probability_en = (
+                f"The calibrated 10-day state-transition probability is {transition_probability:.1f}/100, "
+                "which means the current state can still change if confirmation weakens."
+            )
+            probability_ko = (
+                f"보정된 10거래일 상태 전환 확률은 {transition_probability:.1f}/100으로, "
+                "확인 신호가 약해지면 현재 상태가 바뀔 수 있는 수준입니다."
+            )
+        else:
+            probability_en = (
+                f"The calibrated 10-day state-transition probability is {transition_probability:.1f}/100, "
+                "so a near-term state flip is not the base case yet."
+            )
+            probability_ko = (
+                f"보정된 10거래일 상태 전환 확률은 {transition_probability:.1f}/100으로, "
+                "단기 상태 전환이 기본 시나리오라고 보긴 아직 어렵습니다."
+            )
 
         confidence_en = f"Model confidence is {confidence_score:.1f}/100, which means this read is {'reasonably dependable' if confidence_score >= 60 else 'still tentative'}."
         confidence_ko = f"모델 신뢰도는 {confidence_score:.1f}/100으로, 이 판독은 {'비교적 신뢰할 만한 편' if confidence_score >= 60 else '아직은 가설 성격이 강한 편'}입니다."
@@ -704,7 +778,10 @@ class WebAnalysisExporter:
 
         tail_en = " ".join(tag_parts_en)
         tail_ko = " ".join(tag_parts_ko)
-        return f"{risk_en} {confidence_en} {tail_en}".strip(), f"{risk_ko} {confidence_ko} {tail_ko}".strip()
+        return (
+            f"{risk_en} {probability_en} {confidence_en} {tail_en}".strip(),
+            f"{risk_ko} {probability_ko} {confidence_ko} {tail_ko}".strip(),
+        )
 
     @staticmethod
     def _condition_text(

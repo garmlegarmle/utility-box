@@ -99,10 +99,14 @@ class RegimeClassifier:
             and strength >= classifier_cfg.strong_strength_threshold
         ):
             return "strong_downtrend"
-        if (
+        composite_is_neutral = (
             classifier_cfg.weak_downtrend_threshold < composite < classifier_cfg.weak_uptrend_threshold
-            or strength < classifier_cfg.sideways_strength_max
-        ):
+        )
+        strength_is_weak = strength < classifier_cfg.sideways_strength_max
+        if classifier_cfg.sideways_requires_neutral_composite_and_low_strength:
+            if composite_is_neutral and strength_is_weak:
+                return "sideways"
+        elif composite_is_neutral or strength_is_weak:
             return "sideways"
         if composite >= classifier_cfg.weak_uptrend_threshold:
             return "weak_uptrend"

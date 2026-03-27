@@ -53,6 +53,75 @@ class ComponentScores:
 
 
 @dataclass(slots=True)
+class PatternCandidate:
+    """One scored chart-pattern hypothesis."""
+
+    pattern_name: str
+    category: str
+    direction_bias: str
+    score: float
+    interpretation_ko: str
+    likely_outcome_ko: str
+    invalidation_ko: str
+    evidence: list[str] = field(default_factory=list)
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class PatternAnalysisResult:
+    """Top-ranked pattern candidates and natural-language interpretation."""
+
+    as_of_date: datetime
+    summary_text_ko: str
+    candidates: list[PatternCandidate] = field(default_factory=list)
+    primary_candidate: PatternCandidate | None = None
+    secondary_candidate: PatternCandidate | None = None
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["as_of_date"] = self.as_of_date.isoformat()
+        return payload
+
+
+@dataclass(slots=True)
+class OverlayShape:
+    """Drawable overlay shape in bar-index / price coordinates."""
+
+    shape_type: str
+    label: str
+    points: list[tuple[float, float]] = field(default_factory=list)
+    color: str = "#2563eb"
+    style: str = "solid"
+    width: float = 1.8
+    alpha: float = 0.95
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class ImageChartAnalysisResult:
+    """Analysis result derived from a chart screenshot or uploaded chart image."""
+
+    source_image_path: str
+    annotated_image_path: str | None
+    extracted_bars: int
+    extraction_confidence: float
+    chart_bbox: tuple[int, int, int, int]
+    trend_result: TrendAnalysisResult
+    diagnostics: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["trend_result"] = self.trend_result.to_dict()
+        return payload
+
+
+@dataclass(slots=True)
 class TrendAnalysisResult:
     """Structured current-state market diagnosis."""
 
@@ -75,6 +144,8 @@ class TrendAnalysisResult:
     indicator_snapshot: dict[str, Any]
     diagnostics: dict[str, Any]
     component_scores: ComponentScores
+    pattern_analysis: PatternAnalysisResult | None = None
+    state_transition_probability_10d: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
