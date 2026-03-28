@@ -6,13 +6,14 @@ import styles from 'holdem/components/seat/HeroHud.module.css';
 interface HeroHudProps {
   seat?: Seat;
   handNumber: number;
+  isWinner?: boolean;
   isButton: boolean;
   isSmallBlind: boolean;
   isBigBlind: boolean;
   lang: HoldemLang;
 }
 
-export function HeroHud({ seat, handNumber, isButton, isSmallBlind, isBigBlind, lang }: HeroHudProps) {
+export function HeroHud({ seat, handNumber, isWinner = false, isButton, isSmallBlind, isBigBlind, lang }: HeroHudProps) {
   const copy = getGameUiText(lang);
 
   if (!seat || seat.status !== 'active') {
@@ -20,7 +21,7 @@ export function HeroHud({ seat, handNumber, isButton, isSmallBlind, isBigBlind, 
   }
 
   return (
-    <section className={styles.hud}>
+    <section className={[styles.hud, isWinner ? styles.winner : ''].join(' ')}>
       <div className={styles.infoRow}>
         <div className={styles.identity}>
           <span className={styles.name}>{seat.name}</span>

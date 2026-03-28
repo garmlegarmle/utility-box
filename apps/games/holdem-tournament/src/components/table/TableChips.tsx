@@ -200,7 +200,7 @@ export function TableChips({
     pendingEffects.forEach((effect) => {
       window.setTimeout(() => {
         setEffects((current) => current.filter((entry) => entry.id !== effect.id));
-      }, effect.kind === 'win' ? 760 : effect.kind === 'collect' ? 700 : 620);
+      }, effect.kind === 'win' ? 1260 : effect.kind === 'collect' ? 1040 : 900);
     });
   }, [game, isMobileLayout, layout, potStackTop]);
 

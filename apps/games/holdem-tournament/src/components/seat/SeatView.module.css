@@ -45,6 +45,15 @@
     0 12px 28px rgba(0, 0, 0, 0.32);
 }
 
+.winner {
+  background: rgba(27, 57, 43, 0.96);
+  border-color: rgba(241, 212, 136, 0.92);
+  box-shadow:
+    0 0 0 2px rgba(241, 212, 136, 0.24),
+    0 0 22px rgba(241, 212, 136, 0.28),
+    0 14px 30px rgba(0, 0, 0, 0.3);
+}
+
 .busted {
   opacity: 0.42;
 }

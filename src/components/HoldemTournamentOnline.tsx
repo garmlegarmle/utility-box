@@ -822,6 +822,7 @@ export function HoldemTournamentOnline({
                   seat={seat as unknown as HoldemSeat}
                   handNumber={displaySnapshot.handNumber}
                   isActing={seat.seatIndex === displaySnapshot.actingSeatIndex}
+                  isWinner={seat.isWinner}
                   isButton={seat.seatIndex === displaySnapshot.buttonSeatIndex}
                   isSmallBlind={seat.seatIndex === displaySnapshot.smallBlindSeatIndex}
                   isBigBlind={seat.seatIndex === displaySnapshot.bigBlindSeatIndex}
@@ -1036,6 +1037,7 @@ export function HoldemTournamentOnline({
                     <HeroHud
                       seat={currentViewerSeat as unknown as HoldemSeat}
                       handNumber={displaySnapshot.handNumber}
+                      isWinner={currentViewerSeat.isWinner}
                       isButton={currentViewerSeat.seatIndex === displaySnapshot.buttonSeatIndex}
                       isSmallBlind={currentViewerSeat.seatIndex === displaySnapshot.smallBlindSeatIndex}
                       isBigBlind={currentViewerSeat.seatIndex === displaySnapshot.bigBlindSeatIndex}

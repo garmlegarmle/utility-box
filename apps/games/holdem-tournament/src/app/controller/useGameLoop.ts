@@ -7,27 +7,27 @@ import type { GameState } from 'holdem/types/engine';
 
 function getAdvanceDelay(game: GameState, isAiAction: boolean): number {
   if (isAiAction) {
-    return game.ui.actionSpeed;
+    return Math.round(game.ui.actionSpeed * 1.18);
   }
 
   const allInRunout = getPlayersAbleToAct(game.seats).length < 2;
 
   switch (game.phase) {
     case 'deal_hole_cards':
-      return 210;
+      return 320;
     case 'deal_flop':
-      return 440;
+      return 700;
     case 'deal_turn':
     case 'deal_river':
-      return allInRunout ? 1120 : 920;
+      return allInRunout ? 1620 : 1260;
     case 'showdown':
-      return 760;
+      return 1180;
     case 'award_pots':
-      return 480;
+      return 920;
     case 'eliminate_players':
-      return 520;
+      return 820;
     default:
-      return 140;
+      return 220;
   }
 }
 

@@ -18,12 +18,12 @@
 }
 
 .animate {
-  animation: dealIn 380ms cubic-bezier(0.2, 0.9, 0.22, 1) both;
+  animation: dealIn 520ms cubic-bezier(0.2, 0.9, 0.22, 1) both;
   transform-origin: center center;
 }
 
 .boardMotion {
-  animation: boardSlamIn 720ms cubic-bezier(0.17, 0.93, 0.18, 1) both;
+  animation: boardSlamIn 980ms cubic-bezier(0.17, 0.93, 0.18, 1) both;
 }
 
 .boardMotion::after {
@@ -40,7 +40,7 @@
     0 8px 14px rgba(0, 0, 0, 0.18);
   pointer-events: none;
   transform-origin: center center;
-  animation: boardRevealOverlay 720ms cubic-bezier(0.18, 0.92, 0.24, 1) both;
+  animation: boardRevealOverlay 980ms cubic-bezier(0.18, 0.92, 0.24, 1) both;
 }
 
 .large {

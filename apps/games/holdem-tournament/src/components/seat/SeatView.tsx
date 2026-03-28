@@ -8,6 +8,7 @@ interface SeatViewProps {
   seat: Seat;
   handNumber: number;
   isActing: boolean;
+  isWinner?: boolean;
   isButton: boolean;
   isSmallBlind: boolean;
   isBigBlind: boolean;
@@ -21,6 +22,7 @@ export function SeatView({
   seat,
   handNumber,
   isActing,
+  isWinner = false,
   isButton,
   isSmallBlind,
   isBigBlind,
@@ -41,6 +43,7 @@ export function SeatView({
         seat.isHuman ? styles.humanSeat : '',
         isFoldedOut ? styles.folded : styles.live,
         isActing ? styles.acting : '',
+        isWinner ? styles.winner : '',
         seat.status === 'busted' ? styles.busted : '',
       ].join(' ')}
       style={{ top: position.top, left: position.left }}

@@ -259,6 +259,7 @@ export interface HoldemOnlineSeat {
   lastActionAmount: number;
   winningsThisHand: number;
   position: string | null;
+  isWinner: boolean;
 }
 
 export interface HoldemOnlineLogEntry {

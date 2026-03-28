@@ -11,7 +11,13 @@ import {
   HOLDEM_ONLINE_TABLE_LABELS,
 } from './constants.js';
 import { createOnlineGameState, advanceOnlineState, applyOnlinePlayerAction } from './engine.js';
-import { getAmountToCall, getBigBlindSeatIndex, getLegalActions, getSmallBlindSeatIndex } from './shared/holdem-engine.generated.js';
+import {
+  getAmountToCall,
+  getBigBlindSeatIndex,
+  getLegalActions,
+  getPlayersAbleToAct,
+  getSmallBlindSeatIndex,
+} from './shared/holdem-engine.generated.js';
 
 function now() {
   return Date.now();
@@ -32,6 +38,7 @@ function createTable(tableId) {
     game: null,
     status: 'waiting',
     actionTimeout: null,
+    autoAdvanceTimeout: null,
     disconnectTimers: new Map(),
     lastTournamentResult: null,
   };
@@ -129,6 +136,24 @@ function selectSidePots(game) {
   return game.hand.pots.filter((pot) => !pot.isMain && pot.eligiblePlayerIds.length >= 2).map((pot) => pot.amount);
 }
 
+function collectWinningPlayerIds(game) {
+  if (!game) {
+    return new Set();
+  }
+
+  if (Array.isArray(game.hand?.payouts) && game.hand.payouts.length > 0) {
+    return new Set(game.hand.payouts.map((payout) => payout.playerId));
+  }
+
+  if (Array.isArray(game.hand?.showdown) && game.hand.showdown.length > 0) {
+    return new Set(
+      game.hand.showdown.flatMap((result) => (Array.isArray(result.winners) ? result.winners : [])),
+    );
+  }
+
+  return new Set();
+}
+
 function seatVisibleCards(seat, viewerPlayerId, revealAll = false) {
   if (revealAll || seat.playerId === viewerPlayerId || seat.hasShownCards) {
     return seat.holeCards;
@@ -137,7 +162,7 @@ function seatVisibleCards(seat, viewerPlayerId, revealAll = false) {
   return [];
 }
 
-function buildSeatSnapshot(seat, viewerPlayerId, revealAll = false) {
+function buildSeatSnapshot(seat, viewerPlayerId, revealAll = false, winningPlayerIds = new Set()) {
   return {
     seatIndex: seat.seatIndex,
     playerId: seat.playerId,
@@ -158,6 +183,7 @@ function buildSeatSnapshot(seat, viewerPlayerId, revealAll = false) {
     lastActionAmount: seat.lastActionAmount,
     winningsThisHand: seat.winningsThisHand,
     position: seat.position,
+    isWinner: winningPlayerIds.has(seat.playerId),
   };
 }
 
@@ -215,6 +241,7 @@ function buildTableSnapshot(table, viewerPlayerId) {
   const viewerSeat = game?.seats.find((seat) => seat.playerId === viewerPlayerId) || null;
   const viewerEliminated = Boolean(viewerSeat && viewerSeat.status === 'busted');
   const revealAll = game?.phase === 'tournament_complete';
+  const winningPlayerIds = collectWinningPlayerIds(game);
   const legalActions = viewerSeat ? getLegalActions(game, viewerPlayerId) : [];
   const amountToCall = viewerSeat ? getAmountToCall(game, viewerSeat) : 0;
 
@@ -244,7 +271,9 @@ function buildTableSnapshot(table, viewerPlayerId) {
     bigBlindSeatIndex: game ? getBigBlindSeatIndex(game.seats, game.buttonSeatIndex) : null,
     handMessage: game?.hand.winnerMessage || null,
     logs: (game?.log ?? []).slice(-60),
-    seats: game ? game.seats.map((seat) => buildSeatSnapshot(seat, viewerPlayerId, revealAll)) : [],
+    seats: game
+      ? game.seats.map((seat) => buildSeatSnapshot(seat, viewerPlayerId, revealAll, winningPlayerIds))
+      : [],
     participants: [...table.participants.values()]
       .map((entry) => ({
         playerId: entry.playerId,
@@ -330,6 +359,13 @@ export function createHoldemOnlineManager() {
     table.actionTimeout = null;
   }
 
+  function clearAutoAdvanceTimeout(table) {
+    if (table.autoAdvanceTimeout?.timer) {
+      clearTimeout(table.autoAdvanceTimeout.timer);
+    }
+    table.autoAdvanceTimeout = null;
+  }
+
   function clearDisconnectTimeout(table, playerId) {
     const timer = table.disconnectTimers.get(playerId);
     if (timer) {
@@ -380,6 +416,7 @@ export function createHoldemOnlineManager() {
 
   function finalizeTournament(table) {
     clearActionTimeout(table);
+    clearAutoAdvanceTimeout(table);
     if (!table.game) return;
 
     table.lastTournamentResult = buildTournamentResult(table.game);
@@ -398,6 +435,7 @@ export function createHoldemOnlineManager() {
 
   function terminateAbandonedTournament(table) {
     clearActionTimeout(table);
+    clearAutoAdvanceTimeout(table);
     table.game = null;
     table.status = 'waiting';
     table.lastTournamentResult = null;
@@ -459,42 +497,132 @@ export function createHoldemOnlineManager() {
     };
   }
 
+  function getAutoAdvanceDelay(previousState, nextState, eventType) {
+    const allInRunout = getPlayersAbleToAct(nextState.seats).length < 2;
+
+    if (nextState.phase === 'tournament_complete') {
+      return 2200;
+    }
+
+    switch (eventType) {
+      case 'hand:starting':
+        return 680;
+      case 'hand:flop':
+        return allInRunout ? 1700 : 1400;
+      case 'hand:turn':
+      case 'hand:river':
+        return allInRunout ? 1950 : 1600;
+      case 'showdown:started':
+        return 1500;
+      default:
+        break;
+    }
+
+    switch (nextState.phase) {
+      case 'hand_setup':
+        return 280;
+      case 'post_antes':
+        return 360;
+      case 'post_blinds':
+        return 520;
+      case 'deal_hole_cards':
+        return 760;
+      case 'deal_flop':
+        return 820;
+      case 'deal_turn':
+      case 'deal_river':
+        return allInRunout ? 1350 : 980;
+      case 'showdown':
+        return 1380;
+      case 'award_pots':
+        return 1650;
+      case 'eliminate_players':
+        return 1180;
+      case 'move_button':
+        return 640;
+      case 'level_up_check':
+        return 780;
+      case 'next_hand':
+        return 1480;
+      default:
+        return 480;
+    }
+  }
+
+  function scheduleAutoAdvance(table, delayMs) {
+    clearAutoAdvanceTimeout(table);
+    const timer = setTimeout(() => {
+      table.autoAdvanceTimeout = null;
+      driveTable(table);
+    }, delayMs);
+    table.autoAdvanceTimeout = { timer, delayMs };
+  }
+
   function driveTable(table) {
     clearActionTimeout(table);
-    while (table.game) {
-      syncParticipantSeatState(table);
-      if (table.game.phase === 'tournament_complete') {
-        finalizeTournament(table);
-        return;
-      }
-
-      if (HOLDEM_ONLINE_ACTION_PHASES.has(table.game.phase)) {
-        table.status = 'in_hand';
-        scheduleActionTimeout(table);
-        broadcastTable(table, 'turn:started');
-        broadcastTables();
-        return;
-      }
-
-      if (table.game.phase === 'showdown' || table.game.phase === 'award_pots' || table.game.phase === 'eliminate_players') {
-        table.status = 'showdown';
-      } else {
-        table.status = 'in_hand';
-      }
-
-      const previousState = table.game;
-      const nextState = advanceOnlineState(table.game);
-      table.game = nextState;
-      syncParticipantSeatState(table);
-      const eventType = eventTypeForTransition(previousState, nextState);
-      broadcastTable(table, eventType);
-      broadcastTables();
-
-      if (nextState.phase === 'tournament_complete') {
-        finalizeTournament(table);
-        return;
-      }
+    clearAutoAdvanceTimeout(table);
+    if (!table.game) {
+      return;
     }
+
+    syncParticipantSeatState(table);
+
+    if (table.game.phase === 'tournament_complete') {
+      if (table.status === 'tournament_complete') {
+        finalizeTournament(table);
+        return;
+      }
+
+      table.status = 'tournament_complete';
+      scheduleAutoAdvance(table, 2200);
+      return;
+    }
+
+    if (HOLDEM_ONLINE_ACTION_PHASES.has(table.game.phase)) {
+      table.status = 'in_hand';
+      scheduleActionTimeout(table);
+      broadcastTable(table, 'turn:started');
+      broadcastTables();
+      return;
+    }
+
+    if (table.game.phase === 'showdown' || table.game.phase === 'award_pots' || table.game.phase === 'eliminate_players') {
+      table.status = 'showdown';
+    } else {
+      table.status = 'in_hand';
+    }
+
+    const previousState = table.game;
+    const nextState = advanceOnlineState(table.game);
+    table.game = nextState;
+    syncParticipantSeatState(table);
+
+    if (nextState.phase === 'showdown' || nextState.phase === 'award_pots' || nextState.phase === 'eliminate_players') {
+      table.status = 'showdown';
+    } else if (nextState.phase === 'tournament_complete') {
+      table.status = 'tournament_complete';
+    } else {
+      table.status = 'in_hand';
+    }
+
+    const eventType = eventTypeForTransition(previousState, nextState);
+    broadcastTable(table, eventType);
+    broadcastTables();
+
+    if (nextState.phase === 'tournament_complete') {
+      scheduleAutoAdvance(table, getAutoAdvanceDelay(previousState, nextState, eventType));
+      return;
+    }
+
+    if (HOLDEM_ONLINE_ACTION_PHASES.has(nextState.phase)) {
+      table.status = 'in_hand';
+      scheduleActionTimeout(table);
+      broadcastTable(table, 'turn:started');
+      broadcastTables();
+      return;
+    }
+
+    scheduleAutoAdvance(table, getAutoAdvanceDelay(previousState, nextState, eventType));
   }
 
   function startTournament(table) {
