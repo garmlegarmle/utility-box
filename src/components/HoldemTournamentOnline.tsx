@@ -816,8 +816,8 @@ export function HoldemTournamentOnline({
                   isButton={seat.seatIndex === displaySnapshot.buttonSeatIndex}
                   isSmallBlind={seat.seatIndex === displaySnapshot.smallBlindSeatIndex}
                   isBigBlind={seat.seatIndex === displaySnapshot.bigBlindSeatIndex}
-                  showCards={seat.playerId === playerId || seat.hasShownCards || displaySnapshot.status === 'tournament_complete'}
-                  showHoleCards
+                  showCards={seat.playerId !== playerId && (seat.hasShownCards || displaySnapshot.status === 'tournament_complete')}
+                  showHoleCards={seat.playerId !== playerId}
                   isMobileLayout={isMobileLayout}
                   lang={lang}
                 />
@@ -834,7 +834,6 @@ export function HoldemTournamentOnline({
                       <>
                         <span className={tableStyles.startEyebrow}>{copy.modeTitle}</span>
                         <h2 className={tableStyles.startTitle}>{copy.nameTitle}</h2>
-                        <p className={tableStyles.startCopy}>{copy.nameHint}</p>
                         <div className="holdem-online-overlay-status">
                           <span>{copy.connection}</span>
                           <strong>{connectionLabel}</strong>
@@ -850,7 +849,6 @@ export function HoldemTournamentOnline({
                             placeholder={lang === 'ko' ? '표시할 이름 입력' : 'Enter display name'}
                           />
                         </label>
-                        {!normalizedPlayerName ? <p className={tableStyles.startHint}>{copy.nameHint}</p> : null}
                         <div className="holdem-online-overlay-actions">
                           <button
                             type="button"
@@ -891,40 +889,40 @@ export function HoldemTournamentOnline({
                             {copy.editName}
                           </button>
                         </div>
-                      <div className="holdem-online-lobby__grid">
-                        {tables.map((table) => (
-                          <article key={table.tableId} className="holdem-online-card">
-                            <div className="holdem-online-card__head">
-                              <strong>{table.label}</strong>
-                              <span>{formatStatus(table.status, lang)}</span>
-                            </div>
-                            <dl className="holdem-online-card__stats">
-                              <div>
-                                <dt>{copy.tablePlayers}</dt>
-                                <dd>{table.connectedCount}</dd>
+                        <div className="holdem-online-lobby__grid">
+                          {tables.map((table) => (
+                            <article key={table.tableId} className="holdem-online-card">
+                              <div className="holdem-online-card__head">
+                                <strong>{table.label}</strong>
+                                <span>{formatStatus(table.status, lang)}</span>
                               </div>
-                              <div>
-                                <dt>{copy.tableSeated}</dt>
-                                <dd>{table.seatedCount}</dd>
-                              </div>
-                              <div>
-                                <dt>{copy.tableReady}</dt>
-                                <dd>{table.readyCount}</dd>
-                              </div>
-                              <div>
-                                <dt>{copy.level}</dt>
-                                <dd>{table.level ?? '—'}</dd>
-                              </div>
-                            </dl>
-                            <button
-                              disabled={!normalizedPlayerName || connectionStatus !== 'connected'}
-                              onClick={() => handleJoinTable(table.tableId)}
-                            >
-                              {copy.join}
-                            </button>
-                          </article>
-                        ))}
-                      </div>
+                              <dl className="holdem-online-card__stats">
+                                <div>
+                                  <dt>{copy.tablePlayers}</dt>
+                                  <dd>{table.connectedCount}</dd>
+                                </div>
+                                <div>
+                                  <dt>{copy.tableSeated}</dt>
+                                  <dd>{table.seatedCount}</dd>
+                                </div>
+                                <div>
+                                  <dt>{copy.tableReady}</dt>
+                                  <dd>{table.readyCount}</dd>
+                                </div>
+                                <div>
+                                  <dt>{copy.level}</dt>
+                                  <dd>{table.level ?? '—'}</dd>
+                                </div>
+                              </dl>
+                              <button
+                                disabled={!normalizedPlayerName || connectionStatus !== 'connected'}
+                                onClick={() => handleJoinTable(table.tableId)}
+                              >
+                                {copy.join}
+                              </button>
+                            </article>
+                          ))}
+                        </div>
                       </>
                     )}
                   </div>
@@ -961,6 +959,27 @@ export function HoldemTournamentOnline({
                   </div>
                 </div>
               ) : null}
+
+              {displaySnapshot && isWaitingRoom ? (
+                <div className={tableStyles.startOverlay}>
+                  <div className={`${tableStyles.startCard} holdem-online-waiting-card`}>
+                    <span className={tableStyles.startEyebrow}>{copy.modeTitle}</span>
+                    <h2 className={tableStyles.startTitle}>{displaySnapshot.label}</h2>
+                    <p className={tableStyles.startCopy}>
+                      {displaySnapshot.viewer.ready ? copy.waitingRoomMessageReady : copy.waitingRoomMessage}
+                    </p>
+                    <div className="holdem-online-overlay-actions holdem-online-overlay-actions--center">
+                      <button
+                        type="button"
+                        className={tableStyles.startButton}
+                        onClick={() => sendEvent(displaySnapshot.viewer.ready ? 'table:unset_ready' : 'table:set_ready')}
+                      >
+                        {displaySnapshot.viewer.ready ? copy.cancelReady : copy.ready}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </section>
 
@@ -968,20 +987,7 @@ export function HoldemTournamentOnline({
             <section className={tableStyles.controlDock}>
               <div className={tableStyles.bottomRail}>
                 <div className={tableStyles.leftDock}>
-                  {isWaitingRoom ? (
-                    <div className={tableStyles.nextHandCard}>
-                      <div className={tableStyles.nextHandText}>
-                        {displaySnapshot.viewer.ready ? copy.waitingRoomMessageReady : copy.waitingRoomMessage}
-                      </div>
-                      <button
-                        type="button"
-                        className={tableStyles.nextHandButton}
-                        onClick={() => sendEvent(displaySnapshot.viewer.ready ? 'table:unset_ready' : 'table:set_ready')}
-                      >
-                        {displaySnapshot.viewer.ready ? copy.cancelReady : copy.ready}
-                      </button>
-                    </div>
-                  ) : displaySnapshot.viewer.role === 'player' && displaySnapshot.legalActions.length > 0 ? (
+                  {isWaitingRoom ? null : displaySnapshot.viewer.role === 'player' && displaySnapshot.legalActions.length > 0 ? (
                     <OnlineBettingControls
                       lang={lang}
                       legalActions={displaySnapshot.legalActions}

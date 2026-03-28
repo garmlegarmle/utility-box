@@ -2852,9 +2852,25 @@ body.is-resizing-editor-image {
   text-align: left;
 }
 
+.holdem-online-overlay-card .startTitle,
+.holdem-online-overlay-card .startCopy,
+.holdem-online-overlay-card .startFieldLabel,
+.holdem-online-overlay-card .startInput,
+.holdem-online-overlay-card .startInput::placeholder,
+.holdem-online-waiting-card .startTitle,
+.holdem-online-waiting-card .startCopy {
+  color: rgba(255, 248, 228, 0.94);
+}
+
 .holdem-online-result-card {
   width: min(660px, calc(100% - 28px));
   text-align: left;
+  color: rgba(255, 248, 228, 0.94);
+}
+
+.holdem-online-waiting-card {
+  width: min(520px, calc(100% - 28px));
+  text-align: center;
   color: rgba(255, 248, 228, 0.94);
 }
 
@@ -2901,6 +2917,11 @@ body.is-resizing-editor-image {
   justify-content: flex-end;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.holdem-online-overlay-actions--center {
+  justify-content: center;
+  margin-bottom: 0;
 }
 
 .holdem-online-overlay-secondary {
