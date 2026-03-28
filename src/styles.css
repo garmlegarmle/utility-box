@@ -2896,6 +2896,24 @@ body.is-resizing-editor-image {
   text-align: center;
 }
 
+.holdem-online-overlay-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.holdem-online-overlay-secondary {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(228, 200, 122, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 248, 228, 0.94);
+  font: inherit;
+  cursor: pointer;
+}
+
 .holdem-online-sidepanel__participants {
   display: grid;
   gap: 12px;

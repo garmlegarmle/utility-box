@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CommunityCards } from 'holdem/components/cards/CommunityCards';
 import infoPanelStyles from 'holdem/components/panels/InfoPanels.module.css';
+import { HeroHud } from 'holdem/components/seat/HeroHud';
 import { SeatView } from 'holdem/components/seat/SeatView';
 import { TableChips } from 'holdem/components/table/TableChips';
 import bettingStyles from 'holdem/components/betting/BettingControls.module.css';
@@ -20,7 +21,6 @@ import type {
 import type { ChipAnimationGameState } from 'holdem/components/table/TableChips';
 
 const SESSION_TOKEN_STORAGE_KEY = 'ga_ml_holdem_online_session_token';
-const CURRENT_TABLE_STORAGE_KEY = 'ga_ml_holdem_online_current_table';
 const ONLINE_HANDS_PER_LEVEL = 8;
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
@@ -40,7 +40,10 @@ const COPY = {
     disconnected: 'Disconnected',
     nameTitle: 'Choose your online display name',
     nameHint: 'The same name is used for AI mode and online tables.',
+    continueToTables: 'Continue',
+    editName: 'Change name',
     tableListTitle: 'Available tables',
+    tableListBody: 'Pick a live table. If a tournament is already running, you will watch first and join when the next tournament begins.',
     join: 'Join table',
     leave: 'Leave table',
     ready: 'Ready',
@@ -78,6 +81,9 @@ const COPY = {
     eliminatedMessage: 'You are not active in the current tournament.',
     spectatingMessage: 'You are spectating this tournament.',
     waitingForTurn: 'Waiting for your turn.',
+    waitingRoomMessage: 'The table is waiting to start. Once at least two connected players are ready, the next tournament begins.',
+    waitingRoomMessageReady: 'You are marked ready. The next tournament starts when every connected player is ready.',
+    spectatorNextTournament: 'You are watching this tournament. You can join only after it ends.',
     resultTitle: 'Latest tournament result',
     closeResult: 'Close result',
     place: 'Place',
@@ -102,7 +108,10 @@ const COPY = {
     disconnected: '연결 끊김',
     nameTitle: '온라인 표시 이름',
     nameHint: 'AI 모드와 온라인 테이블에서 같은 이름을 사용합니다.',
+    continueToTables: '다음',
+    editName: '이름 수정',
     tableListTitle: '테이블 선택',
+    tableListBody: '라이브 테이블을 선택하세요. 이미 토너먼트가 진행 중이면 우선 관전하고, 다음 토너먼트부터 참가합니다.',
     join: '테이블 참가',
     leave: '테이블 나가기',
     ready: '준비 완료',
@@ -140,6 +149,9 @@ const COPY = {
     eliminatedMessage: '현재 토너먼트에서는 탈락한 상태입니다.',
     spectatingMessage: '현재 토너먼트를 관전 중입니다.',
     waitingForTurn: '내 차례를 기다리는 중입니다.',
+    waitingRoomMessage: '테이블이 시작을 기다리는 중입니다. 접속한 플레이어가 2명 이상이고 모두 준비되면 다음 토너먼트가 시작됩니다.',
+    waitingRoomMessageReady: '준비 완료 상태입니다. 접속한 플레이어 전원이 준비되면 다음 토너먼트가 시작됩니다.',
+    spectatorNextTournament: '현재 토너먼트는 관전만 가능하며, 종료 후 다음 토너먼트부터 참가할 수 있습니다.',
     resultTitle: '방금 끝난 토너먼트 결과',
     closeResult: '결과 닫기',
     place: '순위',
@@ -498,15 +510,14 @@ export function HoldemTournamentOnline({
   const [tables, setTables] = useState<HoldemOnlineTableSummary[]>([]);
   const [sessionToken, setSessionToken] = useState(() => getStoredValue(SESSION_TOKEN_STORAGE_KEY));
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [currentTableId, setCurrentTableId] = useState(() => getStoredValue(CURRENT_TABLE_STORAGE_KEY) || '');
+  const [currentTableId, setCurrentTableId] = useState('');
   const [snapshot, setSnapshot] = useState<HoldemOnlineTableSnapshot | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [dismissedResultId, setDismissedResultId] = useState<string | null>(null);
-  const [clock, setClock] = useState(() => Date.now());
+  const [setupStep, setSetupStep] = useState<'name' | 'table'>('name');
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
-  const currentTableIdRef = useRef(currentTableId);
   const onPlayerNameChangeRef = useRef(onPlayerNameChange);
 
   useEffect(() => {
@@ -514,9 +525,10 @@ export function HoldemTournamentOnline({
   }, [onPlayerNameChange]);
 
   useEffect(() => {
-    currentTableIdRef.current = currentTableId;
-    setStoredValue(CURRENT_TABLE_STORAGE_KEY, currentTableId || null);
-  }, [currentTableId]);
+    if (!normalizedPlayerName) {
+      setSetupStep('name');
+    }
+  }, [normalizedPlayerName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -608,8 +620,7 @@ export function HoldemTournamentOnline({
           const resumedTableId = String(payload.currentTableId || '').trim();
           if (resumedTableId) {
             setCurrentTableId(resumedTableId);
-          } else if (currentTableIdRef.current) {
-            ws.send(JSON.stringify({ type: 'table:join', payload: { tableId: currentTableIdRef.current } }));
+            setSetupStep('table');
           }
           return;
         }
@@ -662,16 +673,6 @@ export function HoldemTournamentOnline({
   }, [sessionToken, normalizedPlayerName, copy.errorPrefix]);
 
   useEffect(() => {
-    if (!snapshot?.actionDeadlineAt) return;
-
-    const timer = window.setInterval(() => {
-      setClock(Date.now());
-    }, 250);
-
-    return () => window.clearInterval(timer);
-  }, [snapshot?.actionDeadlineAt]);
-
-  useEffect(() => {
     if (!snapshot?.lastTournamentResult?.id) return;
     setDismissedResultId((current) => (current === snapshot.lastTournamentResult?.id ? current : null));
   }, [snapshot?.lastTournamentResult?.id]);
@@ -685,11 +686,12 @@ export function HoldemTournamentOnline({
           ? copy.reconnecting
           : copy.disconnected;
 
-  const remainingSeconds = snapshot?.actionDeadlineAt ? Math.max(0, Math.ceil((snapshot.actionDeadlineAt - clock) / 1000)) : null;
   const currentResult: HoldemTournamentResultSnapshot | null =
     snapshot?.lastTournamentResult && snapshot.lastTournamentResult.id !== dismissedResultId ? snapshot.lastTournamentResult : null;
   const displaySnapshot = useMemo(() => buildViewerRelativeSnapshot(snapshot), [snapshot]);
   const chipAnimationState = useMemo(() => buildOnlineChipState(displaySnapshot), [displaySnapshot]);
+  const isWaitingRoom = displaySnapshot?.status === 'waiting';
+  const showLobbyOverlay = !displaySnapshot;
 
   const sendEvent = (type: string, payload: Record<string, unknown> = {}) => {
     const ws = wsRef.current;
@@ -699,9 +701,6 @@ export function HoldemTournamentOnline({
     }
     ws.send(JSON.stringify({ type, payload }));
   };
-
-  const actingSeatName = displaySnapshot?.actingPlayerName || '';
-  const showLobbyOverlay = !currentTableId || !displaySnapshot;
 
   const currentViewerSeat = useMemo(() => {
     if (!displaySnapshot?.viewer?.seatIndex) {
@@ -715,6 +714,7 @@ export function HoldemTournamentOnline({
   function handleJoinTable(tableId: string) {
     setCurrentTableId(tableId);
     setSnapshot(null);
+    setSetupStep('table');
     sendEvent('table:join', { tableId });
   }
 
@@ -723,11 +723,21 @@ export function HoldemTournamentOnline({
     setCurrentTableId('');
     setSnapshot(null);
     setDismissedResultId(null);
+    setSetupStep('table');
   }
 
   function handleAction(type: HoldemOnlineLegalAction['type'], amount?: number) {
     const eventType = `action:${type}`;
     sendEvent(eventType, amount !== undefined ? { amount } : {});
+  }
+
+  function handleContinueToTables() {
+    if (!normalizedPlayerName) {
+      return;
+    }
+
+    setSetupStep('table');
+    setError(null);
   }
 
   return (
@@ -785,7 +795,7 @@ export function HoldemTournamentOnline({
                       </div>
                       <div className={tableStyles.handMessage}>
                         {displaySnapshot.handMessage ||
-                          (actingSeatName ? `${actingSeatName} ${copy.acting}` : '')}
+                          (displaySnapshot.actingPlayerName ? `${displaySnapshot.actingPlayerName} ${copy.acting}` : '')}
                       </div>
                     </>
                   ) : (
@@ -820,26 +830,67 @@ export function HoldemTournamentOnline({
               {showLobbyOverlay ? (
                 <div className={tableStyles.startOverlay}>
                   <div className={`${tableStyles.startCard} holdem-online-overlay-card`}>
-                    <span className={tableStyles.startEyebrow}>{copy.modeTitle}</span>
-                    <h2 className={tableStyles.startTitle}>{copy.tableListTitle}</h2>
-                    <p className={tableStyles.startCopy}>{copy.modeBody}</p>
-                    <div className="holdem-online-overlay-status">
-                      <span>{copy.connection}</span>
-                      <strong>{connectionLabel}</strong>
-                    </div>
-                    <label className={tableStyles.startField}>
-                      <span className={tableStyles.startFieldLabel}>{copy.nameTitle}</span>
-                      <input
-                        className={tableStyles.startInput}
-                        type="text"
-                        value={playerName}
-                        maxLength={24}
-                        onChange={(event) => onPlayerNameChange(event.target.value)}
-                        placeholder={lang === 'ko' ? '표시할 이름 입력' : 'Enter display name'}
-                      />
-                    </label>
-                    {!currentTableId ? <p className={tableStyles.startHint}>{copy.nameHint}</p> : null}
-                    {!currentTableId ? (
+                    {setupStep === 'name' ? (
+                      <>
+                        <span className={tableStyles.startEyebrow}>{copy.modeTitle}</span>
+                        <h2 className={tableStyles.startTitle}>{copy.nameTitle}</h2>
+                        <p className={tableStyles.startCopy}>{copy.nameHint}</p>
+                        <div className="holdem-online-overlay-status">
+                          <span>{copy.connection}</span>
+                          <strong>{connectionLabel}</strong>
+                        </div>
+                        <label className={tableStyles.startField}>
+                          <span className={tableStyles.startFieldLabel}>{copy.nameTitle}</span>
+                          <input
+                            className={tableStyles.startInput}
+                            type="text"
+                            value={playerName}
+                            maxLength={24}
+                            onChange={(event) => onPlayerNameChange(event.target.value)}
+                            placeholder={lang === 'ko' ? '표시할 이름 입력' : 'Enter display name'}
+                          />
+                        </label>
+                        {!normalizedPlayerName ? <p className={tableStyles.startHint}>{copy.nameHint}</p> : null}
+                        <div className="holdem-online-overlay-actions">
+                          <button
+                            type="button"
+                            className={tableStyles.startButton}
+                            disabled={!normalizedPlayerName}
+                            onClick={handleContinueToTables}
+                          >
+                            {copy.continueToTables}
+                          </button>
+                        </div>
+                      </>
+                    ) : currentTableId ? (
+                      <>
+                        <span className={tableStyles.startEyebrow}>{copy.modeTitle}</span>
+                        <h2 className={tableStyles.startTitle}>{copy.tableListTitle}</h2>
+                        <p className={tableStyles.startCopy}>{copy.loadingTable}</p>
+                        <div className="holdem-online-overlay-status">
+                          <span>{copy.connection}</span>
+                          <strong>{connectionLabel}</strong>
+                        </div>
+                        <p className="holdem-online-loading">{copy.loadingTable}</p>
+                      </>
+                    ) : (
+                      <>
+                        <span className={tableStyles.startEyebrow}>{copy.modeTitle}</span>
+                        <h2 className={tableStyles.startTitle}>{copy.tableListTitle}</h2>
+                        <p className={tableStyles.startCopy}>{copy.tableListBody}</p>
+                        <div className="holdem-online-overlay-status">
+                          <span>{copy.connection}</span>
+                          <strong>{connectionLabel}</strong>
+                        </div>
+                        <div className="holdem-online-overlay-actions">
+                          <button
+                            type="button"
+                            className="holdem-online-overlay-secondary"
+                            onClick={() => setSetupStep('name')}
+                          >
+                            {copy.editName}
+                          </button>
+                        </div>
                       <div className="holdem-online-lobby__grid">
                         {tables.map((table) => (
                           <article key={table.tableId} className="holdem-online-card">
@@ -874,8 +925,7 @@ export function HoldemTournamentOnline({
                           </article>
                         ))}
                       </div>
-                    ) : (
-                      <p className="holdem-online-loading">{copy.loadingTable}</p>
+                      </>
                     )}
                   </div>
                 </div>
@@ -918,7 +968,20 @@ export function HoldemTournamentOnline({
             <section className={tableStyles.controlDock}>
               <div className={tableStyles.bottomRail}>
                 <div className={tableStyles.leftDock}>
-                  {displaySnapshot.viewer.role === 'player' && displaySnapshot.legalActions.length > 0 ? (
+                  {isWaitingRoom ? (
+                    <div className={tableStyles.nextHandCard}>
+                      <div className={tableStyles.nextHandText}>
+                        {displaySnapshot.viewer.ready ? copy.waitingRoomMessageReady : copy.waitingRoomMessage}
+                      </div>
+                      <button
+                        type="button"
+                        className={tableStyles.nextHandButton}
+                        onClick={() => sendEvent(displaySnapshot.viewer.ready ? 'table:unset_ready' : 'table:set_ready')}
+                      >
+                        {displaySnapshot.viewer.ready ? copy.cancelReady : copy.ready}
+                      </button>
+                    </div>
+                  ) : displaySnapshot.viewer.role === 'player' && displaySnapshot.legalActions.length > 0 ? (
                     <OnlineBettingControls
                       lang={lang}
                       legalActions={displaySnapshot.legalActions}
@@ -929,41 +992,14 @@ export function HoldemTournamentOnline({
                       disabled={displaySnapshot.actingSeatIndex !== displaySnapshot.viewer.seatIndex}
                       onAction={handleAction}
                     />
-                  ) : (
-                    <div className={bettingStyles.disabled}>
-                      {displaySnapshot.viewer.eliminated
-                        ? copy.eliminatedMessage
-                        : displaySnapshot.viewer.role === 'spectator'
-                          ? copy.spectatingMessage
-                          : copy.waitingForTurn}
-                    </div>
-                  )}
-                </div>
-
-                <div className={tableStyles.rightDock}>
-                  <div className="holdem-online-sidepanel">
-                    <div className="holdem-online-sidepanel__meta">
-                      <span>{copy.totalPot}</span>
-                      <strong>{displaySnapshot.totalPot.toLocaleString()}</strong>
-                    </div>
-                    {remainingSeconds !== null ? (
-                      <div className="holdem-online-sidepanel__meta">
-                        <span>{copy.actionDeadline}</span>
-                        <strong>{remainingSeconds}s</strong>
+                  ) : displaySnapshot.viewer.role === 'spectator' ? (
+                    <div className={tableStyles.nextHandCard}>
+                      <div className={tableStyles.nextHandText}>
+                        {displaySnapshot.viewer.eliminated ? copy.eliminatedMessage : copy.spectatorNextTournament}
                       </div>
-                    ) : null}
-                    {displaySnapshot.status === 'waiting' ? (
                       <button
                         type="button"
-                        className="holdem-online-ready-button"
-                        onClick={() => sendEvent(displaySnapshot.viewer.ready ? 'table:unset_ready' : 'table:set_ready')}
-                      >
-                        {displaySnapshot.viewer.ready ? copy.cancelReady : copy.ready}
-                      </button>
-                    ) : displaySnapshot.viewer.role === 'spectator' ? (
-                      <button
-                        type="button"
-                        className="holdem-online-ready-button"
+                        className={tableStyles.nextHandButton}
                         onClick={() =>
                           sendEvent(
                             displaySnapshot.viewer.nextTournamentReady ? 'table:unset_next_tournament_ready' : 'table:set_next_tournament_ready',
@@ -972,27 +1008,25 @@ export function HoldemTournamentOnline({
                       >
                         {displaySnapshot.viewer.nextTournamentReady ? copy.cancelNextTournamentReady : copy.nextTournamentReady}
                       </button>
-                    ) : null}
-
-                    <div className="holdem-online-sidepanel__participants">
-                      <h3>{copy.spectators}</h3>
-                      <ul>
-                        {displaySnapshot.participants.map((participant) => (
-                          <li key={participant.playerId}>
-                            <span>
-                              {participant.displayName}
-                              {participant.playerId === playerId ? ` (${copy.you})` : ''}
-                            </span>
-                            <span>
-                              {participant.connected ? copy.connected : copy.disconnected}
-                              {participant.ready ? ` · ${copy.ready}` : ''}
-                              {participant.nextTournamentReady ? ` · ${copy.nextTournamentReady}` : ''}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
                     </div>
-                  </div>
+                  ) : (
+                    <div className={bettingStyles.disabled}>
+                      {copy.waitingForTurn}
+                    </div>
+                  )}
+                </div>
+
+                <div className={tableStyles.rightDock}>
+                  {currentViewerSeat ? (
+                    <HeroHud
+                      seat={currentViewerSeat as unknown as HoldemSeat}
+                      handNumber={displaySnapshot.handNumber}
+                      isButton={currentViewerSeat.seatIndex === displaySnapshot.buttonSeatIndex}
+                      isSmallBlind={currentViewerSeat.seatIndex === displaySnapshot.smallBlindSeatIndex}
+                      isBigBlind={currentViewerSeat.seatIndex === displaySnapshot.bigBlindSeatIndex}
+                      lang={lang}
+                    />
+                  ) : null}
                 </div>
               </div>
             </section>
