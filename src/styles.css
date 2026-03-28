@@ -2852,6 +2852,25 @@ body.is-resizing-editor-image {
   text-align: left;
 }
 
+.holdem-online-result-card {
+  width: min(660px, calc(100% - 28px));
+  text-align: left;
+  color: rgba(255, 248, 228, 0.94);
+}
+
+.holdem-online-result-card .holdem-online-result__head h3,
+.holdem-online-result-card .holdem-online-result__row {
+  color: rgba(255, 248, 228, 0.94);
+}
+
+.holdem-online-result-card .holdem-online-result__meta span {
+  color: rgba(228, 214, 170, 0.82);
+}
+
+.holdem-online-result-card .holdem-online-result__row--head {
+  color: rgba(219, 204, 149, 0.92);
+}
+
 .holdem-online-overlay-status {
   display: flex;
   justify-content: space-between;

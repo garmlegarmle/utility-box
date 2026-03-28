@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CommunityCards } from 'holdem/components/cards/CommunityCards';
+import infoPanelStyles from 'holdem/components/panels/InfoPanels.module.css';
 import { SeatView } from 'holdem/components/seat/SeatView';
 import { TableChips } from 'holdem/components/table/TableChips';
 import bettingStyles from 'holdem/components/betting/BettingControls.module.css';
 import tableStyles from 'holdem/components/table/TableScreen.module.css';
+import { getGameUiText, getStreetLabel } from 'holdem/config/localization';
 import { useIsMobileTableLayout } from 'holdem/hooks/useIsMobileTableLayout';
 import type { Seat as HoldemSeat } from 'holdem/types/engine';
 import { createHoldemOnlineSession, getHoldemOnlineTables } from '../lib/api';
@@ -19,6 +21,7 @@ import type { ChipAnimationGameState } from 'holdem/components/table/TableChips'
 
 const SESSION_TOKEN_STORAGE_KEY = 'ga_ml_holdem_online_session_token';
 const CURRENT_TABLE_STORAGE_KEY = 'ga_ml_holdem_online_current_table';
+const ONLINE_HANDS_PER_LEVEL = 8;
 
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -257,6 +260,79 @@ function buildOnlineChipState(snapshot: HoldemOnlineTableSnapshot | null): ChipA
       winningsThisHand: seat.winningsThisHand,
     })),
   };
+}
+
+function inferStreetLabel(snapshot: HoldemOnlineTableSnapshot, lang: SiteLang) {
+  if (snapshot.status === 'showdown' || snapshot.status === 'tournament_complete') {
+    return getStreetLabel('showdown', lang);
+  }
+
+  switch (snapshot.communityCards.length) {
+    case 0:
+      return getStreetLabel('preflop', lang);
+    case 3:
+      return getStreetLabel('flop', lang);
+    case 4:
+      return getStreetLabel('turn', lang);
+    case 5:
+      return getStreetLabel('river', lang);
+    default:
+      return getStreetLabel('preflop', lang);
+  }
+}
+
+function getHandsUntilLevelUp(handNumber: number) {
+  if (!Number.isFinite(handNumber) || handNumber <= 0) {
+    return ONLINE_HANDS_PER_LEVEL;
+  }
+
+  const completedHandsThisLevel = (handNumber - 1) % ONLINE_HANDS_PER_LEVEL;
+  return Math.max(0, ONLINE_HANDS_PER_LEVEL - completedHandsThisLevel);
+}
+
+function OnlineCompactStatus({
+  snapshot,
+  lang,
+}: {
+  snapshot: HoldemOnlineTableSnapshot;
+  lang: SiteLang;
+}) {
+  const uiCopy = getGameUiText(lang);
+  const handsUntilLevelUp = getHandsUntilLevelUp(snapshot.handNumber);
+  const streetLabel = inferStreetLabel(snapshot, lang);
+  const actingLabel = snapshot.actingPlayerName || uiCopy.waiting;
+
+  return (
+    <section className={infoPanelStyles.cornerStatus}>
+      <div className={infoPanelStyles.cornerTitle}>
+        {uiCopy.tournament} · {snapshot.label}
+      </div>
+      <div className={infoPanelStyles.cornerLine}>
+        <span>
+          {uiCopy.level} {snapshot.currentLevel?.level ?? 1}
+        </span>
+        <span>
+          {snapshot.currentLevel?.smallBlind ?? 0}/{snapshot.currentLevel?.bigBlind ?? 0}
+        </span>
+        <span>
+          {uiCopy.ante} {snapshot.currentLevel?.ante ?? 0}
+        </span>
+      </div>
+      <div className={infoPanelStyles.cornerLine}>
+        <span>
+          {uiCopy.hand} #{snapshot.handNumber}
+        </span>
+        <span>
+          {uiCopy.pot} {snapshot.totalPot.toLocaleString()}
+        </span>
+        <span>{uiCopy.nextLevelInHands(handsUntilLevelUp)}</span>
+      </div>
+      <div className={infoPanelStyles.cornerLine}>
+        <span>{streetLabel}</span>
+        <span>{actingLabel}</span>
+      </div>
+    </section>
+  );
 }
 
 function buildShortcutOptions(
@@ -624,12 +700,6 @@ export function HoldemTournamentOnline({
     ws.send(JSON.stringify({ type, payload }));
   };
 
-  const activeTable = displaySnapshot?.tableId
-    ? displaySnapshot
-    : currentTableId
-      ? tables.find((table) => table.tableId === currentTableId) || null
-      : null;
-  const activeTableLabel = displaySnapshot?.label || activeTable?.label || '';
   const actingSeatName = displaySnapshot?.actingPlayerName || '';
   const showLobbyOverlay = !currentTableId || !displaySnapshot;
 
@@ -671,16 +741,14 @@ export function HoldemTournamentOnline({
         ].join(' ')}
       >
         {!showLobbyOverlay && displaySnapshot ? (
-          <section className="holdem-online-tablebar">
-            <div>
-              <p>{copy.currentTable}</p>
-              <h3>{activeTableLabel}</h3>
+          <div className={tableStyles.headerBar}>
+            <OnlineCompactStatus snapshot={displaySnapshot} lang={lang} />
+            <div className={tableStyles.headerButtons}>
+              <button className={tableStyles.headerButton} onClick={handleLeaveTable}>
+                {copy.leave}
+              </button>
             </div>
-            <div className="holdem-online-tablebar__actions">
-              <span>{formatStatus(displaySnapshot.status, lang)}</span>
-              <button onClick={handleLeaveTable}>{copy.leave}</button>
-            </div>
-          </section>
+          </div>
         ) : null}
 
         <main className={tableStyles.mainStage}>
