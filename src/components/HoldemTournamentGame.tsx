@@ -18,8 +18,17 @@ const COPY = {
     title: "Texas Hold'em Tournament",
     description:
       'Play a single-table tournament against local AI opponents. The embedded game runs directly in the page and keeps tournament flow, blinds, eliminations, and showdown logic in the browser.',
+    nameTitle: 'Choose your display name',
+    nameBody: 'Set the name shown in both AI mode and online tables.',
+    nameLabel: 'Display name',
+    namePlaceholder: 'Enter your display name',
+    continue: 'Continue',
+    chooseModeTitle: 'Choose your table mode',
+    chooseModeBody: 'Start a solo tournament against AI or jump into one of the two live multiplayer tables.',
+    editName: 'Edit name',
+    changeMode: 'Change mode',
     modeAi: 'AI mode',
-    modeOnline: 'Online tables',
+    modeOnline: 'Multiplayer mode',
     modeAiBody: 'Single-table local tournament against eight AI opponents.',
     modeOnlineBody: 'Two fixed live tables. Watch current tournaments and join the next one when the table resets.',
     totalPlays: 'Total plays',
@@ -40,8 +49,17 @@ const COPY = {
     title: '텍사스 홀덤 토너먼트',
     description:
       '로컬 AI 8명을 상대로 싱글 테이블 토너먼트를 진행하는 브라우저 게임입니다. 블라인드 상승, 탈락, 쇼다운까지 페이지 안에서 바로 플레이할 수 있습니다.',
+    nameTitle: '플레이어 이름',
+    nameBody: 'AI 모드와 멀티플레이 모드에서 공통으로 쓸 이름을 먼저 정합니다.',
+    nameLabel: '표시 이름',
+    namePlaceholder: '표시할 이름을 입력하세요',
+    continue: '다음',
+    chooseModeTitle: '게임 모드 선택',
+    chooseModeBody: 'AI와 싱글 테이블 토너먼트를 하거나, 두 개의 라이브 멀티플레이 테이블 중 하나에 참가할 수 있습니다.',
+    editName: '이름 수정',
+    changeMode: '모드 변경',
     modeAi: 'AI 모드',
-    modeOnline: '온라인 테이블',
+    modeOnline: '멀티플레이 모드',
     modeAiBody: 'AI 8명과 싱글 테이블 토너먼트를 바로 플레이합니다.',
     modeOnlineBody: '고정된 2개 라이브 테이블을 관전하고, 현재 토너먼트가 끝나면 다음 토너먼트에 참가합니다.',
     totalPlays: '총 플레이 수',
@@ -100,7 +118,7 @@ function formatDate(value: string | null, lang: SiteLang) {
 export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: SiteLang; embedded?: boolean }) {
   const copy = COPY[lang];
   const seedRef = useRef(Math.floor(Date.now() % 2147483647) || 1);
-  const [mode, setMode] = useState<'ai' | 'online'>('ai');
+  const [mode, setMode] = useState<'ai' | 'online' | null>(null);
   const [playerName, setPlayerName] = useState(() => {
     if (typeof window === 'undefined') {
       return '';
@@ -108,6 +126,11 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
 
     return normalizePlayerName(window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY) || '');
   });
+  const [selectionStep, setSelectionStep] = useState<'name' | 'mode'>(() =>
+    normalizePlayerName(typeof window === 'undefined' ? '' : window.localStorage.getItem(PLAYER_NAME_STORAGE_KEY) || '')
+      ? 'mode'
+      : 'name',
+  );
   const [summary, setSummary] = useState<HoldemStatsSummary>(createEmptySummary);
   const [leaderboard, setLeaderboard] = useState<HoldemLeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,6 +182,13 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
     }
   }
 
+  useEffect(() => {
+    if (!playerName) {
+      setSelectionStep('name');
+      setMode(null);
+    }
+  }, [playerName]);
+
   async function handleTournamentStart(nextPlayerName: string) {
     const normalized = normalizePlayerName(nextPlayerName);
     if (!normalized) return;
@@ -207,6 +237,20 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
     }
   }
 
+  function handleContinueFromName() {
+    if (!playerName) return;
+    setSelectionStep('mode');
+  }
+
+  function handleChooseMode(nextMode: 'ai' | 'online') {
+    if (!playerName) {
+      setSelectionStep('name');
+      return;
+    }
+
+    setMode(nextMode);
+  }
+
   return (
     <div className={`holdem-game-shell${embedded ? ' holdem-game-shell--embedded' : ''}`}>
       {!embedded ? (
@@ -216,25 +260,6 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
           <p>{copy.description}</p>
         </header>
       ) : null}
-
-      <section className="holdem-game-mode-switch" aria-label={lang === 'ko' ? '게임 모드' : 'Game mode'}>
-        <button
-          type="button"
-          className={`holdem-game-mode-switch__button${mode === 'ai' ? ' is-active' : ''}`}
-          onClick={() => setMode('ai')}
-        >
-          <strong>{copy.modeAi}</strong>
-          <span>{copy.modeAiBody}</span>
-        </button>
-        <button
-          type="button"
-          className={`holdem-game-mode-switch__button${mode === 'online' ? ' is-active' : ''}`}
-          onClick={() => setMode('online')}
-        >
-          <strong>{copy.modeOnline}</strong>
-          <span>{copy.modeOnlineBody}</span>
-        </button>
-      </section>
 
       {mode === 'ai' ? (
         <>
@@ -247,11 +272,15 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
 
           {syncMessage ? <p className="holdem-game-sync-note">{syncMessage}</p> : null}
 
-          <div className="holdem-game-stage">
+          <div className="holdem-game-stage holdem-game-stage--selectable">
+            <button type="button" className="holdem-game-stage__mode-button" onClick={() => setMode(null)}>
+              {copy.changeMode}
+            </button>
             <HoldemTournamentEmbed
               initialSeed={seedRef.current}
               lang={lang}
               playerName={playerName}
+              skipNamePrompt
               onPlayerNameChange={handlePlayerNameChange}
               onTournamentStart={handleTournamentStart}
               onTournamentComplete={handleTournamentComplete}
@@ -289,9 +318,83 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
             )}
           </section>
         </>
+      ) : mode === 'online' ? (
+        <div className="holdem-game-stage holdem-game-stage--selectable">
+          <button type="button" className="holdem-game-stage__mode-button" onClick={() => setMode(null)}>
+            {copy.changeMode}
+          </button>
+          <HoldemTournamentOnline
+            lang={lang}
+            playerName={playerName}
+            onPlayerNameChange={handlePlayerNameChange}
+            initialSetupStep="table"
+          />
+        </div>
       ) : (
         <div className="holdem-game-stage">
-          <HoldemTournamentOnline lang={lang} playerName={playerName} onPlayerNameChange={handlePlayerNameChange} />
+          <div className="holdem-app-theme holdem-mode-stage">
+            <div className="holdem-mode-stage__overlay">
+              <div className="holdem-mode-stage__card">
+                {selectionStep === 'name' ? (
+                  <>
+                    <span className="holdem-mode-stage__eyebrow">{copy.eyebrow}</span>
+                    <h2 className="holdem-mode-stage__title">{copy.nameTitle}</h2>
+                    <p className="holdem-mode-stage__copy">{copy.nameBody}</p>
+                    <label className="holdem-mode-stage__field">
+                      <span className="holdem-mode-stage__label">{copy.nameLabel}</span>
+                      <input
+                        className="holdem-mode-stage__input"
+                        type="text"
+                        value={playerName}
+                        maxLength={24}
+                        placeholder={copy.namePlaceholder}
+                        onChange={(event) => handlePlayerNameChange(event.target.value)}
+                      />
+                    </label>
+                    <div className="holdem-mode-stage__actions">
+                      <button
+                        type="button"
+                        className="holdem-mode-stage__button"
+                        disabled={!playerName}
+                        onClick={handleContinueFromName}
+                      >
+                        {copy.continue}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="holdem-mode-stage__eyebrow">{copy.eyebrow}</span>
+                    <h2 className="holdem-mode-stage__title">{copy.chooseModeTitle}</h2>
+                    <p className="holdem-mode-stage__copy">{copy.chooseModeBody}</p>
+                    <div className="holdem-mode-chooser">
+                      <button type="button" className="holdem-mode-choice" onClick={() => handleChooseMode('ai')}>
+                        <span className="holdem-mode-choice__icon holdem-mode-choice__icon--solo" aria-hidden="true">
+                          <span />
+                        </span>
+                        <strong>{copy.modeAi}</strong>
+                        <span>{copy.modeAiBody}</span>
+                      </button>
+                      <button type="button" className="holdem-mode-choice" onClick={() => handleChooseMode('online')}>
+                        <span className="holdem-mode-choice__icon holdem-mode-choice__icon--multi" aria-hidden="true">
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                        <strong>{copy.modeOnline}</strong>
+                        <span>{copy.modeOnlineBody}</span>
+                      </button>
+                    </div>
+                    <div className="holdem-mode-stage__actions">
+                      <button type="button" className="holdem-mode-stage__secondary" onClick={() => setSelectionStep('name')}>
+                        {copy.editName}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -1626,6 +1626,212 @@ body.is-resizing-editor-image {
   min-height: 900px;
 }
 
+.holdem-game-stage--selectable {
+  position: relative;
+}
+
+.holdem-game-stage__mode-button {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 50;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(228, 200, 122, 0.2);
+  border-radius: 12px;
+  background: rgba(9, 22, 19, 0.76);
+  color: rgba(255, 248, 228, 0.94);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.holdem-mode-stage {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(255, 245, 214, 0.08), transparent 22%),
+    linear-gradient(180deg, #071916 0%, #0a221d 100%);
+}
+
+.holdem-mode-stage__overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 7, 6, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.holdem-mode-stage__card {
+  width: min(860px, calc(100% - 32px));
+  padding: 30px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(18, 39, 33, 0.98), rgba(8, 21, 18, 0.98));
+  border: 1px solid rgba(228, 200, 122, 0.18);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.38);
+  text-align: center;
+}
+
+.holdem-mode-stage__eyebrow {
+  display: inline-block;
+  color: rgba(219, 204, 149, 0.92);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.holdem-mode-stage__title {
+  margin: 12px 0 10px;
+  font-size: 2rem;
+  color: rgba(255, 248, 228, 0.96);
+}
+
+.holdem-mode-stage__copy {
+  margin: 0 0 22px;
+  color: rgba(191, 208, 196, 0.82);
+}
+
+.holdem-mode-stage__field {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.holdem-mode-stage__label {
+  color: rgba(232, 221, 180, 0.86);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.holdem-mode-stage__input {
+  min-height: 48px;
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid rgba(228, 200, 122, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 248, 228, 0.96);
+  font: inherit;
+}
+
+.holdem-mode-stage__input::placeholder {
+  color: rgba(191, 208, 196, 0.72);
+}
+
+.holdem-mode-stage__actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.holdem-mode-stage__button,
+.holdem-mode-stage__secondary {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.holdem-mode-stage__button {
+  min-width: 180px;
+  border: none;
+  background: linear-gradient(180deg, #f1d488 0%, #d4a84a 100%);
+  color: #13201d;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.holdem-mode-stage__button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.holdem-mode-stage__secondary {
+  border: 1px solid rgba(228, 200, 122, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 248, 228, 0.94);
+}
+
+.holdem-mode-chooser {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.holdem-mode-choice {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 26px 22px 24px;
+  border: 1px solid rgba(228, 200, 122, 0.18);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 248, 228, 0.96);
+  text-align: center;
+  cursor: pointer;
+}
+
+.holdem-mode-choice strong {
+  font-size: 1.2rem;
+}
+
+.holdem-mode-choice span:last-child {
+  color: rgba(191, 208, 196, 0.82);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.holdem-mode-choice__icon {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  background: radial-gradient(circle at top, rgba(255, 245, 214, 0.12), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 0 0 1px rgba(228, 200, 122, 0.12);
+}
+
+.holdem-mode-choice__icon span {
+  position: absolute;
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f1d488 0%, #d4a84a 100%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.holdem-mode-choice__icon--solo span {
+  width: 28px;
+  height: 28px;
+}
+
+.holdem-mode-choice__icon--multi span:nth-child(1) {
+  width: 22px;
+  height: 22px;
+  transform: translate(-20px, 8px);
+}
+
+.holdem-mode-choice__icon--multi span:nth-child(2) {
+  width: 24px;
+  height: 24px;
+  transform: translate(0, -8px);
+}
+
+.holdem-mode-choice__icon--multi span:nth-child(3) {
+  width: 22px;
+  height: 22px;
+  transform: translate(20px, 8px);
+}
+
 @media (max-width: 760px) {
   .holdem-game-stage,
   .holdem-game-shell--embedded .holdem-game-stage {
@@ -3044,6 +3250,15 @@ body.is-resizing-editor-image {
     max-width: 100%;
     max-height: min(58vh, 680px);
     padding: 14px;
+  }
+
+  .holdem-mode-chooser {
+    grid-template-columns: 1fr;
+  }
+
+  .holdem-game-stage__mode-button {
+    top: 12px;
+    right: 12px;
   }
 }
 

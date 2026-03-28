@@ -29,6 +29,7 @@ interface TableScreenProps {
   layoutMode?: 'fullscreen' | 'embedded';
   lang?: 'en' | 'ko';
   playerName?: string;
+  skipNamePrompt?: boolean;
   onPlayerNameChange?: (value: string) => void;
   onTournamentStart?: (playerName: string) => void;
 }
@@ -60,6 +61,7 @@ export function TableScreen({
   layoutMode = 'fullscreen',
   lang = 'ko',
   playerName = '',
+  skipNamePrompt = false,
   onPlayerNameChange,
   onTournamentStart,
 }: TableScreenProps) {
@@ -211,19 +213,23 @@ export function TableScreen({
             <span className={styles.startEyebrow}>{copy.mode}</span>
             <h1 className={styles.startTitle}>{copy.title}</h1>
             <p className={styles.startCopy}>{copy.subtitle}</p>
-            <label className={styles.startField}>
-              <span className={styles.startFieldLabel}>{copy.inputLabel}</span>
-              <input
-                className={styles.startInput}
-                type="text"
-                value={playerName}
-                maxLength={24}
-                placeholder={copy.inputPlaceholder}
-                onChange={(event) => onPlayerNameChange?.(event.target.value)}
-              />
-            </label>
-            {!normalizedPlayerName ? (
-              <p className={styles.startHint}>{copy.enterName}</p>
+            {!skipNamePrompt ? (
+              <>
+                <label className={styles.startField}>
+                  <span className={styles.startFieldLabel}>{copy.inputLabel}</span>
+                  <input
+                    className={styles.startInput}
+                    type="text"
+                    value={playerName}
+                    maxLength={24}
+                    placeholder={copy.inputPlaceholder}
+                    onChange={(event) => onPlayerNameChange?.(event.target.value)}
+                  />
+                </label>
+                {!normalizedPlayerName ? (
+                  <p className={styles.startHint}>{copy.enterName}</p>
+                ) : null}
+              </>
             ) : null}
             <button
               className={styles.startButton}

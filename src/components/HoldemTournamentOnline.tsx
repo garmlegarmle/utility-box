@@ -500,10 +500,12 @@ export function HoldemTournamentOnline({
   lang,
   playerName,
   onPlayerNameChange,
+  initialSetupStep = 'name',
 }: {
   lang: SiteLang;
   playerName: string;
   onPlayerNameChange: (value: string) => void;
+  initialSetupStep?: 'name' | 'table';
 }) {
   const copy = COPY[lang];
   const isMobileLayout = useIsMobileTableLayout();
@@ -516,7 +518,7 @@ export function HoldemTournamentOnline({
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [dismissedResultId, setDismissedResultId] = useState<string | null>(null);
-  const [setupStep, setSetupStep] = useState<'name' | 'table'>('name');
+  const [setupStep, setSetupStep] = useState<'name' | 'table'>(initialSetupStep);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<number | null>(null);
   const onPlayerNameChangeRef = useRef(onPlayerNameChange);
@@ -528,8 +530,13 @@ export function HoldemTournamentOnline({
   useEffect(() => {
     if (!normalizedPlayerName) {
       setSetupStep('name');
+      return;
     }
-  }, [normalizedPlayerName]);
+
+    if (initialSetupStep === 'table' && !currentTableId && !snapshot) {
+      setSetupStep('table');
+    }
+  }, [normalizedPlayerName, initialSetupStep, currentTableId, snapshot]);
 
   useEffect(() => {
     let cancelled = false;

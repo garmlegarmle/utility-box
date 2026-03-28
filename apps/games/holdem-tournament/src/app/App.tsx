@@ -23,6 +23,7 @@ export interface HoldemTournamentAppProps {
   initialSeed?: number;
   lang?: 'en' | 'ko';
   playerName?: string;
+  skipNamePrompt?: boolean;
   onPlayerNameChange?: (value: string) => void;
   onTournamentStart?: (playerName: string) => void;
   onTournamentComplete?: (payload: TournamentCompletePayload) => void;
@@ -34,6 +35,7 @@ export default function App({
   initialSeed,
   lang = 'ko',
   playerName = '',
+  skipNamePrompt = false,
   onPlayerNameChange,
   onTournamentStart,
   onTournamentComplete,
@@ -95,6 +97,7 @@ export default function App({
         layoutMode={layoutMode}
         lang={lang}
         playerName={playerName}
+        skipNamePrompt={skipNamePrompt}
         onPlayerNameChange={onPlayerNameChange}
         onTournamentStart={onTournamentStart}
       />
