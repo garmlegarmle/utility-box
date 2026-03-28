@@ -1,5 +1,7 @@
 import type {
   HoldemCompleteResponse,
+  HoldemOnlineSessionResponse,
+  HoldemOnlineTablesResponse,
   HoldemPlayResponse,
   HoldemStatsResponse,
   PostDetailResponse,
@@ -291,6 +293,29 @@ export async function recordHoldemCompletion(body: {
       'Content-Type': 'application/json; charset=utf-8'
     },
     body: JSON.stringify(body)
+  });
+}
+
+export async function createHoldemOnlineSession(body: {
+  displayName: string;
+  sessionToken?: string;
+}): Promise<HoldemOnlineSessionResponse> {
+  return apiFetch<HoldemOnlineSessionResponse>('/api/holdem-online/session', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getHoldemOnlineTables(): Promise<HoldemOnlineTablesResponse> {
+  return apiFetch<HoldemOnlineTablesResponse>('/api/holdem-online/tables', {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
   });
 }
 

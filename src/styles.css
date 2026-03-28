@@ -2635,9 +2635,307 @@ body.is-resizing-editor-image {
   cursor: pointer;
 }
 
+.holdem-game-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.holdem-game-mode-switch__button {
+  border: 1px solid var(--border);
+  background: #fffef8;
+  color: var(--text);
+  padding: 16px 18px;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.holdem-game-mode-switch__button strong {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.holdem-game-mode-switch__button span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(17, 20, 23, 0.72);
+}
+
+.holdem-game-mode-switch__button.is-active {
+  background: #f4efe1;
+}
+
+.holdem-online-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.holdem-online-head,
+.holdem-online-name-panel,
+.holdem-online-lobby,
+.holdem-online-tablebar,
+.holdem-online-result,
+.holdem-online-participants,
+.holdem-online-log {
+  border: 1px solid var(--border);
+  background: #fffef8;
+  padding: 18px;
+}
+
+.holdem-online-head,
+.holdem-online-name-panel,
+.holdem-online-tablebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.holdem-online-head h2,
+.holdem-online-name-panel h3,
+.holdem-online-lobby__head h3,
+.holdem-online-tablebar h3,
+.holdem-online-result__head h3,
+.holdem-online-participants h3,
+.holdem-online-log h3 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.holdem-online-head p,
+.holdem-online-name-panel p,
+.holdem-online-lobby p,
+.holdem-online-log p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.holdem-online-connection {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  text-align: right;
+}
+
+.holdem-online-connection span,
+.holdem-online-card__stats dt,
+.holdem-online-result__meta span {
+  font-size: 12px;
+  line-height: 1.2;
+  color: rgba(17, 20, 23, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.holdem-online-name-panel input {
+  min-width: min(280px, 100%);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+}
+
+.holdem-online-error {
+  margin: 0;
+  color: #9d2f36;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.holdem-online-lobby__grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.holdem-online-card {
+  border: 1px solid var(--border);
+  background: #f8f3e2;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.holdem-online-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.holdem-online-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.holdem-online-card__stats div {
+  display: grid;
+  gap: 6px;
+}
+
+.holdem-online-card__stats dd {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.holdem-online-card button,
+.holdem-online-tablebar__actions button,
+.holdem-online-ready-button,
+.holdem-online-result__head button {
+  border: 1px solid var(--border);
+  background: var(--text);
+  color: var(--bg);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.holdem-online-card button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.holdem-online-table {
+  display: grid;
+  gap: 18px;
+}
+
+.holdem-online-tablebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.holdem-online-result {
+  display: grid;
+  gap: 12px;
+}
+
+.holdem-online-result__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.holdem-online-result__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.holdem-online-result__table {
+  display: grid;
+  gap: 8px;
+}
+
+.holdem-online-result__row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 100px;
+  gap: 12px;
+  align-items: center;
+}
+
+.holdem-online-result__row--head {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(17, 20, 23, 0.64);
+}
+
+.holdem-online-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 18px;
+}
+
+.holdem-online-participants ul {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  gap: 10px;
+}
+
+.holdem-online-participants li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.holdem-online-participants li span:last-child {
+  color: rgba(17, 20, 23, 0.68);
+  text-align: right;
+}
+
+.holdem-online-log__list {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.holdem-online-log__entry {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(17, 20, 23, 0.08);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.holdem-online-sidepanel {
+  display: grid;
+  gap: 12px;
+}
+
+.holdem-online-sidepanel__meta {
+  display: grid;
+  gap: 4px;
+}
+
+.holdem-online-sidepanel__meta span {
+  font-size: 12px;
+  line-height: 1.2;
+  color: rgba(17, 20, 23, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.holdem-online-sidepanel__meta strong {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
 @media (max-width: 860px) {
   .holdem-game-summary {
     display: block;
+  }
+
+  .holdem-game-mode-switch,
+  .holdem-online-lobby__grid,
+  .holdem-online-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .holdem-online-head,
+  .holdem-online-name-panel,
+  .holdem-online-tablebar {
+    display: grid;
   }
 
   .holdem-game-leaderboard__row {
@@ -2672,6 +2970,17 @@ body.is-resizing-editor-image {
 @media (max-width: 560px) {
   .holdem-game-leaderboard {
     padding: 14px;
+  }
+
+  .holdem-online-result__row,
+  .holdem-online-card__stats,
+  .holdem-online-participants li {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .holdem-online-card__head {
+    display: grid;
   }
 
   .holdem-game-leaderboard__head {

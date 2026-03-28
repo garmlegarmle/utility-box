@@ -199,6 +199,146 @@ export interface HoldemCompleteResponse extends HoldemStatsResponse {
   madeLeaderboard: boolean;
 }
 
+export interface HoldemCard {
+  rank: number;
+  suit: 'clubs' | 'diamonds' | 'hearts' | 'spades';
+  code: string;
+}
+
+export type HoldemOnlineActionType = 'fold' | 'check' | 'call' | 'bet' | 'raise' | 'all-in';
+
+export interface HoldemOnlineLegalAction {
+  type: HoldemOnlineActionType;
+  amount?: number;
+  toCall?: number;
+  min?: number;
+  max?: number;
+  isRaise?: boolean;
+}
+
+export interface HoldemOnlineTableSummary {
+  tableId: string;
+  label: string;
+  status: 'waiting' | 'in_hand' | 'showdown' | 'tournament_complete';
+  connectedCount: number;
+  seatedCount: number;
+  readyCount: number;
+  handNumber: number;
+  level: number | null;
+  smallBlind: number | null;
+  bigBlind: number | null;
+}
+
+export interface HoldemOnlineParticipant {
+  playerId: string;
+  displayName: string;
+  connected: boolean;
+  ready: boolean;
+  nextTournamentReady: boolean;
+  seated: boolean;
+  seatIndex: number | null;
+}
+
+export interface HoldemOnlineSeat {
+  seatIndex: number;
+  playerId: string;
+  name: string;
+  isHuman: boolean;
+  stack: number;
+  status: 'active' | 'busted';
+  eliminationOrder: number | null;
+  holeCards: HoldemCard[];
+  hasFolded: boolean;
+  isAllIn: boolean;
+  hasShownCards: boolean;
+  currentBet: number;
+  totalCommitted: number;
+  actedThisStreet: boolean;
+  lastFullRaiseSeen: number;
+  lastAction: string | null;
+  lastActionAmount: number;
+  winningsThisHand: number;
+  position: string | null;
+}
+
+export interface HoldemOnlineLogEntry {
+  id: string;
+  handNumber: number;
+  level: number;
+  street: string;
+  seatIndex: number;
+  playerId: string;
+  name: string;
+  type: string;
+  amount: number;
+  text: string;
+}
+
+export interface HoldemTournamentResultEntry {
+  playerId: string;
+  playerName: string;
+  finalPlace: number;
+  playerWon: boolean;
+  levelReached: number;
+  handNumber: number;
+  chipCount: number;
+}
+
+export interface HoldemTournamentResultSnapshot {
+  id: string;
+  completedAt: string;
+  handNumber: number;
+  level: number;
+  entries: HoldemTournamentResultEntry[];
+}
+
+export interface HoldemOnlineTableSnapshot extends HoldemOnlineTableSummary {
+  viewer: {
+    playerId: string;
+    displayName: string;
+    connected: boolean;
+    role: 'player' | 'eliminated' | 'spectator';
+    ready: boolean;
+    nextTournamentReady: boolean;
+    seatIndex: number | null;
+  };
+  actionDeadlineAt: number | null;
+  actingSeatIndex: number | null;
+  actingPlayerName: string | null;
+  totalPot: number;
+  mainPot: number;
+  sidePots: number[];
+  communityCards: HoldemCard[];
+  currentLevel: {
+    level: number;
+    smallBlind: number;
+    bigBlind: number;
+    ante: number;
+  } | null;
+  buttonSeatIndex: number | null;
+  smallBlindSeatIndex: number | null;
+  bigBlindSeatIndex: number | null;
+  handMessage: string | null;
+  logs: HoldemOnlineLogEntry[];
+  seats: HoldemOnlineSeat[];
+  participants: HoldemOnlineParticipant[];
+  legalActions: HoldemOnlineLegalAction[];
+  amountToCall: number;
+  lastTournamentResult: HoldemTournamentResultSnapshot | null;
+}
+
+export interface HoldemOnlineSessionResponse {
+  ok: true;
+  sessionToken: string;
+  playerId: string;
+  displayName: string;
+}
+
+export interface HoldemOnlineTablesResponse {
+  ok: true;
+  tables: HoldemOnlineTableSummary[];
+}
+
 export interface PostSaveSnapshot {
   id: number;
   slug: string;

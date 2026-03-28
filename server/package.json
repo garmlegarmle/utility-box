@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "node --watch src/app.js",
     "start": "node src/app.js",
+    "build:holdem-online": "node scripts/build-holdem-online-engine.mjs",
     "import:published": "node scripts/import-public-api.mjs"
   },
   "dependencies": {
     "cookie": "^1.0.2",
+    "esbuild": "^0.27.4",
     "express": "^5.1.0",
     "multer": "^2.0.2",
     "pg": "^8.16.3",
-    "sharp": "^0.34.4"
+    "sharp": "^0.34.4",
+    "ws": "^8.20.0"
   }
 }

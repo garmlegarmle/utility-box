@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { HoldemTournamentEmbed } from 'holdem/embed';
 import { getHoldemStats, recordHoldemCompletion, recordHoldemPlayStart } from '../lib/api';
+import { HoldemTournamentOnline } from './HoldemTournamentOnline';
 import type {
   HoldemCompleteResponse,
   HoldemLeaderboardEntry,
@@ -17,6 +18,10 @@ const COPY = {
     title: "Texas Hold'em Tournament",
     description:
       'Play a single-table tournament against local AI opponents. The embedded game runs directly in the page and keeps tournament flow, blinds, eliminations, and showdown logic in the browser.',
+    modeAi: 'AI mode',
+    modeOnline: 'Online tables',
+    modeAiBody: 'Single-table local tournament against eight AI opponents.',
+    modeOnlineBody: 'Two fixed live tables. Watch current tournaments and join the next one when the table resets.',
     totalPlays: 'Total plays',
     leaderboardTitle: 'Top 10 leaderboard',
     leaderboardEmpty: 'No ranked runs have been recorded yet.',
@@ -35,6 +40,10 @@ const COPY = {
     title: '텍사스 홀덤 토너먼트',
     description:
       '로컬 AI 8명을 상대로 싱글 테이블 토너먼트를 진행하는 브라우저 게임입니다. 블라인드 상승, 탈락, 쇼다운까지 페이지 안에서 바로 플레이할 수 있습니다.',
+    modeAi: 'AI 모드',
+    modeOnline: '온라인 테이블',
+    modeAiBody: 'AI 8명과 싱글 테이블 토너먼트를 바로 플레이합니다.',
+    modeOnlineBody: '고정된 2개 라이브 테이블을 관전하고, 현재 토너먼트가 끝나면 다음 토너먼트에 참가합니다.',
     totalPlays: '총 플레이 수',
     leaderboardTitle: '상위 10위 랭킹',
     leaderboardEmpty: '아직 저장된 랭킹이 없습니다.',
@@ -91,6 +100,7 @@ function formatDate(value: string | null, lang: SiteLang) {
 export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: SiteLang; embedded?: boolean }) {
   const copy = COPY[lang];
   const seedRef = useRef(Math.floor(Date.now() % 2147483647) || 1);
+  const [mode, setMode] = useState<'ai' | 'online'>('ai');
   const [playerName, setPlayerName] = useState(() => {
     if (typeof window === 'undefined') {
       return '';
@@ -207,56 +217,81 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
         </header>
       ) : null}
 
-      <section className="holdem-game-summary" aria-label={copy.totalPlays}>
-        <article className="holdem-game-summary__card holdem-game-summary__card--single">
-          <span className="holdem-game-summary__label">{copy.totalPlays}</span>
-          <strong className="holdem-game-summary__value">{summary.totalPlays.toLocaleString()}</strong>
-        </article>
+      <section className="holdem-game-mode-switch" aria-label={lang === 'ko' ? '게임 모드' : 'Game mode'}>
+        <button
+          type="button"
+          className={`holdem-game-mode-switch__button${mode === 'ai' ? ' is-active' : ''}`}
+          onClick={() => setMode('ai')}
+        >
+          <strong>{copy.modeAi}</strong>
+          <span>{copy.modeAiBody}</span>
+        </button>
+        <button
+          type="button"
+          className={`holdem-game-mode-switch__button${mode === 'online' ? ' is-active' : ''}`}
+          onClick={() => setMode('online')}
+        >
+          <strong>{copy.modeOnline}</strong>
+          <span>{copy.modeOnlineBody}</span>
+        </button>
       </section>
 
-      {syncMessage ? <p className="holdem-game-sync-note">{syncMessage}</p> : null}
+      {mode === 'ai' ? (
+        <>
+          <section className="holdem-game-summary" aria-label={copy.totalPlays}>
+            <article className="holdem-game-summary__card holdem-game-summary__card--single">
+              <span className="holdem-game-summary__label">{copy.totalPlays}</span>
+              <strong className="holdem-game-summary__value">{summary.totalPlays.toLocaleString()}</strong>
+            </article>
+          </section>
 
-      <div className="holdem-game-stage">
-        <HoldemTournamentEmbed
-          initialSeed={seedRef.current}
-          lang={lang}
-          playerName={playerName}
-          onPlayerNameChange={handlePlayerNameChange}
-          onTournamentStart={handleTournamentStart}
-          onTournamentComplete={handleTournamentComplete}
-        />
-      </div>
+          {syncMessage ? <p className="holdem-game-sync-note">{syncMessage}</p> : null}
 
-      <section className="holdem-game-leaderboard">
-        <div className="holdem-game-leaderboard__head">
-          <h2>{copy.leaderboardTitle}</h2>
-          {loading ? <span>{copy.loading}</span> : null}
-        </div>
-        {leaderboard.length === 0 ? (
-          <p className="holdem-game-leaderboard__empty">{copy.leaderboardEmpty}</p>
-        ) : (
-          <div className="holdem-game-leaderboard__table" role="table" aria-label={copy.leaderboardTitle}>
-            <div className="holdem-game-leaderboard__row holdem-game-leaderboard__row--head" role="row">
-              <span role="columnheader">#</span>
-              <span role="columnheader">{lang === 'ko' ? '이름' : 'Name'}</span>
-              <span role="columnheader">{copy.leaderboardOutcome}</span>
-              <span role="columnheader">{copy.leaderboardLevel}</span>
-              <span role="columnheader">{copy.leaderboardHands}</span>
-              <span role="columnheader">{copy.leaderboardRecorded}</span>
-            </div>
-            {leaderboard.map((entry) => (
-              <div key={entry.id} className="holdem-game-leaderboard__row" role="row">
-                <span role="cell">#{entry.rank}</span>
-                <span role="cell">{entry.playerName}</span>
-                <span role="cell">{formatPlacement(entry.finalPlace, lang)}</span>
-                <span role="cell">{entry.levelReached}</span>
-                <span role="cell">{entry.handNumber}</span>
-                <span role="cell">{formatDate(entry.createdAt, lang)}</span>
-              </div>
-            ))}
+          <div className="holdem-game-stage">
+            <HoldemTournamentEmbed
+              initialSeed={seedRef.current}
+              lang={lang}
+              playerName={playerName}
+              onPlayerNameChange={handlePlayerNameChange}
+              onTournamentStart={handleTournamentStart}
+              onTournamentComplete={handleTournamentComplete}
+            />
           </div>
-        )}
-      </section>
+
+          <section className="holdem-game-leaderboard">
+            <div className="holdem-game-leaderboard__head">
+              <h2>{copy.leaderboardTitle}</h2>
+              {loading ? <span>{copy.loading}</span> : null}
+            </div>
+            {leaderboard.length === 0 ? (
+              <p className="holdem-game-leaderboard__empty">{copy.leaderboardEmpty}</p>
+            ) : (
+              <div className="holdem-game-leaderboard__table" role="table" aria-label={copy.leaderboardTitle}>
+                <div className="holdem-game-leaderboard__row holdem-game-leaderboard__row--head" role="row">
+                  <span role="columnheader">#</span>
+                  <span role="columnheader">{lang === 'ko' ? '이름' : 'Name'}</span>
+                  <span role="columnheader">{copy.leaderboardOutcome}</span>
+                  <span role="columnheader">{copy.leaderboardLevel}</span>
+                  <span role="columnheader">{copy.leaderboardHands}</span>
+                  <span role="columnheader">{copy.leaderboardRecorded}</span>
+                </div>
+                {leaderboard.map((entry) => (
+                  <div key={entry.id} className="holdem-game-leaderboard__row" role="row">
+                    <span role="cell">#{entry.rank}</span>
+                    <span role="cell">{entry.playerName}</span>
+                    <span role="cell">{formatPlacement(entry.finalPlace, lang)}</span>
+                    <span role="cell">{entry.levelReached}</span>
+                    <span role="cell">{entry.handNumber}</span>
+                    <span role="cell">{formatDate(entry.createdAt, lang)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      ) : (
+        <HoldemTournamentOnline lang={lang} playerName={playerName} onPlayerNameChange={handlePlayerNameChange} />
+      )}
     </div>
   );
 }

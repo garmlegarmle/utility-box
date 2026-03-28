@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import express from 'express';
@@ -69,6 +70,7 @@ import {
   variantMimeType,
   writeImageVariants
 } from './media.js';
+import { createHoldemOnlineManager } from './holdem-online/manager.js';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } });
@@ -86,6 +88,7 @@ const HOLDEM_HANDS_PER_LEVEL = 8;
 const HOLDEM_RUN_TOKEN_TTL_SECONDS = 4 * 60 * 60;
 const rateLimitStore = new Map();
 const CARD_TITLE_SIZE_VALUES = new Set(['auto', 'default', 'compact', 'tight', 'ultra-tight']);
+const holdemOnlineManager = createHoldemOnlineManager();
 
 function withSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -794,6 +797,38 @@ app.get('/api/games/texas-holdem-tournament/stats', async (req, res, next) => {
 });
 
 app.post(
+  '/api/holdem-online/session',
+  rateLimit({ namespace: 'holdem-online-session', max: 30, windowMs: 10 * 60 * 1000 }),
+  async (req, res) => {
+    const displayName = normalizeHoldemPlayerName(req.body?.displayName || '');
+    const sessionToken = String(req.body?.sessionToken || '').trim();
+    const result = holdemOnlineManager.issueSession({
+      displayName,
+      sessionToken: sessionToken || undefined,
+    });
+
+    if (!result.ok) {
+      return jsonError(res, 400, result.error);
+    }
+
+    return jsonOk(res, {
+      ok: true,
+      sessionToken: result.session.sessionToken,
+      playerId: result.session.playerId,
+      displayName: result.session.displayName,
+    });
+  },
+);
+
+app.get(
+  '/api/holdem-online/tables',
+  rateLimit({ namespace: 'holdem-online-tables', max: 120, windowMs: 60 * 1000 }),
+  async (_req, res) => {
+    jsonOk(res, holdemOnlineManager.getTablesResponse());
+  },
+);
+
+app.post(
   '/api/games/texas-holdem-tournament/play',
   rateLimit({ namespace: 'holdem-play-write', max: 30, windowMs: 10 * 60 * 1000 }),
   async (req, res, next) => {
@@ -1020,6 +1055,20 @@ app.use((err, _req, res, _next) => {
 });
 
 await bootstrap();
-app.listen(config.port, () => {
+const server = http.createServer(app);
+server.on('upgrade', (request, socket, head) => {
+  try {
+    const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
+    if (url.pathname === '/ws/holdem-online') {
+      holdemOnlineManager.handleUpgrade(request, socket, head);
+      return;
+    }
+  } catch {
+    // Fall through to socket destroy.
+  }
+
+  socket.destroy();
+});
+server.listen(config.port, () => {
   console.log(`[utility-box-api] listening on :${config.port}`);
 });
