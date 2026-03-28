@@ -1490,6 +1490,10 @@ body.is-resizing-editor-image {
   background: #f4efe1;
 }
 
+.trend-tool-panel--demo {
+  background: #efe6cf;
+}
+
 .trend-tool-panel--intro {
   background: #f8f5ec;
 }
@@ -1921,6 +1925,17 @@ body.is-resizing-editor-image {
   color: var(--text);
 }
 
+.trend-tool-secondary-button {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
 .trend-tool-panel__head {
   display: flex;
   justify-content: space-between;
@@ -2311,6 +2326,10 @@ body.is-resizing-editor-image {
 
   .trend-tool-panel__head {
     flex-direction: column;
+  }
+
+  .trend-tool-secondary-button {
+    width: 100%;
   }
 
   .trend-tool-legend {
