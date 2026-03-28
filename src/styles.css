@@ -2670,6 +2670,13 @@ body.is-resizing-editor-image {
 .holdem-online-shell {
   display: grid;
   gap: 18px;
+  height: 100%;
+  min-height: 100%;
+}
+
+.holdem-online-page {
+  height: 100%;
+  min-height: 100%;
 }
 
 .holdem-online-tablebar,
@@ -2728,6 +2735,7 @@ body.is-resizing-editor-image {
 .holdem-online-card {
   border: 1px solid var(--border);
   background: #f8f3e2;
+  color: #111417;
   padding: 16px;
   display: grid;
   gap: 14px;
@@ -2738,6 +2746,16 @@ body.is-resizing-editor-image {
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
+}
+
+.holdem-online-card__head strong,
+.holdem-online-card__stats dd {
+  color: #111417;
+}
+
+.holdem-online-card__head span,
+.holdem-online-card__stats dt {
+  color: rgba(17, 20, 23, 0.72);
 }
 
 .holdem-online-card__stats {

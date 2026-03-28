@@ -6,6 +6,7 @@ import { SeatView } from 'holdem/components/seat/SeatView';
 import { TableChips } from 'holdem/components/table/TableChips';
 import bettingStyles from 'holdem/components/betting/BettingControls.module.css';
 import tableStyles from 'holdem/components/table/TableScreen.module.css';
+import appStyles from 'holdem/app/App.module.css';
 import { getGameUiText, getStreetLabel } from 'holdem/config/localization';
 import { useIsMobileTableLayout } from 'holdem/hooks/useIsMobileTableLayout';
 import type { Seat as HoldemSeat } from 'holdem/types/engine';
@@ -741,12 +742,13 @@ export function HoldemTournamentOnline({
   }
 
   return (
-    <div className="holdem-app-theme holdem-online-shell">
+    <div className={['holdem-app-theme', appStyles.shell, appStyles.embedded, 'holdem-online-shell'].join(' ')}>
       {error ? <p className="holdem-online-error">{error}</p> : null}
       <div
         className={[
           tableStyles.page,
           tableStyles.embeddedPage,
+          'holdem-online-page',
           isMobileLayout ? tableStyles.mobilePage : '',
         ].join(' ')}
       >
