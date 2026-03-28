@@ -1633,7 +1633,7 @@ body.is-resizing-editor-image {
 .holdem-game-stage__mode-button {
   position: absolute;
   top: 18px;
-  right: 18px;
+  left: 18px;
   z-index: 50;
   min-height: 38px;
   padding: 0 14px;
@@ -3258,7 +3258,7 @@ body.is-resizing-editor-image {
 
   .holdem-game-stage__mode-button {
     top: 12px;
-    right: 12px;
+    left: 12px;
   }
 }
 
