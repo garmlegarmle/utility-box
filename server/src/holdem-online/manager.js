@@ -366,6 +366,7 @@ export function createHoldemOnlineManager() {
   const playerSockets = new Map();
   const tables = new Map(HOLDEM_ONLINE_TABLE_IDS.map((tableId) => [tableId, createTable(tableId)]));
   const wss = new WebSocketServer({ noServer: true });
+  let lastTablesSignature = '';
 
   function send(ws, type, payload = {}) {
     if (ws.readyState !== 1) {
@@ -388,8 +389,15 @@ export function createHoldemOnlineManager() {
     return [...tables.values()].map(buildTableSummary);
   }
 
-  function broadcastTables() {
-    const payload = { tables: tablesSnapshot() };
+  function broadcastTables(force = false) {
+    const tables = tablesSnapshot();
+    const signature = JSON.stringify(tables);
+    if (!force && signature === lastTablesSignature) {
+      return;
+    }
+
+    lastTablesSignature = signature;
+    const payload = { tables };
     for (const [ws, connection] of connections.entries()) {
       if (!connection.playerId) continue;
       send(ws, 'tables:snapshot', payload);
@@ -704,20 +712,20 @@ export function createHoldemOnlineManager() {
       table.status = 'in_hand';
     }
 
+    if (HOLDEM_ONLINE_ACTION_PHASES.has(nextState.phase)) {
+      table.status = 'in_hand';
+      scheduleActionTimeout(table);
+      broadcastTable(table, 'turn:started');
+      broadcastTables();
+      return;
+    }
+
     const eventType = eventTypeForTransition(previousState, nextState);
     broadcastTable(table, eventType);
     broadcastTables();
 
     if (nextState.phase === 'tournament_complete') {
       scheduleAutoAdvance(table, getAutoAdvanceDelay(table, previousState, nextState, eventType));
-      return;
-    }
-
-    if (HOLDEM_ONLINE_ACTION_PHASES.has(nextState.phase)) {
-      table.status = 'in_hand';
-      scheduleActionTimeout(table);
-      broadcastTable(table, 'turn:started');
-      broadcastTables();
       return;
     }
 

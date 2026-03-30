@@ -26,6 +26,7 @@ type CursorMap = Record<HoldemSoundName, number>;
 
 let preparedPools: PreparedPools | null = null;
 let poolCursors: CursorMap = { card: 0, bet: 0, pot: 0 };
+let soundPoolsPrimed = false;
 
 function ensurePreparedPools(): PreparedPools | null {
   if (typeof window === 'undefined') {
@@ -102,6 +103,10 @@ export function useHoldemSoundActivation(enabled: boolean) {
     }
 
     const prime = () => {
+      if (soundPoolsPrimed) {
+        return;
+      }
+
       const pools = ensurePreparedPools();
       if (!pools) {
         return;
@@ -110,9 +115,14 @@ export function useHoldemSoundActivation(enabled: boolean) {
       Object.values(pools).flat().forEach((audio) => {
         audio.load();
       });
+      soundPoolsPrimed = true;
     };
 
     prime();
+    if (soundPoolsPrimed) {
+      return;
+    }
+
     window.addEventListener('pointerdown', prime, { passive: true });
     window.addEventListener('keydown', prime);
 
