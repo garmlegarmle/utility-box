@@ -24,6 +24,22 @@ import {
   HOLDEM_ONLINE_TABLE_SEAT_ORDER,
 } from './constants.js';
 
+function sanitizeOnlineState(state) {
+  if (!state) {
+    return state;
+  }
+
+  if (Array.isArray(state.log) && state.log.length > 0) {
+    state.log = [];
+  }
+
+  if (state.ui && Array.isArray(state.ui.toastQueue) && state.ui.toastQueue.length > 0) {
+    state.ui.toastQueue = [];
+  }
+
+  return state;
+}
+
 function createInitialBettingState(bigBlind) {
   return {
     street: 'preflop',
@@ -157,7 +173,7 @@ export function createOnlineGameState(players, seed, lang = 'en') {
     config.initialButtonSeatIndex,
   );
 
-  return {
+  return sanitizeOnlineState({
     phase: 'tournament_init',
     rngState: seed >>> 0,
     config,
@@ -183,7 +199,7 @@ export function createOnlineGameState(players, seed, lang = 'en') {
     },
     tournamentWinnerId: null,
     tournamentCompletionReason: null,
-  };
+  });
 }
 
 function setupNewHand(state) {
@@ -193,7 +209,7 @@ function setupNewHand(state) {
     nextState.tournamentWinnerId = nextState.seats.find((seat) => seat.status === 'active')?.playerId ?? null;
     nextState.tournamentCompletionReason = 'winner';
     nextState.phase = 'tournament_complete';
-    return nextState;
+    return sanitizeOnlineState(nextState);
   }
 
   const { deck, nextSeed } = shuffleDeck(nextState.rngState);
@@ -238,7 +254,7 @@ function setupNewHand(state) {
     ),
   );
 
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 function dealHoleCards(state) {
@@ -273,7 +289,7 @@ function dealHoleCards(state) {
   nextState.hand.deck = deck;
   nextState.phase = 'preflop_action';
 
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 function resetForPostflop(state, street) {
@@ -338,7 +354,7 @@ function dealBoardCards(state, street, count) {
     ),
   );
 
-  return resetForPostflop(nextState, street);
+  return sanitizeOnlineState(resetForPostflop(nextState, street));
 }
 
 function runShowdown(state) {
@@ -355,7 +371,7 @@ function runShowdown(state) {
   });
   nextState.phase = 'award_pots';
 
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 function awardPots(state) {
@@ -387,7 +403,7 @@ function awardPots(state) {
   nextState.hand.completed = true;
   nextState.phase = 'eliminate_players';
 
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 function eliminatePlayers(state) {
@@ -418,18 +434,18 @@ function eliminatePlayers(state) {
     nextState.tournamentWinnerId = nextState.seats.find((seat) => seat.status === 'active')?.playerId ?? null;
     nextState.tournamentCompletionReason = 'winner';
     nextState.phase = 'tournament_complete';
-    return nextState;
+    return sanitizeOnlineState(nextState);
   }
 
   nextState.phase = 'move_button';
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 function moveButton(state) {
   const nextState = structuredClone(state);
   nextState.buttonSeatIndex = getNextOccupiedSeatIndex(nextState.buttonSeatIndex, nextState.seats) ?? nextState.buttonSeatIndex;
   nextState.phase = 'level_up_check';
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 function levelUpCheck(state) {
@@ -446,13 +462,13 @@ function levelUpCheck(state) {
   }
 
   nextState.phase = 'next_hand';
-  return nextState;
+  return sanitizeOnlineState(nextState);
 }
 
 export function advanceOnlineState(state) {
   switch (state.phase) {
     case 'tournament_init':
-      return { ...state, phase: 'hand_setup' };
+      return sanitizeOnlineState({ ...state, phase: 'hand_setup' });
     case 'hand_setup':
       return setupNewHand(state);
     case 'post_antes':
@@ -483,13 +499,13 @@ export function advanceOnlineState(state) {
     case 'level_up_check':
       return levelUpCheck(state);
     case 'next_hand':
-      return { ...state, phase: 'hand_setup' };
+      return sanitizeOnlineState({ ...state, phase: 'hand_setup' });
     case 'tournament_complete':
     default:
-      return state;
+      return sanitizeOnlineState(state);
   }
 }
 
 export function applyOnlinePlayerAction(state, action) {
-  return applyPlayerAction(state, action);
+  return sanitizeOnlineState(applyPlayerAction(state, action));
 }
