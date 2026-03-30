@@ -20,6 +20,8 @@ interface SeatViewProps {
   countdownSeconds?: number | null;
   showHoleCards?: boolean;
   isMobileLayout?: boolean;
+  winnerTitle?: string | null;
+  winnerSubtitle?: string | null;
   lang: HoldemLang;
 }
 
@@ -39,6 +41,8 @@ export function SeatView({
   countdownSeconds = null,
   showHoleCards = true,
   isMobileLayout = false,
+  winnerTitle = null,
+  winnerSubtitle = null,
   lang,
 }: SeatViewProps) {
   const layout = isMobileLayout ? MOBILE_TABLE_SEAT_LAYOUT : TABLE_SEAT_LAYOUT;
@@ -97,6 +101,12 @@ export function SeatView({
       </div>
       <div className={styles.stack}>{formatChipStack(seat.stack, lang)}</div>
       {countdownSeconds !== null ? <div className={styles.timer}>{countdownSeconds}s</div> : null}
+      {isWinner && (winnerTitle || winnerSubtitle) ? (
+        <div className={styles.winnerBanner}>
+          {winnerTitle ? <div className={styles.winnerTitle}>{winnerTitle}</div> : null}
+          {winnerSubtitle ? <div className={styles.winnerSubtitle}>{winnerSubtitle}</div> : null}
+        </div>
+      ) : null}
       {showHoleCards && (
         canRevealCards ? (
           <button type="button" className={`${styles.cards} ${styles.cardsButton}`} onClick={onRevealCards}>

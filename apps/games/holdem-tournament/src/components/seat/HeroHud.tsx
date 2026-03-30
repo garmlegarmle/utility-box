@@ -14,6 +14,8 @@ interface HeroHudProps {
   canRevealCards?: boolean;
   onRevealCards?: () => void;
   revealHint?: string | null;
+  winnerTitle?: string | null;
+  winnerSubtitle?: string | null;
   lang: HoldemLang;
 }
 
@@ -28,6 +30,8 @@ export function HeroHud({
   canRevealCards = false,
   onRevealCards,
   revealHint = null,
+  winnerTitle = null,
+  winnerSubtitle = null,
   lang,
 }: HeroHudProps) {
   const copy = getGameUiText(lang);
@@ -72,6 +76,13 @@ export function HeroHud({
       </div>
 
       {countdownSeconds !== null ? <div className={styles.timer}>{countdownSeconds}s</div> : null}
+
+      {isWinner && (winnerTitle || winnerSubtitle) ? (
+        <div className={styles.winnerBanner}>
+          {winnerTitle ? <div className={styles.winnerTitle}>{winnerTitle}</div> : null}
+          {winnerSubtitle ? <div className={styles.winnerSubtitle}>{winnerSubtitle}</div> : null}
+        </div>
+      ) : null}
 
       {canRevealCards ? (
         <button type="button" className={styles.cardsButton} onClick={onRevealCards}>

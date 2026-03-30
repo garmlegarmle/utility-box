@@ -4,11 +4,11 @@ import infoPanelStyles from 'holdem/components/panels/InfoPanels.module.css';
 import { HeroHud } from 'holdem/components/seat/HeroHud';
 import { SeatView } from 'holdem/components/seat/SeatView';
 import { TableChips } from 'holdem/components/table/TableChips';
-import { playCardSoundBurst } from 'holdem/app/soundEffects';
+import { playCardSoundBurst, playCheckSoundBurst, playTurnNotificationSound } from 'holdem/app/soundEffects';
 import bettingStyles from 'holdem/components/betting/BettingControls.module.css';
 import tableStyles from 'holdem/components/table/TableScreen.module.css';
 import appStyles from 'holdem/app/App.module.css';
-import { getGameUiText, getStreetLabel } from 'holdem/config/localization';
+import { formatWinningHandLabel, getGameUiText, getStreetLabel } from 'holdem/config/localization';
 import { useIsMobileTableLayout } from 'holdem/hooks/useIsMobileTableLayout';
 import type { Seat as HoldemSeat } from 'holdem/types/engine';
 import { createHoldemOnlineSession, getHoldemOnlineTables } from '../lib/api';
@@ -525,6 +525,7 @@ export function HoldemTournamentOnline({
   initialSetupStep?: 'name' | 'table';
 }) {
   const copy = COPY[lang];
+  const holdemUiCopy = getGameUiText(lang);
   const isMobileLayout = useIsMobileTableLayout();
   const normalizedPlayerName = normalizePlayerName(playerName);
   const [tables, setTables] = useState<HoldemOnlineTableSummary[]>([]);
@@ -549,6 +550,7 @@ export function HoldemTournamentOnline({
     communityCount: 0,
     heroHoleCount: 0,
   });
+  const lastTurnNotificationRef = useRef('');
 
   useEffect(() => {
     onPlayerNameChangeRef.current = onPlayerNameChange;
@@ -666,6 +668,12 @@ export function HoldemTournamentOnline({
         }
 
         if (type === 'table:snapshot' || type === 'table:user_joined' || type === 'turn:started' || type === 'action:applied' || type === 'turn:auto_action' || type === 'hand:starting' || type === 'hand:flop' || type === 'hand:turn' || type === 'hand:river' || type === 'showdown:started' || type === 'tournament:result_snapshot' || type === 'game:starting') {
+          if (type === 'action:applied' && payload.action?.type === 'check') {
+            playCheckSoundBurst(1);
+          }
+          if (type === 'turn:auto_action' && payload.autoAction?.type === 'check') {
+            playCheckSoundBurst(1);
+          }
           if (payload.table) {
             setSnapshot(payload.table as HoldemOnlineTableSnapshot);
             setCurrentTableId(String((payload.table as HoldemOnlineTableSnapshot).tableId || ''));
@@ -778,6 +786,7 @@ export function HoldemTournamentOnline({
         communityCount: 0,
         heroHoleCount: 0,
       };
+      lastTurnNotificationRef.current = '';
       return;
     }
 
@@ -814,6 +823,27 @@ export function HoldemTournamentOnline({
   }, [displaySnapshot, currentViewerSeat?.holeCards.length]);
 
   useEffect(() => {
+    if (!displaySnapshot || displaySnapshot.viewer.role !== 'player') {
+      lastTurnNotificationRef.current = '';
+      return;
+    }
+
+    const isViewerActing =
+      displaySnapshot.viewer.seatIndex !== null &&
+      displaySnapshot.actingSeatIndex === displaySnapshot.viewer.seatIndex &&
+      Boolean(displaySnapshot.actionDeadlineAt);
+    const turnKey = isViewerActing
+      ? `${displaySnapshot.handNumber}:${displaySnapshot.actingSeatIndex}:${displaySnapshot.actionDeadlineAt}`
+      : '';
+
+    if (turnKey && turnKey !== lastTurnNotificationRef.current) {
+      playTurnNotificationSound();
+    }
+
+    lastTurnNotificationRef.current = turnKey;
+  }, [displaySnapshot]);
+
+  useEffect(() => {
     if (!displaySnapshot) {
       lastViewerSeatRef.current = null;
       return;
@@ -841,6 +871,11 @@ export function HoldemTournamentOnline({
   }, [currentViewerSeat, displaySnapshot, playerId]);
 
   const heroSeat = currentViewerSeat ?? lastViewerSeatRef.current;
+  const winnerTitle = heroSeat?.isWinner ? holdemUiCopy.winnerBadge : null;
+  const currentViewerWinningLabel = currentViewerSeat?.winningHandLabel || heroSeat?.winningHandLabel || null;
+  const winnerSubtitle = heroSeat?.isWinner
+    ? formatWinningHandLabel(currentViewerWinningLabel, lang) ?? holdemUiCopy.uncontestedWinLabel
+    : null;
 
   function handleJoinTable(tableId: string) {
     setCurrentTableId(tableId);
@@ -982,6 +1017,12 @@ export function HoldemTournamentOnline({
                     revealedCardCount={seat.revealedCardCount}
                     countdownSeconds={seat.seatIndex === displaySnapshot.actingSeatIndex ? countdownSeconds : null}
                     showHoleCards={seat.playerId !== playerId}
+                    winnerTitle={seat.isWinner ? getGameUiText(lang).winnerBadge : null}
+                    winnerSubtitle={
+                      seat.isWinner
+                        ? formatWinningHandLabel(seat.winningHandLabel, lang) ?? holdemUiCopy.uncontestedWinLabel
+                        : null
+                    }
                     isMobileLayout={isMobileLayout}
                     lang={lang}
                   />
@@ -1255,7 +1296,7 @@ export function HoldemTournamentOnline({
                       isBigBlind={heroSeat.seatIndex === displaySnapshot.bigBlindSeatIndex}
                       countdownSeconds={heroSeat.seatIndex === displaySnapshot.actingSeatIndex ? countdownSeconds : null}
                       canRevealCards={
-                        displaySnapshot.status === 'showdown' &&
+                        displaySnapshot.handCompleted &&
                         Boolean(currentViewerSeat?.hasShownCards) &&
                         Boolean(
                           currentViewerSeat &&
@@ -1264,6 +1305,8 @@ export function HoldemTournamentOnline({
                       }
                       onRevealCards={handleRevealOwnCard}
                       revealHint={copy.revealOwnCards}
+                      winnerTitle={winnerTitle}
+                      winnerSubtitle={winnerSubtitle}
                       lang={lang}
                     />
                   ) : null}

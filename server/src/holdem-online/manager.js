@@ -182,6 +182,22 @@ function collectWinningPlayerIds(game) {
   return new Set();
 }
 
+function collectWinningHandLabels(game) {
+  const labels = new Map();
+  if (!game || !Array.isArray(game.hand?.payouts)) {
+    return labels;
+  }
+
+  for (const payout of game.hand.payouts) {
+    if (!payout?.playerId || !payout.handLabel || labels.has(payout.playerId)) {
+      continue;
+    }
+    labels.set(payout.playerId, payout.handLabel);
+  }
+
+  return labels;
+}
+
 function getCaptainParticipant(table) {
   return [...table.participants.values()]
     .sort((left, right) => left.joinedAt - right.joinedAt)
@@ -207,7 +223,13 @@ function seatVisibleCards(seat, viewerPlayerId, revealAll = false) {
   return [];
 }
 
-function buildSeatSnapshot(seat, viewerPlayerId, revealAll = false, winningPlayerIds = new Set()) {
+function buildSeatSnapshot(
+  seat,
+  viewerPlayerId,
+  revealAll = false,
+  winningPlayerIds = new Set(),
+  winningHandLabels = new Map(),
+) {
   return {
     seatIndex: seat.seatIndex,
     playerId: seat.playerId,
@@ -231,6 +253,7 @@ function buildSeatSnapshot(seat, viewerPlayerId, revealAll = false, winningPlaye
     winningsThisHand: seat.winningsThisHand,
     position: seat.position,
     isWinner: winningPlayerIds.has(seat.playerId),
+    winningHandLabel: winningHandLabels.get(seat.playerId) ?? null,
   };
 }
 
@@ -295,6 +318,7 @@ function buildTableSnapshot(table, viewerPlayerId) {
   const viewerEliminated = Boolean(viewerSeat && viewerSeat.status === 'busted');
   const revealAll = false;
   const winningPlayerIds = collectWinningPlayerIds(game);
+  const winningHandLabels = collectWinningHandLabels(game);
   const legalActions = viewerSeat && isActionPhase ? getLegalActions(game, viewerPlayerId) : [];
   const amountToCall = viewerSeat && isActionPhase ? getAmountToCall(game, viewerSeat) : 0;
 
@@ -324,8 +348,11 @@ function buildTableSnapshot(table, viewerPlayerId) {
     smallBlindSeatIndex: game ? getSmallBlindSeatIndex(game.seats, game.buttonSeatIndex) : null,
     bigBlindSeatIndex: game ? getBigBlindSeatIndex(game.seats, game.buttonSeatIndex) : null,
     handMessage: game?.hand.winnerMessage || null,
+    handCompleted: Boolean(game?.hand.completed),
     seats: game
-      ? game.seats.map((seat) => buildSeatSnapshot(seat, viewerPlayerId, revealAll, winningPlayerIds))
+      ? game.seats.map((seat) =>
+          buildSeatSnapshot(seat, viewerPlayerId, revealAll, winningPlayerIds, winningHandLabels),
+        )
       : [],
     participants: [...table.participants.values()]
       .map((entry) => ({
@@ -951,7 +978,7 @@ export function createHoldemOnlineManager() {
       return;
     }
 
-    if (table.status !== 'showdown') {
+    if (!table.game.hand.completed) {
       send(ws, 'error', { message: 'Cards can only be revealed after betting is over.' });
       return;
     }

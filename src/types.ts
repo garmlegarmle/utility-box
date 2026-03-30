@@ -271,6 +271,7 @@ export interface HoldemOnlineSeat {
   winningsThisHand: number;
   position: string | null;
   isWinner: boolean;
+  winningHandLabel: string | null;
 }
 
 export interface HoldemTournamentResultEntry {
@@ -320,6 +321,7 @@ export interface HoldemOnlineTableSnapshot extends HoldemOnlineTableSummary {
   smallBlindSeatIndex: number | null;
   bigBlindSeatIndex: number | null;
   handMessage: string | null;
+  handCompleted: boolean;
   seats: HoldemOnlineSeat[];
   participants: HoldemOnlineParticipant[];
   legalActions: HoldemOnlineLegalAction[];

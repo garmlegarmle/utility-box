@@ -129,6 +129,27 @@
   font-weight: 800;
 }
 
+.winnerBanner {
+  margin-top: 6px;
+  text-align: center;
+}
+
+.winnerTitle {
+  color: rgba(255, 247, 212, 0.98);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.winnerSubtitle {
+  margin-top: 2px;
+  color: rgba(241, 212, 136, 0.96);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .cards {
   display: flex;
   justify-content: center;
@@ -228,6 +249,18 @@
   .cards {
     gap: 4px;
     margin-top: 3px;
+  }
+
+  .winnerBanner {
+    margin-top: 4px;
+  }
+
+  .winnerTitle {
+    font-size: 0.5rem;
+  }
+
+  .winnerSubtitle {
+    font-size: 0.46rem;
   }
 
   .statusRow {

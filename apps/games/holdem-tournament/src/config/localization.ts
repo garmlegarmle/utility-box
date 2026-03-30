@@ -94,6 +94,8 @@ export const GAME_UI_TEXT = {
     folded: 'Folded',
     allIn: 'All-in',
     busted: 'Busted',
+    winnerBadge: 'Winner!',
+    uncontestedWinLabel: 'No showdown',
     currentBet: (value: number) => `Current bet: ${value.toLocaleString()}`,
     fold: 'Fold',
     check: 'Check',
@@ -178,6 +180,8 @@ export const GAME_UI_TEXT = {
     folded: '폴드',
     allIn: '올인',
     busted: '탈락',
+    winnerBadge: '승리!',
+    uncontestedWinLabel: '쇼다운 없음',
     currentBet: (value: number) => `현재 베팅: ${value.toLocaleString()}`,
     fold: '폴드',
     check: '체크',
@@ -263,6 +267,72 @@ export function getPotLabel(potId: string, lang: HoldemLang = 'ko'): string {
   }
 
   return potId;
+}
+
+export function formatWinningHandLabel(label: string | null | undefined, lang: HoldemLang = 'ko'): string | null {
+  if (!label) {
+    return null;
+  }
+
+  if (lang === 'en') {
+    return label;
+  }
+
+  const trimmed = label.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed === 'Royal Flush') {
+    return '로열 플러시';
+  }
+
+  const straightFlushMatch = trimmed.match(/^([2-9TJQKA])-high Straight Flush$/);
+  if (straightFlushMatch) {
+    return `${straightFlushMatch[1]}하이 스트레이트 플러시`;
+  }
+
+  const fourKindMatch = trimmed.match(/^Four of a Kind, ([2-9TJQKA]+)s$/);
+  if (fourKindMatch) {
+    return `포카드, ${fourKindMatch[1]}`;
+  }
+
+  const fullHouseMatch = trimmed.match(/^Full House, ([2-9TJQKA]+)s full of ([2-9TJQKA]+)s$/);
+  if (fullHouseMatch) {
+    return `풀하우스, ${fullHouseMatch[1]} 풀 오브 ${fullHouseMatch[2]}`;
+  }
+
+  const flushMatch = trimmed.match(/^([2-9TJQKA])-high Flush$/);
+  if (flushMatch) {
+    return `${flushMatch[1]}하이 플러시`;
+  }
+
+  const straightMatch = trimmed.match(/^([2-9TJQKA])-high Straight$/);
+  if (straightMatch) {
+    return `${straightMatch[1]}하이 스트레이트`;
+  }
+
+  const tripsMatch = trimmed.match(/^Three of a Kind, ([2-9TJQKA]+)s$/);
+  if (tripsMatch) {
+    return `트리플, ${tripsMatch[1]}`;
+  }
+
+  const twoPairMatch = trimmed.match(/^Two Pair, ([2-9TJQKA]+)s and ([2-9TJQKA]+)s$/);
+  if (twoPairMatch) {
+    return `투페어, ${twoPairMatch[1]}와 ${twoPairMatch[2]}`;
+  }
+
+  const pairMatch = trimmed.match(/^Pair of ([2-9TJQKA]+)s$/);
+  if (pairMatch) {
+    return `원페어, ${pairMatch[1]}`;
+  }
+
+  const highCardMatch = trimmed.match(/^([2-9TJQKA])-high$/);
+  if (highCardMatch) {
+    return `${highCardMatch[1]}하이`;
+  }
+
+  return trimmed;
 }
 
 export function formatPlacement(value: number, lang: HoldemLang = 'ko') {

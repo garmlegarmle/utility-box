@@ -107,6 +107,27 @@
   font-weight: 800;
 }
 
+.winnerBanner {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.winnerTitle {
+  color: rgba(255, 247, 212, 0.98);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.winnerSubtitle {
+  margin-top: 2px;
+  color: rgba(241, 212, 136, 0.96);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
 .revealHint {
   margin-top: 8px;
   text-align: center;
@@ -175,6 +196,18 @@
   .betLine {
     margin-top: 4px;
     font-size: 0.62rem;
+  }
+
+  .winnerBanner {
+    margin-top: 6px;
+  }
+
+  .winnerTitle {
+    font-size: 0.66rem;
+  }
+
+  .winnerSubtitle {
+    font-size: 0.58rem;
   }
 
   .revealHint {
