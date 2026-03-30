@@ -663,10 +663,10 @@ export function HoldemTournamentOnline({
 
         if (type === 'table:snapshot' || type === 'table:user_joined' || type === 'turn:started' || type === 'action:applied' || type === 'turn:auto_action' || type === 'hand:starting' || type === 'hand:flop' || type === 'hand:turn' || type === 'hand:river' || type === 'showdown:started' || type === 'tournament:result_snapshot' || type === 'game:starting') {
           if (type === 'hand:starting' && payload.table) {
-            const seatedCount = Array.isArray(payload.table.seats)
-              ? payload.table.seats.filter((seat: { status?: string }) => seat?.status === 'active').length
-              : 0;
-            playCardSoundBurst(seatedCount * 2, 105, 60);
+            const viewerRole = String(payload.table.viewer?.role || '');
+            if (viewerRole === 'player') {
+              playCardSoundBurst(2, 105, 60);
+            }
           } else if (type === 'hand:flop') {
             playCardSoundBurst(3, 160, 110);
           } else if (type === 'hand:turn' || type === 'hand:river') {

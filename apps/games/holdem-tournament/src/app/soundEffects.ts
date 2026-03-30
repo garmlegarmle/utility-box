@@ -4,7 +4,7 @@ import { useGameStore } from 'holdem/app/store/useGameStore';
 type HoldemSoundName = 'card' | 'bet' | 'pot';
 
 const SOUND_SOURCES: Record<HoldemSoundName, string> = {
-  card: '/holdem-sfx/card_sound.wav',
+  card: '/holdem-sfx/card-2.wav',
   bet: '/holdem-sfx/bet_sound.wav',
   pot: '/holdem-sfx/pot_sound.wav',
 };
@@ -141,7 +141,6 @@ export function useHoldemAiSoundEffects(enabled: boolean) {
     started: boolean;
     phase: typeof game.phase;
     handNumber: number;
-    activeSeatCount: number;
   } | null>(null);
 
   useEffect(() => {
@@ -149,7 +148,6 @@ export function useHoldemAiSoundEffects(enabled: boolean) {
       started: game.ui.started,
       phase: game.phase,
       handNumber: game.hand.handNumber,
-      activeSeatCount: game.seats.filter((seat) => seat.status === 'active').length,
     };
     const previousSummary = previousRef.current;
     previousRef.current = currentSummary;
@@ -164,7 +162,7 @@ export function useHoldemAiSoundEffects(enabled: boolean) {
 
     switch (currentSummary.phase) {
       case 'deal_hole_cards':
-        playCardSoundBurst(currentSummary.activeSeatCount * 2, 105, 60);
+        playCardSoundBurst(2, 105, 60);
         break;
       case 'deal_flop':
         playCardSoundBurst(3, 160, 110);
