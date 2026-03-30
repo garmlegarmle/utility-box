@@ -119,8 +119,6 @@ function formatDate(value: string | null, lang: SiteLang) {
 
 export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: SiteLang; embedded?: boolean }) {
   const copy = COPY[lang];
-  useHoldemBackgroundMusic(true);
-  useHoldemSoundActivation(true);
   const seedRef = useRef(Math.floor(Date.now() % 2147483647) || 1);
   const [mode, setMode] = useState<'ai' | 'online' | null>(null);
   const [playerName, setPlayerName] = useState(() => {
@@ -141,6 +139,8 @@ export function HoldemTournamentGameContent({ lang, embedded = false }: { lang: 
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [runToken, setRunToken] = useState<string | null>(null);
 
+  useHoldemBackgroundMusic(mode === 'ai');
+  useHoldemSoundActivation(true);
   useHoldemAiSoundEffects(mode === 'ai');
 
   useEffect(() => {

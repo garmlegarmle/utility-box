@@ -544,6 +544,11 @@ export function HoldemTournamentOnline({
   const reconnectTimerRef = useRef<number | null>(null);
   const onPlayerNameChangeRef = useRef(onPlayerNameChange);
   const lastViewerSeatRef = useRef<HoldemOnlineTableSnapshot['seats'][number] | null>(null);
+  const lastSoundStateRef = useRef({
+    handNumber: 0,
+    communityCount: 0,
+    heroHoleCount: 0,
+  });
 
   useEffect(() => {
     onPlayerNameChangeRef.current = onPlayerNameChange;
@@ -661,17 +666,6 @@ export function HoldemTournamentOnline({
         }
 
         if (type === 'table:snapshot' || type === 'table:user_joined' || type === 'turn:started' || type === 'action:applied' || type === 'turn:auto_action' || type === 'hand:starting' || type === 'hand:flop' || type === 'hand:turn' || type === 'hand:river' || type === 'showdown:started' || type === 'tournament:result_snapshot' || type === 'game:starting') {
-          if (type === 'hand:starting' && payload.table) {
-            const viewerRole = String(payload.table.viewer?.role || '');
-            if (viewerRole === 'player') {
-              playCardSoundBurst(2, 105, 60);
-            }
-          } else if (type === 'hand:flop') {
-            playCardSoundBurst(3, 160, 110);
-          } else if (type === 'hand:turn' || type === 'hand:river') {
-            playCardSoundBurst(1, 120, 140);
-          }
-
           if (payload.table) {
             setSnapshot(payload.table as HoldemOnlineTableSnapshot);
             setCurrentTableId(String((payload.table as HoldemOnlineTableSnapshot).tableId || ''));
@@ -765,17 +759,59 @@ export function HoldemTournamentOnline({
   };
 
   const currentViewerSeat = useMemo(() => {
-    if (!displaySnapshot || !playerId) {
+    if (!displaySnapshot) {
       return null;
     }
 
     return (
-      displaySnapshot.seats.find((seat) => seat.playerId === playerId) ||
+      (playerId ? displaySnapshot.seats.find((seat) => seat.playerId === playerId) : null) ||
       (displaySnapshot.viewer.role === 'player' && displaySnapshot.viewer.seatIndex !== null
         ? displaySnapshot.seats.find((seat) => seat.seatIndex === displaySnapshot.viewer.seatIndex) || null
         : null)
     );
   }, [displaySnapshot, playerId]);
+
+  useEffect(() => {
+    if (!displaySnapshot) {
+      lastSoundStateRef.current = {
+        handNumber: 0,
+        communityCount: 0,
+        heroHoleCount: 0,
+      };
+      return;
+    }
+
+    const currentSoundState = {
+      handNumber: displaySnapshot.handNumber,
+      communityCount: displaySnapshot.communityCards.length,
+      heroHoleCount: currentViewerSeat?.holeCards.length ?? 0,
+    };
+    const previousSoundState = lastSoundStateRef.current;
+    lastSoundStateRef.current = currentSoundState;
+
+    if (displaySnapshot.viewer.role !== 'player') {
+      return;
+    }
+
+    const sameHand = currentSoundState.handNumber === previousSoundState.handNumber;
+    const heroCardsJustArrived =
+      currentSoundState.heroHoleCount > 0 &&
+      (currentSoundState.handNumber !== previousSoundState.handNumber ||
+        (sameHand && previousSoundState.heroHoleCount === 0));
+
+    if (heroCardsJustArrived) {
+      playCardSoundBurst(Math.min(2, currentSoundState.heroHoleCount), 105, 60);
+    }
+
+    if (currentSoundState.communityCount > previousSoundState.communityCount) {
+      const addedCards = currentSoundState.communityCount - previousSoundState.communityCount;
+      playCardSoundBurst(
+        addedCards,
+        addedCards >= 3 ? 160 : 120,
+        addedCards >= 3 ? 110 : 140,
+      );
+    }
+  }, [displaySnapshot, currentViewerSeat?.holeCards.length]);
 
   useEffect(() => {
     if (!displaySnapshot) {
