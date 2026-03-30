@@ -289,13 +289,14 @@ function buildTableSnapshot(table, viewerPlayerId) {
   const participant = table.participants.get(viewerPlayerId) || null;
   const game = table.game;
   const captain = getCaptainParticipant(table);
-  const actingSeat = findActingSeat(game);
+  const isActionPhase = Boolean(game && HOLDEM_ONLINE_ACTION_PHASES.has(game.phase));
+  const actingSeat = isActionPhase ? findActingSeat(game) : null;
   const viewerSeat = game?.seats.find((seat) => seat.playerId === viewerPlayerId) || null;
   const viewerEliminated = Boolean(viewerSeat && viewerSeat.status === 'busted');
   const revealAll = false;
   const winningPlayerIds = collectWinningPlayerIds(game);
-  const legalActions = viewerSeat ? getLegalActions(game, viewerPlayerId) : [];
-  const amountToCall = viewerSeat ? getAmountToCall(game, viewerSeat) : 0;
+  const legalActions = viewerSeat && isActionPhase ? getLegalActions(game, viewerPlayerId) : [];
+  const amountToCall = viewerSeat && isActionPhase ? getAmountToCall(game, viewerSeat) : 0;
 
   return {
     ...buildTableSummary(table),
@@ -310,7 +311,7 @@ function buildTableSnapshot(table, viewerPlayerId) {
       seatIndex: viewerSeat && viewerSeat.status === 'active' ? viewerSeat.seatIndex : null,
       isCaptain: captain?.playerId === viewerPlayerId,
     },
-    actionDeadlineAt: table.actionTimeout?.deadlineAt ?? null,
+    actionDeadlineAt: isActionPhase ? table.actionTimeout?.deadlineAt ?? null : null,
     actingSeatIndex: actingSeat?.seatIndex ?? null,
     actingPlayerName: actingSeat?.name ?? null,
     totalPot: selectTotalPot(game),
@@ -895,6 +896,11 @@ export function createHoldemOnlineManager() {
     const table = connection.tableId ? tables.get(connection.tableId) : null;
     if (!table || !table.game || !connection.playerId) {
       send(ws, 'error', { message: 'No active table is selected.' });
+      return;
+    }
+
+    if (!HOLDEM_ONLINE_ACTION_PHASES.has(table.game.phase)) {
+      send(ws, 'error', { message: 'Actions are only available when betting is open.' });
       return;
     }
 
