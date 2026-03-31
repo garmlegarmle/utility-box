@@ -23,11 +23,14 @@ const SOUND_POOL_SIZES: Record<HoldemSoundName, number> = {
 
 type PreparedPools = Record<HoldemSoundName, HTMLAudioElement[]>;
 type CursorMap = Record<HoldemSoundName, number>;
+type PreparedBuffers = Partial<Record<HoldemSoundName, AudioBuffer>>;
 
 let preparedPools: PreparedPools | null = null;
 let poolCursors: CursorMap = { card: 0, bet: 0, pot: 0 };
 let soundPoolsPrimed = false;
 let synthAudioContext: AudioContext | null = null;
+let preparedBuffers: PreparedBuffers = {};
+let bufferLoadPromise: Promise<void> | null = null;
 
 function ensureSynthAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') {
@@ -176,7 +179,61 @@ function ensurePreparedPools(): PreparedPools | null {
   return preparedPools;
 }
 
+function loadSoundBuffers() {
+  const context = ensureSynthAudioContext();
+  if (typeof window === 'undefined' || !context) {
+    return Promise.resolve();
+  }
+
+  if (bufferLoadPromise) {
+    return bufferLoadPromise;
+  }
+
+  bufferLoadPromise = Promise.all(
+    (Object.keys(SOUND_SOURCES) as HoldemSoundName[]).map(async (name) => {
+      if (preparedBuffers[name]) {
+        return;
+      }
+
+      try {
+        const response = await fetch(SOUND_SOURCES[name], { cache: 'force-cache' });
+        const bytes = await response.arrayBuffer();
+        const decoded = await context.decodeAudioData(bytes.slice(0));
+        preparedBuffers[name] = decoded;
+      } catch {
+        // Keep HTMLAudio fallback when fetch/decode fails.
+      }
+    }),
+  )
+    .then(() => undefined)
+    .catch(() => undefined);
+
+  return bufferLoadPromise;
+}
+
 function playSound(name: HoldemSoundName) {
+  const context = ensureSynthAudioContext();
+  const buffer = preparedBuffers[name];
+  if (context && buffer) {
+    if (context.state !== 'running') {
+      void context.resume().then(() => playSound(name)).catch(() => undefined);
+      return;
+    }
+
+    try {
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = buffer;
+      gain.gain.value = SOUND_VOLUMES[name];
+      source.connect(gain);
+      gain.connect(context.destination);
+      source.start();
+      return;
+    } catch {
+      // Fall back to HTMLAudio below.
+    }
+  }
+
   const pools = ensurePreparedPools();
   if (!pools) {
     return;
@@ -245,6 +302,7 @@ export function useHoldemSoundActivation(enabled: boolean) {
       if (context && context.state !== 'running') {
         void context.resume().catch(() => undefined);
       }
+      void loadSoundBuffers();
       soundPoolsPrimed = true;
     };
 

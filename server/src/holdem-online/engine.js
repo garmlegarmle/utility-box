@@ -360,6 +360,7 @@ function dealBoardCards(state, street, count) {
 function runShowdown(state) {
   const nextState = structuredClone(state);
   const resolved = resolveShowdown(nextState);
+  const shouldAutoRevealShowdownCards = Array.isArray(resolved.showdown) && resolved.showdown.length > 0;
 
   nextState.hand.pots = resolved.pots;
   nextState.hand.payouts = resolved.payouts;
@@ -367,7 +368,7 @@ function runShowdown(state) {
   nextState.hand.winnerMessage = resolved.winnerMessage;
   nextState.seats.forEach((seat) => {
     seat.hasShownCards = !seat.hasFolded && seat.holeCards.length === 2;
-    seat.revealedCardCount = 0;
+    seat.revealedCardCount = seat.hasShownCards && shouldAutoRevealShowdownCards ? seat.holeCards.length : 0;
   });
   nextState.phase = 'award_pots';
 

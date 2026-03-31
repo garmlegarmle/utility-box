@@ -169,10 +169,6 @@ function collectWinningPlayerIds(game) {
     return new Set();
   }
 
-  if (Array.isArray(game.hand?.payouts) && game.hand.payouts.length > 0) {
-    return new Set(game.hand.payouts.map((payout) => payout.playerId));
-  }
-
   if (Array.isArray(game.hand?.showdown) && game.hand.showdown.length > 0) {
     return new Set(
       game.hand.showdown.flatMap((result) => (Array.isArray(result.winners) ? result.winners : [])),
@@ -184,12 +180,16 @@ function collectWinningPlayerIds(game) {
 
 function collectWinningHandLabels(game) {
   const labels = new Map();
-  if (!game || !Array.isArray(game.hand?.payouts)) {
+  if (!game || !Array.isArray(game.hand?.payouts) || !Array.isArray(game.hand?.pots)) {
     return labels;
   }
 
+  const contestedPotIds = new Set(
+    game.hand.pots.filter((pot) => Array.isArray(pot.eligiblePlayerIds) && pot.eligiblePlayerIds.length >= 2).map((pot) => pot.id),
+  );
+
   for (const payout of game.hand.payouts) {
-    if (!payout?.playerId || !payout.handLabel || labels.has(payout.playerId)) {
+    if (!payout?.playerId || !payout.handLabel || labels.has(payout.playerId) || !contestedPotIds.has(payout.potId)) {
       continue;
     }
     labels.set(payout.playerId, payout.handLabel);
