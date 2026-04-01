@@ -1,4 +1,5 @@
 import "./style.css";
+import { assetUrl } from "./assetPaths.js";
 import { DuelGame } from "./game.js";
 import { HandTrackingController } from "./handTracking.js";
 import { OnlineMatchController } from "./onlineMatchController.js";
@@ -20,9 +21,6 @@ const LOBBY_MODE = {
   CPU: "cpu",
   MULTI: "multiplayer",
 };
-const MULTI_MATCH_FOUND_DELAY_MS = 1800;
-const MULTI_MATCH_START_DELAY_MS = 3200;
-
 const canvas = document.querySelector("#game-canvas");
 const video = document.querySelector("#webcam-video");
 const previewPanel = document.querySelector("#preview-panel");
@@ -56,16 +54,10 @@ const resetButton = document.querySelector("#reset-button");
 const difficultyButtons = [
   ...document.querySelectorAll("[data-difficulty]"),
 ];
-const playerLabel = document.querySelector("#player-label");
-const enemyLabel = document.querySelector("#enemy-label");
+const ammoIndicator = document.querySelector("#ammo-indicator");
+const ammoIndicatorImage = document.querySelector("#ammo-indicator-image");
 
 const statNodes = {
-  you: document.querySelector("#player-hits-value"),
-  cpu: document.querySelector("#enemy-hits-value"),
-  ammo: document.querySelector("#ammo-value"),
-  reload: document.querySelector("#reload-value"),
-  range: document.querySelector("#range-value"),
-  state: document.querySelector("#state-value"),
   webcam: document.querySelector("#webcam-status"),
   hand: document.querySelector("#hand-status"),
   aim: document.querySelector("#aim-status"),
@@ -108,6 +100,7 @@ let queuedDebugReload = false;
 let lastLoopAt = 0;
 let currentOverlayView = START_FLOW_VIEW.MODE;
 let activeGameplayMode = LOBBY_MODE.CPU;
+let currentAmmoFrame = -1;
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -279,17 +272,6 @@ function syncLayout() {
 }
 
 function updateHud(frameState) {
-  playerLabel.textContent = "YOU";
-  enemyLabel.textContent =
-    activeGameplayMode === LOBBY_MODE.MULTI
-      ? onlineMatch.getOpponentName().toUpperCase()
-      : "CPU";
-  setText(statNodes.you, frameState.hud.playerHits);
-  setText(statNodes.cpu, frameState.hud.enemyHits);
-  setText(statNodes.ammo, frameState.hud.ammo);
-  setText(statNodes.reload, frameState.hud.reload);
-  setText(statNodes.range, "Direct");
-  setText(statNodes.state, frameState.hud.state);
   setText(statNodes.webcam, latestTracking.error || latestTracking.webcamStatus);
   setText(statNodes.hand, latestTracking.handDetected ? "Yes" : "No");
   setText(statNodes.aim, latestTracking.aimActive ? "Locked" : "Searching");
@@ -301,6 +283,44 @@ function updateHud(frameState) {
   previewCaption.textContent =
     latestTracking.error ||
     `${latestTracking.webcamStatus}. Thumb fold shoots, support-hand rack reloads.`;
+
+  syncAmmoIndicator(frameState);
+}
+
+function getAmmoCount(frameState) {
+  const rawAmmo = String(frameState?.hud?.ammo || "0").split("/")[0];
+  const ammo = Number.parseInt(rawAmmo, 10);
+  return Number.isFinite(ammo) ? Math.max(0, Math.min(6, ammo)) : 0;
+}
+
+function getAmmoFrame(frameState) {
+  if (frameState?.playerReloading) {
+    const progress = Math.max(
+      0,
+      Math.min(1, Number(frameState?.playerWeaponFx?.reloadProgress ?? 0)),
+    );
+    return Math.min(6, Math.floor(progress * 7));
+  }
+
+  return getAmmoCount(frameState);
+}
+
+function syncAmmoIndicator(frameState) {
+  const shouldShow = cameraStarted && startOverlay.classList.contains("is-hidden");
+  ammoIndicator.classList.toggle("is-hidden", !shouldShow);
+  if (!shouldShow) {
+    currentAmmoFrame = -1;
+    return;
+  }
+
+  const nextFrame = getAmmoFrame(frameState);
+  if (nextFrame === currentAmmoFrame) {
+    return;
+  }
+
+  currentAmmoFrame = nextFrame;
+  ammoIndicatorImage.src = assetUrl(`ui/ammo-${nextFrame}.svg`);
+  ammoIndicatorImage.alt = `Revolver cylinder showing ${nextFrame} loaded rounds`;
 }
 
 function clearPendingMatchTimeouts() {

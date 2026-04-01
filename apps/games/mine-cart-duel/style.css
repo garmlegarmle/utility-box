@@ -45,7 +45,6 @@ select {
 
 .preview-panel,
 .settings-panel,
-.status-bar,
 .overlay-card,
 .calibration-card {
   background: rgba(249, 244, 236, 0.88);
@@ -137,15 +136,35 @@ select {
   display: none;
 }
 
+.ammo-indicator {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 4;
+  width: min(132px, 26vw);
+  pointer-events: none;
+  filter: drop-shadow(0 10px 22px rgba(34, 28, 22, 0.16));
+}
+
+.ammo-indicator.is-hidden {
+  display: none;
+}
+
+.ammo-indicator img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .bottom-dock {
   position: absolute;
   left: 14px;
-  right: 14px;
   bottom: 14px;
   z-index: 4;
   display: flex;
   align-items: stretch;
   gap: 12px;
+  width: fit-content;
 }
 
 .settings-fab {
@@ -163,35 +182,6 @@ select {
 .settings-fab svg {
   width: 28px;
   height: 28px;
-}
-
-.status-bar {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  border-radius: 22px;
-  overflow-x: auto;
-}
-
-.bar-item {
-  flex: 0 0 auto;
-  min-width: 92px;
-}
-
-.bar-item--state {
-  flex: 1 0 170px;
-}
-
-.bar-value {
-  display: block;
-  margin-top: 6px;
-  font-size: 1.03rem;
-  font-weight: 700;
-  color: #26221f;
-  white-space: nowrap;
 }
 
 .settings-panel {
@@ -605,23 +595,10 @@ select {
     bottom: 126px;
   }
 
-  .bottom-dock {
-    flex-direction: column;
-  }
-
   .settings-fab {
     width: 56px;
     min-width: 56px;
     height: 56px;
-  }
-
-  .status-bar {
-    gap: 12px;
-    padding: 12px 14px;
-  }
-
-  .bar-item {
-    min-width: 84px;
   }
 
   .instruction-grid {
@@ -651,6 +628,12 @@ select {
 
   .settings-panel {
     bottom: 108px;
+  }
+
+  .ammo-indicator {
+    top: 12px;
+    right: 12px;
+    width: min(118px, 28vw);
   }
 
   .calibration-actions {

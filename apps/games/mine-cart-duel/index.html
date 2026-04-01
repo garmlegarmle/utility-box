@@ -29,6 +29,14 @@
         Camera
       </button>
 
+      <div class="ammo-indicator is-hidden" id="ammo-indicator" aria-live="polite">
+        <img
+          id="ammo-indicator-image"
+          src="./ui/ammo-6.svg"
+          alt="Revolver cylinder with six rounds loaded"
+        />
+      </div>
+
       <section class="settings-panel is-hidden" id="settings-panel" aria-live="polite">
         <div class="settings-title-row">
           <div>
@@ -104,32 +112,6 @@
           </svg>
         </button>
 
-        <section class="status-bar" aria-live="polite">
-          <div class="bar-item">
-            <span class="bar-label" id="player-label">YOU</span>
-            <span class="bar-value" id="player-hits-value">0 / 5</span>
-          </div>
-          <div class="bar-item">
-            <span class="bar-label" id="enemy-label">CPU</span>
-            <span class="bar-value" id="enemy-hits-value">0 / 5</span>
-          </div>
-          <div class="bar-item">
-            <span class="bar-label">Ammo</span>
-            <span class="bar-value" id="ammo-value">6 / 6</span>
-          </div>
-          <div class="bar-item">
-            <span class="bar-label">Reload</span>
-            <span class="bar-value" id="reload-value">Ready</span>
-          </div>
-          <div class="bar-item">
-            <span class="bar-label">Aim Mode</span>
-            <span class="bar-value" id="range-value">Direct</span>
-          </div>
-          <div class="bar-item bar-item--state">
-            <span class="bar-label">Round State</span>
-            <span class="bar-value" id="state-value">Start Camera</span>
-          </div>
-        </section>
       </section>
 
       <section class="start-overlay" id="start-overlay">
