@@ -71,6 +71,7 @@ import {
   writeImageVariants
 } from './media.js';
 import { createHoldemOnlineManager } from './holdem-online/manager.js';
+import { createMineCartDuelOnlineManager } from './mine-cart-duel-online/manager.js';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } });
@@ -89,6 +90,7 @@ const HOLDEM_RUN_TOKEN_TTL_SECONDS = 4 * 60 * 60;
 const rateLimitStore = new Map();
 const CARD_TITLE_SIZE_VALUES = new Set(['auto', 'default', 'compact', 'tight', 'ultra-tight']);
 const holdemOnlineManager = createHoldemOnlineManager();
+const mineCartDuelOnlineManager = createMineCartDuelOnlineManager();
 
 function withSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -1061,6 +1063,10 @@ server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
     if (url.pathname === '/ws/holdem-online') {
       holdemOnlineManager.handleUpgrade(request, socket, head);
+      return;
+    }
+    if (url.pathname === '/ws/mine-cart-duel-online') {
+      mineCartDuelOnlineManager.handleUpgrade(request, socket, head);
       return;
     }
   } catch {
