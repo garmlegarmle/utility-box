@@ -1,10 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
-  <circle cx="128" cy="128" r="110" fill="#faf7f1" stroke="#25211d" stroke-width="8"/>
-  <circle cx="128" cy="128" r="18" fill="#1f1b18" stroke="#25211d" stroke-width="5"/>
-  <circle cx="106" cy="63" r="31" fill="#fffdf8" stroke="#25211d" stroke-width="7"/>
-  <circle cx="177" cy="63" r="31" fill="#fffdf8" stroke="#25211d" stroke-width="7"/>
-  <circle cx="58" cy="126" r="31" fill="#fffdf8" stroke="#25211d" stroke-width="7"/>
-  <circle cx="197" cy="126" r="31" fill="#fffdf8" stroke="#25211d" stroke-width="7"/>
-  <circle cx="92" cy="190" r="31" fill="#f0a11a" stroke="#25211d" stroke-width="7"/>
-  <circle cx="163" cy="190" r="31" fill="#fffdf8" stroke="#25211d" stroke-width="7"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <style>
+    .frame { fill: #faf7f1; stroke: #241e1a; stroke-width: 5.5; stroke-linejoin: round; }
+    .line { fill: none; stroke: #3e3731; stroke-linecap: round; opacity: 0.24; }
+    .ring { fill: none; stroke: #2f2924; stroke-width: 2.2; opacity: 0.55; }
+    .chamber { fill: #fffdf8; stroke: #241e1a; stroke-width: 5.5; }
+    .chamber-ring { fill: none; stroke: #4e463f; stroke-width: 1.3; opacity: 0.55; }
+    .loaded { fill: #efa11a; }
+    .loaded-ring { fill: none; stroke: #9b5f07; stroke-width: 1.5; opacity: 0.7; }
+    .primer { fill: #d78606; }
+    .primer-ring { fill: none; stroke: #734300; stroke-width: 1.7; opacity: 0.85; }
+  </style>
+  <defs>
+    <g id="empty-chamber">
+      <circle class="chamber" r="29" />
+      <circle class="chamber-ring" r="24.5" />
+    </g>
+    <g id="loaded-chamber">
+      <use href="#empty-chamber" />
+      <circle class="loaded" r="24.5" />
+      <circle class="loaded-ring" r="18.5" />
+      <circle class="loaded-ring" r="10.5" />
+      <circle class="primer" r="6.3" />
+      <circle class="primer-ring" r="2.5" />
+    </g>
+  </defs>
+  <path class="frame" d="M128 22c16 0 29 5 40 13 11-8 25-13 40-13 28 0 52 17 63 42 9 21 9 45 0 66-10 25-33 42-58 47-11 29-39 49-72 49s-61-20-72-49c-25-5-48-22-58-47-9-21-9-45 0-66 11-25 35-42 63-42 15 0 29 5 40 13 11-8 24-13 40-13Z" />
+  <circle class="ring" cx="128" cy="128" r="103" />
+  <circle class="ring" cx="128" cy="128" r="76" />
+  <path class="line" d="M52 59c15 11 24 26 28 46" stroke-width="1.1" />
+  <path class="line" d="M204 59c-15 11-24 26-28 46" stroke-width="1.1" />
+  <path class="line" d="M48 147c17 2 31 8 43 19" stroke-width="1.1" />
+  <path class="line" d="M208 147c-17 2-31 8-43 19" stroke-width="1.1" />
+  <path class="line" d="M92 210c12-12 24-19 36-22" stroke-width="1.1" />
+  <path class="line" d="M164 210c-12-12-24-19-36-22" stroke-width="1.1" />
+  <path class="frame" d="M128 92l10 17 19 4-13 14 3 20-19-8-19 8 3-20-13-14 19-4 10-17Z" />
+  <circle class="frame" cx="128" cy="128" r="13.5" />
+  <circle cx="128" cy="128" r="4.3" fill="#241e1a" />
+  <circle class="frame" cx="128" cy="201" r="6.2" />
+  <use href="#empty-chamber" transform="translate(94 64)" />
+  <use href="#empty-chamber" transform="translate(162 64)" />
+  <use href="#empty-chamber" transform="translate(58 125)" />
+  <use href="#empty-chamber" transform="translate(198 125)" />
+  <use href="#loaded-chamber" transform="translate(94 186)" />
+  <use href="#empty-chamber" transform="translate(162 186)" />
 </svg>
