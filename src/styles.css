@@ -141,6 +141,29 @@ main {
   text-align: center;
 }
 
+.list-head__sort {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.list-head__sort-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.list-head__sort-select {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 10px;
+}
+
 .list-tags-title {
   margin: 10px 0 0;
   font-size: 15px;

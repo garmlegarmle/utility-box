@@ -16,6 +16,9 @@ export type UiTextKey =
   | 'common.all'
   | 'common.loading'
   | 'common.noPosts'
+  | 'common.sort'
+  | 'common.descending'
+  | 'common.ascending'
   | 'card.placeholder'
   | 'card.tagFallback'
   | 'card.draft'
@@ -57,6 +60,9 @@ const UI_TEXT: Record<SiteLang, Record<UiTextKey, string>> = {
     'common.all': 'All',
     'common.loading': 'Loading...',
     'common.noPosts': 'No posts yet.',
+    'common.sort': 'Sort',
+    'common.descending': 'Descending',
+    'common.ascending': 'Ascending',
     'card.placeholder': 'Image or number',
     'card.tagFallback': 'Tag',
     'card.draft': 'draft',
@@ -97,6 +103,9 @@ const UI_TEXT: Record<SiteLang, Record<UiTextKey, string>> = {
     'common.all': '전체',
     'common.loading': '불러오는 중...',
     'common.noPosts': '게시글이 없습니다.',
+    'common.sort': '정렬',
+    'common.descending': '내림차순',
+    'common.ascending': '오름차순',
     'card.placeholder': '이미지 혹은 숫자',
     'card.tagFallback': '태그',
     'card.draft': '임시저장',

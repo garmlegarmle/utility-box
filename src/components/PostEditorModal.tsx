@@ -15,7 +15,6 @@ interface PostEditorModalProps {
 
 const RESIZE_EDGE_THRESHOLD = 14;
 type EditorPaneKey = 'body' | 'before' | 'after';
-type ProgramContentLayout = 'above' | 'below' | 'split';
 
 const FONT_SIZE_OPTIONS = [
   { label: '12px', value: '1' },
@@ -108,7 +107,16 @@ function toInitialEditorHtml(raw: string): string {
   const value = String(raw || '').trim();
   if (!value) return '<p><br></p>';
 
-  if (/<[a-z][\s\S]*>/i.test(value)) return value;
+  if (/<[a-z][\s\S]*>/i.test(value)) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(value, 'text/html');
+    doc.querySelectorAll('script, style').forEach((node) => node.remove());
+    const elements = Array.from(doc.body.children);
+    if (elements.length === 1 && elements[0].tagName.toLowerCase() === 'main') {
+      return elements[0].innerHTML || '<p><br></p>';
+    }
+    return doc.body.innerHTML || value;
+  }
 
   const paragraphHtml = escapeHtml(value)
     .replace(/\r\n/g, '\n')
@@ -299,7 +307,6 @@ export function PostEditorModal({
   const [linkDraft, setLinkDraft] = useState('');
   const [linkResults, setLinkResults] = useState<PostItem[]>([]);
   const [linkComposerOpen, setLinkComposerOpen] = useState(false);
-  const [programContentLayout, setProgramContentLayout] = useState<ProgramContentLayout>('below');
   const [activeEditor, setActiveEditor] = useState<EditorPaneKey>('body');
 
   const [loading, setLoading] = useState(false);
@@ -338,16 +345,7 @@ export function PostEditorModal({
 
   function preferredEditorKey(): EditorPaneKey {
     if (!hasEmbeddedProgramPost) return 'body';
-    if (programContentLayout === 'above') return 'before';
-    if (programContentLayout === 'below') return 'after';
     return activeEditor === 'before' || activeEditor === 'after' ? activeEditor : 'after';
-  }
-
-  function activeEditorLabel(): string {
-    const key = preferredEditorKey();
-    if (key === 'before') return 'content above the program';
-    if (key === 'after') return 'content below the program';
-    return 'body';
   }
 
   function hydrateEditor(ref: { current: HTMLDivElement | null }, html: string) {
@@ -368,11 +366,6 @@ export function PostEditorModal({
     const nextBeforeHtml = toInitialEditorHtml(nextBeforeSource);
     const nextAfterHtml = toInitialEditorHtml(nextAfterSource);
     const embeddedInitial = hasEmbeddedProgram(initialPost?.section || defaultSection, initialPost?.slug || '');
-    const nextLayout: ProgramContentLayout = nextBeforeSource.trim()
-      ? nextAfterSource.trim()
-        ? 'split'
-        : 'above'
-      : 'below';
 
     setTitle(initialPost?.title || '');
     setSlug(initialPost?.slug || '');
@@ -405,8 +398,7 @@ export function PostEditorModal({
       Boolean(initialPost?.card.category && initialPost.card.category !== (initialPost.section || defaultSection))
     );
     setCardRankTouched(Boolean(stripRank(initialPost?.card.rank)));
-    setProgramContentLayout(embeddedInitial ? nextLayout : 'below');
-    setActiveEditor(embeddedInitial ? (nextLayout === 'above' ? 'before' : 'after') : 'body');
+    setActiveEditor(embeddedInitial ? (nextBeforeSource.trim() ? 'before' : 'after') : 'body');
 
     selectedImageRef.current = null;
     savedSelectionRef.current = null;
@@ -478,15 +470,6 @@ export function PostEditorModal({
     if (cardCategoryTouched) return;
     setCardCategory(section);
   }, [cardCategoryTouched, open, section]);
-
-  useEffect(() => {
-    if (!open || !hasEmbeddedProgramPost) return;
-    if (programContentLayout === 'split') {
-      setActiveEditor((prev) => (prev === 'before' || prev === 'after' ? prev : 'after'));
-      return;
-    }
-    setActiveEditor(programContentLayout === 'above' ? 'before' : 'after');
-  }, [hasEmbeddedProgramPost, open, programContentLayout]);
 
   useEffect(() => {
     if (!open) return;
@@ -958,19 +941,9 @@ export function PostEditorModal({
     const rawAfterHtml = hasEmbeddedProgramPost ? syncEditorHtml('after').trim() : '';
     const normalizedBeforeHtml = rawBeforeHtml ? normalizeBodyHtml(rawBeforeHtml).trim() : '';
     const normalizedAfterHtml = rawAfterHtml ? normalizeBodyHtml(rawAfterHtml).trim() : '';
-    const beforeHtml =
-      hasEmbeddedProgramPost && (programContentLayout === 'above' || programContentLayout === 'split')
-        ? normalizedBeforeHtml
-        : '';
-    const afterHtml =
-      hasEmbeddedProgramPost && (programContentLayout === 'below' || programContentLayout === 'split')
-        ? normalizedAfterHtml
-        : '';
-    const resolvedBeforeHtml =
-      hasEmbeddedProgramPost && programContentLayout === 'above' && !beforeHtml ? normalizedAfterHtml : beforeHtml;
-    const resolvedAfterHtml =
-      hasEmbeddedProgramPost && programContentLayout === 'below' && !afterHtml ? normalizedBeforeHtml : afterHtml;
-    const combinedHtml = hasEmbeddedProgramPost ? [resolvedBeforeHtml, resolvedAfterHtml].filter(Boolean).join('\n') : html;
+    const beforeHtml = hasEmbeddedProgramPost ? normalizedBeforeHtml : '';
+    const afterHtml = hasEmbeddedProgramPost ? normalizedAfterHtml : '';
+    const combinedHtml = hasEmbeddedProgramPost ? [beforeHtml, afterHtml].filter(Boolean).join('\n') : html;
 
     if (!normalizedTitle || !normalizedSlug) {
       setError('title and slug are required.');
@@ -982,8 +955,8 @@ export function PostEditorModal({
     }
     if (
       hasEmbeddedProgramPost &&
-      isEditorHtmlEmpty(resolvedBeforeHtml) &&
-      isEditorHtmlEmpty(resolvedAfterHtml)
+      isEditorHtmlEmpty(beforeHtml) &&
+      isEditorHtmlEmpty(afterHtml)
     ) {
       setError('content is required.');
       return;
@@ -1005,8 +978,8 @@ export function PostEditorModal({
       title: normalizedTitle,
       excerpt: normalizedExcerpt,
       content_md: combinedHtml,
-      content_before_md: hasEmbeddedProgramPost ? resolvedBeforeHtml || null : null,
-      content_after_md: hasEmbeddedProgramPost ? resolvedAfterHtml || null : null,
+      content_before_md: hasEmbeddedProgramPost ? beforeHtml || null : null,
+      content_after_md: hasEmbeddedProgramPost ? afterHtml || null : null,
       status,
       lang,
       section,
@@ -1039,8 +1012,8 @@ export function PostEditorModal({
       title: normalizedTitle,
       excerpt: normalizedExcerpt || '',
       content_md: combinedHtml,
-      content_before_md: hasEmbeddedProgramPost ? resolvedBeforeHtml : '',
-      content_after_md: hasEmbeddedProgramPost ? resolvedAfterHtml : '',
+      content_before_md: hasEmbeddedProgramPost ? beforeHtml : '',
+      content_after_md: hasEmbeddedProgramPost ? afterHtml : '',
       status,
       lang,
       section,
@@ -1370,24 +1343,9 @@ export function PostEditorModal({
               <h3>Body</h3>
               <p className="list-tags">H1 is generated automatically from the post title. Use H2/H3 in body.</p>
               {hasEmbeddedProgramPost ? (
-                <>
-                  <div className="admin-inline-grid">
-                    <label>
-                      Program Content Layout
-                      <select
-                        value={programContentLayout}
-                        onChange={(event) => setProgramContentLayout(event.target.value as ProgramContentLayout)}
-                      >
-                        <option value="below">Program first, content below</option>
-                        <option value="above">Content above, program below</option>
-                        <option value="split">Content above and below the program</option>
-                      </select>
-                    </label>
-                  </div>
-                  <p className="list-tags">
-                    Both areas stay editable for built-in programs. The selected layout controls which area is rendered live, and formatting tools apply to the currently focused area: {activeEditorLabel()}.
-                  </p>
-                </>
+                <p className="list-tags">
+                  Built-in programs always keep two editable text areas. Content above is rendered before the program and content below is rendered after it. Formatting tools apply to the currently focused area.
+                </p>
               ) : null}
 
               <div className="admin-editor-workbench">
@@ -1611,16 +1569,12 @@ export function PostEditorModal({
                     {renderEditorSurface(
                       'before',
                       'Content above the program',
-                      programContentLayout === 'below'
-                        ? 'Saved but not rendered while layout is set to "program first, content below."'
-                        : 'Rendered before the embedded tool/game.'
+                      'Rendered before the embedded tool/game when this area has content.'
                     )}
                     {renderEditorSurface(
                       'after',
                       'Content below the program',
-                      programContentLayout === 'above'
-                        ? 'Saved but not rendered while layout is set to "content above, program below."'
-                        : 'Rendered after the embedded tool/game.'
+                      'Rendered after the embedded tool/game when this area has content.'
                     )}
                   </div>
                 ) : (

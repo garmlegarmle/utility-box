@@ -37,6 +37,8 @@ interface LanguageToggleState {
   fallbackPath?: string;
 }
 
+type PostSortOrder = 'desc' | 'asc';
+
 function toPostItem(snapshot: PostSaveSnapshot, existing?: PostItem): PostItem {
   return {
     id: snapshot.id,
@@ -102,6 +104,29 @@ function sortPostsByNewest(list: PostItem[]): PostItem[] {
   return [...list].sort((a, b) => {
     const diff = postDateValue(b) - postDateValue(a);
     if (diff !== 0) return diff;
+    return b.id - a.id;
+  });
+}
+
+function postRankValue(post: PostItem): number | null {
+  const value = post.card?.rankNumber;
+  return Number.isFinite(value) ? Number(value) : null;
+}
+
+function sortPostsByCardRank(list: PostItem[], order: PostSortOrder): PostItem[] {
+  return [...list].sort((a, b) => {
+    const leftRank = postRankValue(a);
+    const rightRank = postRankValue(b);
+
+    if (leftRank !== null || rightRank !== null) {
+      if (leftRank === null) return 1;
+      if (rightRank === null) return -1;
+      const rankDiff = order === 'desc' ? rightRank - leftRank : leftRank - rightRank;
+      if (rankDiff !== 0) return rankDiff;
+    }
+
+    const dateDiff = postDateValue(b) - postDateValue(a);
+    if (dateDiff !== 0) return dateDiff;
     return b.id - a.id;
   });
 }
@@ -343,6 +368,7 @@ function HomePage({
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'tools' | 'games' | 'blog'>('all');
   const [selectedTag, setSelectedTag] = useState('');
+  const [sortOrder, setSortOrder] = useState<PostSortOrder>('desc');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -447,6 +473,7 @@ function HomePage({
       item.tags.some((tag) => String(tag || '').trim().toLowerCase() === key)
     );
   }, [categoryPosts, selectedTag]);
+  const sortedVisiblePosts = useMemo(() => sortPostsByCardRank(visiblePosts, sortOrder), [sortOrder, visiblePosts]);
 
   const showLogin = useMemo(() => new URLSearchParams(window.location.search).get('admin') === '8722', []);
 
@@ -517,11 +544,25 @@ function HomePage({
                 </p>
               )}
             </div>
+
+            <div className="list-head__sort">
+              <label className="list-head__sort-label">
+                <span>{t(lang, 'common.sort')}</span>
+                <select
+                  className="list-head__sort-select"
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as PostSortOrder)}
+                >
+                  <option value="desc">{t(lang, 'common.descending')}</option>
+                  <option value="asc">{t(lang, 'common.ascending')}</option>
+                </select>
+              </label>
+            </div>
           </header>
 
           {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           <div className="listing-grid listing-grid--four listing-grid--center">
-            {visiblePosts.map((post) => (
+            {sortedVisiblePosts.map((post) => (
               <EntryCard
                 key={post.id}
                 post={post}
@@ -532,7 +573,7 @@ function HomePage({
             ))}
           </div>
 
-          {!loading && visiblePosts.length === 0 ? <p className="list-tags">{t(lang, 'common.noPosts')}</p> : null}
+          {!loading && sortedVisiblePosts.length === 0 ? <p className="list-tags">{t(lang, 'common.noPosts')}</p> : null}
         </div>
       </section>
 
@@ -586,6 +627,7 @@ function SectionListPage({
 
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [selectedTag, setSelectedTag] = useState('');
+  const [sortOrder, setSortOrder] = useState<PostSortOrder>('desc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -672,6 +714,7 @@ function SectionListPage({
       item.tags.some((tag) => String(tag || '').trim().toLowerCase() === key)
     );
   }, [posts, selectedTag]);
+  const sortedVisiblePosts = useMemo(() => sortPostsByCardRank(visiblePosts, sortOrder), [sortOrder, visiblePosts]);
 
   if (!isValidSection || !section) {
     return <Navigate to={`/${lang}/`} replace />;
@@ -722,13 +765,26 @@ function SectionListPage({
                 </p>
               )}
             </div>
+            <div className="list-head__sort">
+              <label className="list-head__sort-label">
+                <span>{t(lang, 'common.sort')}</span>
+                <select
+                  className="list-head__sort-select"
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as PostSortOrder)}
+                >
+                  <option value="desc">{t(lang, 'common.descending')}</option>
+                  <option value="asc">{t(lang, 'common.ascending')}</option>
+                </select>
+              </label>
+            </div>
           </header>
 
           {loading ? <p>{t(lang, 'common.loading')}</p> : null}
           {error ? <p>{error}</p> : null}
 
           <div className="listing-grid listing-grid--four listing-grid--center">
-            {visiblePosts.map((post) => (
+            {sortedVisiblePosts.map((post) => (
               <EntryCard
                 key={post.id}
                 post={post}
@@ -739,7 +795,7 @@ function SectionListPage({
             ))}
           </div>
 
-          {!loading && visiblePosts.length === 0 ? <p className="list-tags">{t(lang, 'common.noPosts')}</p> : null}
+          {!loading && sortedVisiblePosts.length === 0 ? <p className="list-tags">{t(lang, 'common.noPosts')}</p> : null}
         </div>
       </section>
 
