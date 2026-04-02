@@ -137,6 +137,17 @@ let lastLoopAt = 0;
 let currentOverlayView = START_FLOW_VIEW.MODE;
 let activeGameplayMode = LOBBY_MODE.CPU;
 let currentAmmoFrame = -1;
+const ammoFrameAssets = Array.from({ length: 7 }, (_, frame) => {
+  const src = assetUrl(`ui/ammo-${frame}.svg`);
+  const image = new Image();
+  image.decoding = "async";
+  image.loading = "eager";
+  image.src = src;
+  if (typeof image.decode === "function") {
+    image.decode().catch(() => {});
+  }
+  return { src, image };
+});
 
 function applyStaticCopy() {
   document.documentElement.lang = LANG;
@@ -406,7 +417,7 @@ function syncAmmoIndicator(frameState) {
   }
 
   currentAmmoFrame = nextFrame;
-  ammoIndicatorImage.src = assetUrl(`ui/ammo-${nextFrame}.svg`);
+  ammoIndicatorImage.src = ammoFrameAssets[nextFrame]?.src ?? assetUrl(`ui/ammo-${nextFrame}.svg`);
   ammoIndicatorImage.alt = `Revolver cylinder showing ${nextFrame} loaded rounds`;
 }
 

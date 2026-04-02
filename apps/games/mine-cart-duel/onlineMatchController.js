@@ -118,6 +118,9 @@ export class OnlineMatchController {
     this.lastReloadPressed = false;
     this.ignoreClose = false;
     this.error = "";
+    this.optimisticAmmo = null;
+    this.optimisticReloadUntil = 0;
+    this.optimisticShotCooldownUntil = 0;
     this.lastFrameState = this.composeIdleFrame(0, { visible: false, x: 0, y: 0 });
   }
 
@@ -226,9 +229,73 @@ export class OnlineMatchController {
     this.recentImpacts = [];
     this.lastShootPressed = false;
     this.lastReloadPressed = false;
+    this.clearOptimisticWeaponState();
     this.status = "idle";
     this.statusText = this.copy.waitingOnline;
     this.error = "";
+  }
+
+  clearOptimisticWeaponState() {
+    this.optimisticAmmo = null;
+    this.optimisticReloadUntil = 0;
+    this.optimisticShotCooldownUntil = 0;
+  }
+
+  syncOptimisticWeaponState(snapshot) {
+    const serverNow = Number(snapshot?.serverTime || Date.now());
+    const you = snapshot?.you;
+    if (!you) {
+      this.clearOptimisticWeaponState();
+      return;
+    }
+
+    const serverAmmo = Math.max(0, Math.min(MAGAZINE_SIZE, Number(you.ammo || 0)));
+    const serverReloadUntil = Number(you.reloadUntil || 0);
+    const serverShotCooldownUntil = Number(you.shotCooldownUntil || 0);
+
+    if (this.optimisticAmmo == null) {
+      this.optimisticAmmo = serverAmmo;
+    } else if (serverAmmo === MAGAZINE_SIZE || serverAmmo <= this.optimisticAmmo) {
+      this.optimisticAmmo = serverAmmo;
+    }
+
+    if (serverReloadUntil > serverNow) {
+      this.optimisticReloadUntil = Math.max(this.optimisticReloadUntil, serverReloadUntil);
+    } else if (this.optimisticReloadUntil <= serverNow) {
+      this.optimisticReloadUntil = 0;
+    }
+
+    if (serverShotCooldownUntil > serverNow) {
+      this.optimisticShotCooldownUntil = Math.max(
+        this.optimisticShotCooldownUntil,
+        serverShotCooldownUntil,
+      );
+    } else if (this.optimisticShotCooldownUntil <= serverNow) {
+      this.optimisticShotCooldownUntil = 0;
+    }
+  }
+
+  getDerivedWeaponState(serverNow, you = {}) {
+    const serverAmmo = Math.max(0, Math.min(MAGAZINE_SIZE, Number(you.ammo || 0)));
+    const serverReloadUntil = Number(you.reloadUntil || 0);
+    const serverShotCooldownUntil = Number(you.shotCooldownUntil || 0);
+
+    const ammo =
+      this.optimisticAmmo == null
+        ? serverAmmo
+        : Math.max(0, Math.min(MAGAZINE_SIZE, this.optimisticAmmo));
+    const reloadUntil = Math.max(serverReloadUntil, this.optimisticReloadUntil);
+    const shotCooldownUntil = Math.max(
+      serverShotCooldownUntil,
+      this.optimisticShotCooldownUntil,
+    );
+
+    return {
+      ammo,
+      reloadUntil,
+      shotCooldownUntil,
+      reloading: reloadUntil > serverNow,
+    };
   }
 
   requestRestart() {
@@ -262,6 +329,7 @@ export class OnlineMatchController {
       this.status = "matched";
       this.error = "";
       this.snapshot = payload.snapshot;
+      this.syncOptimisticWeaponState(payload.snapshot);
       this.serverOffsetMs = Number(payload.snapshot?.serverTime || Date.now()) - Date.now();
       this.statusText = payload.snapshot?.message || this.copy.matchFound;
       this.processEvents(payload.events || []);
@@ -273,6 +341,7 @@ export class OnlineMatchController {
 
     if (payload.type === "match:ended") {
       this.snapshot = null;
+      this.clearOptimisticWeaponState();
       this.status = "waiting";
       this.statusText = payload.message || this.copy.matchEndedWait;
       this.onMatchEnded();
@@ -359,14 +428,30 @@ export class OnlineMatchController {
     const you = this.snapshot.you;
     const shootPressed = Boolean(inputState.shootPressed);
     const reloadPressed = Boolean(inputState.reloadPressed);
+    const derivedWeapon = this.getDerivedWeaponState(serverNow, you);
 
     if (this.snapshot.phase === "duel" && you) {
-      if (reloadPressed && !this.lastReloadPressed) {
+      if (
+        reloadPressed &&
+        !this.lastReloadPressed &&
+        !derivedWeapon.reloading &&
+        derivedWeapon.ammo < MAGAZINE_SIZE
+      ) {
+        this.optimisticAmmo = derivedWeapon.ammo;
+        this.optimisticReloadUntil = serverNow + PLAYER_RELOAD_MS;
         this.sendAction({ type: "action:reload" });
       }
 
-      if (shootPressed && !this.lastShootPressed) {
+      if (
+        shootPressed &&
+        !this.lastShootPressed &&
+        !derivedWeapon.reloading &&
+        serverNow >= derivedWeapon.shotCooldownUntil &&
+        derivedWeapon.ammo > 0
+      ) {
         const target = inputState.shotCrosshair ?? crosshair;
+        this.optimisticAmmo = derivedWeapon.ammo - 1;
+        this.optimisticShotCooldownUntil = serverNow + PLAYER_SHOT_COOLDOWN_MS;
         this.sendAction({
           type: "action:shoot",
           x: clamp(target?.x / Math.max(1, this.width), 0, 1),
@@ -439,7 +524,8 @@ export class OnlineMatchController {
   composeFrameState(timestampMs, crosshair, serverNow, clientNowMs) {
     const you = this.snapshot.you || {};
     const opponent = this.snapshot.opponent || {};
-    const playerReloading = Number(you.reloadUntil || 0) > serverNow;
+    const playerWeapon = this.getDerivedWeaponState(serverNow, you);
+    const playerReloading = playerWeapon.reloading;
     const enemyReloading = Number(opponent.reloadUntil || 0) > serverNow;
     const countdownValue =
       this.snapshot.phase === PHASE.COUNTDOWN
@@ -447,9 +533,7 @@ export class OnlineMatchController {
         : null;
     const playerReloadProgress = playerReloading
       ? clamp(
-          1 -
-            (Number(you.reloadUntil || 0) - serverNow) /
-              Math.max(1, PLAYER_RELOAD_MS),
+          1 - (playerWeapon.reloadUntil - serverNow) / Math.max(1, PLAYER_RELOAD_MS),
           0,
           1,
         )
@@ -482,8 +566,11 @@ export class OnlineMatchController {
       enemyHealth: Math.max(0, WIN_HITS - Number(you.hitsLanded || 0)),
       playerReloading,
       enemyReloading,
-      reloadPromptVisible: this.snapshot.phase === PHASE.DUEL && (playerReloading || Number(you.ammo || 0) === 0),
-      reloadPromptMode: playerReloading ? "reloading" : Number(you.ammo || 0) === 0 ? "needed" : "hidden",
+      reloadPromptVisible:
+        this.snapshot.phase === PHASE.DUEL &&
+        (playerReloading || playerWeapon.ammo === 0),
+      reloadPromptMode:
+        playerReloading ? "reloading" : playerWeapon.ammo === 0 ? "needed" : "hidden",
       playerHits: Number(you.hitsLanded || 0),
       enemyHits: Number(opponent.hitsLanded || 0),
       recentShots: this.recentShots,
@@ -508,8 +595,13 @@ export class OnlineMatchController {
       hud: {
         playerHits: `${Number(you.hitsLanded || 0)} / ${WIN_HITS}`,
         enemyHits: `${Number(opponent.hitsLanded || 0)} / ${WIN_HITS}`,
-        ammo: `${Number(you.ammo || 0)} / ${MAGAZINE_SIZE}`,
-        reload: playerReloading ? this.copy.reloading : Number(you.ammo || 0) === 0 ? this.copy.needed : this.copy.ready,
+        ammo: `${playerWeapon.ammo} / ${MAGAZINE_SIZE}`,
+        reload:
+          playerReloading
+            ? this.copy.reloading
+            : playerWeapon.ammo === 0
+              ? this.copy.needed
+              : this.copy.ready,
         aimRange: "Direct",
         difficulty: opponent.displayName || this.copy.onlineDifficulty,
         state:
