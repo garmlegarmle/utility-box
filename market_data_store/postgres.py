@@ -252,7 +252,8 @@ class PostgresDailyPriceStore:
             end_date=end_date,
         )
 
-    def prepare_frame(self, frame: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def prepare_frame(frame: pd.DataFrame) -> pd.DataFrame:
         if frame.empty:
             raise ValueError("Input dataframe is empty.")
 

@@ -1,6 +1,6 @@
 # Market Data Pipeline
 
-This repo now supports a daily OHLCV pipeline where GitHub Actions collects market data and upserts it into PostgreSQL, and the ticker-based chart analysis service reads from PostgreSQL instead of calling public market-data APIs from the VPS.
+This repo now supports a daily OHLCV pipeline where GitHub Actions collects market data, uploads the collected CSV bundle to the VPS over SSH, and the VPS imports that bundle into PostgreSQL. The ticker-based analysis services then read from PostgreSQL instead of calling public market-data APIs from the VPS.
 
 The ticker flow for both `Trend Analyzer` and `Chart Interpretation` is now:
 
@@ -17,6 +17,8 @@ The ticker flow for both `Trend Analyzer` and `Chart Interpretation` is now:
   - `.github/workflows/market-data-us.yml`
 - Collector script:
   - `scripts/sync_market_data.py`
+- VPS import script:
+  - `scripts/import_market_data_csv.py`
 - Shared Python DB module:
   - `market_data_store/postgres.py`
 - Market-data schema SQL:
@@ -49,19 +51,23 @@ Each table uses `PRIMARY KEY (ticker, trade_date)`, so repeated inserts become u
 
 ## GitHub setup
 
-### 1. Add GitHub Secret
+### 1. Add GitHub Secrets
 
-Add this repository secret:
+Add these repository secrets:
 
-- `MARKET_DATA_DATABASE_URL`
+- `MARKET_DATA_VPS_HOST`
+- `MARKET_DATA_VPS_USER`
+- `MARKET_DATA_VPS_SSH_KEY`
 
-Use a PostgreSQL connection string that can reach the VPS database from GitHub Actions, for example:
+Use an SSH key that is authorized on the VPS account that can run `docker exec` against `utility-box-api`.
 
-```text
-postgres://utilitybox:password@your-vps-ip:5432/utility_box
+The workflow uploads CSV files to `/tmp/ga-ml-market-data/...` on the VPS and then imports them inside the API container with:
+
+```bash
+docker exec utility-box-api /opt/trend-analyzer-venv/bin/python /app/scripts/import_market_data_csv.py ...
 ```
 
-If PostgreSQL is not exposed publicly, allow access only from trusted IP ranges or use a tunnel/VPN. GitHub Actions still needs network reachability to the database endpoint.
+This avoids exposing PostgreSQL publicly. GitHub Actions never talks to the Docker-internal `utility-box-db` host directly.
 
 ### 2. Add GitHub Variables
 
@@ -69,6 +75,7 @@ Add repository variables for ticker universes:
 
 - `MARKET_DATA_US_TICKERS`
 - `MARKET_DATA_KR_TICKERS`
+- `MARKET_DATA_VPS_PORT` (optional, defaults to `22`)
 
 Use comma, space, or newline separated values.
 
@@ -153,12 +160,32 @@ python scripts/sync_market_data.py \
   --database-url "$MARKET_DATA_DATABASE_URL"
 ```
 
+You can also collect CSV files without DB access:
+
+```bash
+python scripts/sync_market_data.py \
+  --market us \
+  --tickers "AAPL MSFT" \
+  --skip-db \
+  --output-dir /tmp/market-data-us
+```
+
+And import an uploaded CSV bundle on the VPS:
+
+```bash
+/opt/trend-analyzer-venv/bin/python /app/scripts/import_market_data_csv.py \
+  --market us \
+  --input-dir /tmp/ga-ml-market-data/us-manual \
+  --retain-max-rows 260
+```
+
 Behavior:
 
 - If a ticker has no rows yet, the script backfills roughly the last 730 calendar days.
 - If a ticker already exists, the script refetches from `latest_trade_date - 10 days` and upserts.
 - After each sync, rows older than the most recent `260` trading sessions for that ticker are deleted.
 - Each ticker is retried up to 3 times before the run fails.
+- In GitHub Actions, the collector runs in `--skip-db --output-dir ...` mode and the VPS importer performs the actual upsert.
 
 ## How the analysis service now reads from DB
 

@@ -31,9 +31,11 @@ MARKET_TIMEZONES: dict[MarketCode, str] = {
 class SyncSummary:
     market: MarketCode
     ticker: str
+    row_count: int
     rows_upserted: int
     start_date: date
     end_date: date
+    output_path: Path | None = None
 
 
 class YahooFinanceCollector:
@@ -98,6 +100,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tickers", default="", help="Comma, space, or newline separated tickers.")
     parser.add_argument("--database-url", default=os.getenv("MARKET_DATA_DATABASE_URL") or os.getenv("DATABASE_URL") or "")
     parser.add_argument("--schema-path", default=str(PROJECT_ROOT / "server" / "sql" / "market_data.pg.sql"))
+    parser.add_argument("--output-dir", default="", help="Optional directory to export one cleaned CSV per ticker.")
+    parser.add_argument("--skip-db", action="store_true", help="Collect/export without writing to PostgreSQL.")
     parser.add_argument("--initial-lookback-days", type=int, default=730)
     parser.add_argument("--overlap-days", type=int, default=10)
     parser.add_argument("--retain-max-rows", type=int, default=int(os.getenv("MARKET_DATA_RETAIN_MAX_ROWS", "260")))
@@ -161,12 +165,22 @@ def collector_for_market(market: MarketCode):
     return YahooFinanceCollector() if market == "us" else PykrxCollector()
 
 
+def write_export_csv(output_dir: Path, ticker: str, frame: pd.DataFrame) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    export_frame = frame.reset_index().rename(columns={frame.index.name or "index": "date"})
+    export_frame["date"] = pd.to_datetime(export_frame["date"], errors="coerce").dt.date.astype(str)
+    output_path = output_dir / f"{ticker}.csv"
+    export_frame.to_csv(output_path, index=False)
+    return output_path
+
+
 def sync_one_ticker(
-    store: PostgresDailyPriceStore,
+    store: PostgresDailyPriceStore | None,
     *,
     market: MarketCode,
     raw_ticker: str,
     end_date: date,
+    output_dir: Path | None,
     initial_lookback_days: int,
     overlap_days: int,
     retain_max_rows: int,
@@ -177,7 +191,7 @@ def sync_one_ticker(
     collector = collector_for_market(market)
 
     def work() -> SyncSummary:
-        latest_date = store.latest_trade_date(market, normalized_ticker)
+        latest_date = store.latest_trade_date(market, normalized_ticker) if store is not None else None
         fetch_start = start_date_for_sync(
             latest_date,
             end_date=end_date,
@@ -185,15 +199,20 @@ def sync_one_ticker(
             overlap_days=overlap_days,
         )
         frame = collector.fetch(normalized_ticker, fetch_start, end_date)
-        rows_upserted = store.upsert_frame(market, normalized_ticker, frame)
-        store.trim_to_recent_rows(market, normalized_ticker, retain_max_rows)
-        cleaned = store.prepare_frame(frame)
+        cleaned = PostgresDailyPriceStore.prepare_frame(frame)
+        rows_upserted = 0
+        if store is not None:
+            rows_upserted = store.upsert_frame(market, normalized_ticker, cleaned)
+            store.trim_to_recent_rows(market, normalized_ticker, retain_max_rows)
+        output_path = write_export_csv(output_dir, normalized_ticker, cleaned) if output_dir is not None else None
         return SyncSummary(
             market=market,
             ticker=normalized_ticker,
+            row_count=len(cleaned),
             rows_upserted=rows_upserted,
             start_date=pd.Timestamp(cleaned.index.min()).date(),
             end_date=pd.Timestamp(cleaned.index.max()).date(),
+            output_path=output_path,
         )
 
     return with_retries(work, retries=max(1, retries), retry_delay_seconds=max(0.5, retry_delay_seconds))
@@ -206,8 +225,14 @@ def main() -> None:
     if not tickers:
         raise SystemExit("Provide tickers via --tickers or the workflow env.")
 
-    store = PostgresDailyPriceStore(args.database_url)
-    store.apply_schema(args.schema_path)
+    output_dir = Path(args.output_dir).expanduser().resolve() if str(args.output_dir or "").strip() else None
+    use_database = bool(str(args.database_url or "").strip()) and not args.skip_db
+    if not use_database and output_dir is None:
+        raise SystemExit("Provide --database-url or --output-dir when collecting market data.")
+
+    store = PostgresDailyPriceStore(args.database_url) if use_database else None
+    if store is not None:
+        store.apply_schema(args.schema_path)
     end_date = current_market_date(market)
 
     successes: list[SyncSummary] = []
@@ -219,6 +244,7 @@ def main() -> None:
                 market=market,
                 raw_ticker=raw_ticker,
                 end_date=end_date,
+                output_dir=output_dir,
                 initial_lookback_days=args.initial_lookback_days,
                 overlap_days=args.overlap_days,
                 retain_max_rows=args.retain_max_rows,
@@ -226,10 +252,16 @@ def main() -> None:
                 retry_delay_seconds=args.retry_delay_seconds,
             )
             successes.append(summary)
-            print(
-                f"[ok] market={summary.market} ticker={summary.ticker} "
-                f"rows_upserted={summary.rows_upserted} window={summary.start_date.isoformat()}..{summary.end_date.isoformat()}"
-            )
+            detail_parts = [
+                f"[ok] market={summary.market}",
+                f"ticker={summary.ticker}",
+                f"rows={summary.row_count}",
+                f"rows_upserted={summary.rows_upserted}",
+                f"window={summary.start_date.isoformat()}..{summary.end_date.isoformat()}",
+            ]
+            if summary.output_path is not None:
+                detail_parts.append(f"csv={summary.output_path}")
+            print(" ".join(detail_parts))
         except Exception as error:  # noqa: BLE001
             failures.append((raw_ticker, str(error)))
             print(f"[fail] market={market} ticker={raw_ticker} error={error}", file=sys.stderr)

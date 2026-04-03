@@ -31,10 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      MARKET_DATA_DATABASE_URL: ${{ secrets.MARKET_DATA_DATABASE_URL }}
       MARKET_DATA_US_TICKERS: ${{ github.event.inputs.tickers || vars.MARKET_DATA_US_TICKERS }}
       MARKET_DATA_RETAIN_MAX_ROWS: ${{ github.event.inputs.retain_max_rows || vars.MARKET_DATA_RETAIN_MAX_ROWS || '260' }}
       MARKET_DATA_INITIAL_LOOKBACK_DAYS: ${{ github.event.inputs.initial_lookback_days || vars.MARKET_DATA_INITIAL_LOOKBACK_DAYS || '730' }}
+      MARKET_DATA_VPS_HOST: ${{ secrets.MARKET_DATA_VPS_HOST }}
+      MARKET_DATA_VPS_USER: ${{ secrets.MARKET_DATA_VPS_USER }}
+      MARKET_DATA_VPS_SSH_KEY: ${{ secrets.MARKET_DATA_VPS_SSH_KEY }}
+      MARKET_DATA_VPS_PORT: ${{ vars.MARKET_DATA_VPS_PORT || '22' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,14 +54,57 @@ jobs:
 
       - name: Validate workflow inputs
         run: |
-          test -n "$MARKET_DATA_DATABASE_URL"
+          test -n "$MARKET_DATA_VPS_HOST"
+          test -n "$MARKET_DATA_VPS_USER"
+          test -n "$MARKET_DATA_VPS_SSH_KEY"
           test -n "$MARKET_DATA_US_TICKERS"
 
-      - name: Sync US OHLCV to PostgreSQL
+      - name: Collect US OHLCV as CSV
         run: |
+          set -eu
+          OUTPUT_DIR="$RUNNER_TEMP/market-data-us"
+          mkdir -p "$OUTPUT_DIR"
           python scripts/sync_market_data.py \
             --market us \
             --tickers "$MARKET_DATA_US_TICKERS" \
             --initial-lookback-days "$MARKET_DATA_INITIAL_LOOKBACK_DAYS" \
             --retain-max-rows "$MARKET_DATA_RETAIN_MAX_ROWS" \
+            --skip-db \
+            --output-dir "$OUTPUT_DIR" \
             --retries 3
+
+      - name: Configure SSH access to VPS
+        run: |
+          set -eu
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$MARKET_DATA_VPS_SSH_KEY" > "$HOME/.ssh/market_data_vps"
+          chmod 600 "$HOME/.ssh/market_data_vps"
+          ssh-keyscan -p "$MARKET_DATA_VPS_PORT" "$MARKET_DATA_VPS_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Upload US CSV bundle to VPS
+        run: |
+          set -eu
+          OUTPUT_DIR="$RUNNER_TEMP/market-data-us"
+          REMOTE_DIR="/tmp/ga-ml-market-data/us-${{ github.run_id }}-${{ github.run_attempt }}"
+          ssh -i "$HOME/.ssh/market_data_vps" -p "$MARKET_DATA_VPS_PORT" "$MARKET_DATA_VPS_USER@$MARKET_DATA_VPS_HOST" \
+            "rm -rf '$REMOTE_DIR' && mkdir -p '$REMOTE_DIR'"
+          scp -i "$HOME/.ssh/market_data_vps" -P "$MARKET_DATA_VPS_PORT" -r "$OUTPUT_DIR"/. \
+            "$MARKET_DATA_VPS_USER@$MARKET_DATA_VPS_HOST:$REMOTE_DIR/"
+
+      - name: Import US CSV bundle into VPS PostgreSQL
+        run: |
+          set -eu
+          REMOTE_DIR="/tmp/ga-ml-market-data/us-${{ github.run_id }}-${{ github.run_attempt }}"
+          CONTAINER_DIR="/tmp/ga-ml-market-data/us-${{ github.run_id }}-${{ github.run_attempt }}"
+          ssh -i "$HOME/.ssh/market_data_vps" -p "$MARKET_DATA_VPS_PORT" "$MARKET_DATA_VPS_USER@$MARKET_DATA_VPS_HOST" "
+            set -eu
+            docker exec utility-box-api sh -lc 'rm -rf \"$CONTAINER_DIR\" && mkdir -p \"$CONTAINER_DIR\"'
+            docker cp \"$REMOTE_DIR\"/. utility-box-api:\"$CONTAINER_DIR\"
+            docker exec utility-box-api /opt/trend-analyzer-venv/bin/python /app/scripts/import_market_data_csv.py \
+              --market us \
+              --input-dir \"$CONTAINER_DIR\" \
+              --retain-max-rows \"$MARKET_DATA_RETAIN_MAX_ROWS\"
+            docker exec utility-box-api rm -rf \"$CONTAINER_DIR\"
+            rm -rf \"$REMOTE_DIR\"
+          "
