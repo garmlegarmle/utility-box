@@ -228,6 +228,17 @@ function validateChartInterpretationResult(payload, stderr = '') {
   }
 }
 
+function chartInterpretationTickerMissingDataMessage(ticker) {
+  const safeTicker = normalizeTrendTicker(ticker) || 'the requested ticker';
+  return `No stored daily market data is available for ${safeTicker} yet. Ticker mode now reads from the GA-ML PostgreSQL market database, not a live external API. Run the GitHub Actions market-data sync first, or upload a CSV instead.`;
+}
+
+function isMissingStoredTickerDataError(detail) {
+  const text = String(detail || '').trim();
+  if (!text) return false;
+  return /\bhas only \d+ stored rows\b/i.test(text) || /stored rows in (us|kr)_equity_daily/i.test(text);
+}
+
 function normalizeHoldemPlayerName(value) {
   return String(value || '')
     .replace(/\s+/g, ' ')
@@ -364,35 +375,51 @@ async function analyzeChartInterpretationTicker(ticker) {
   const runDir = path.join(chartInterpretationRunsRoot(), runId);
   await fs.mkdir(runDir, { recursive: true });
 
-  const { stdout, stderr } = await execFileAsync(
-    config.chartInterpretationPythonBin,
-    [
-      config.chartInterpretationScript,
-      'ticker',
-      ticker,
-      '--output-dir',
-      runDir
-    ],
-    {
-      timeout: config.chartInterpretationTimeoutMs,
-      maxBuffer: 8 * 1024 * 1024
+  try {
+    const { stdout, stderr } = await execFileAsync(
+      config.chartInterpretationPythonBin,
+      [
+        config.chartInterpretationScript,
+        'ticker',
+        ticker,
+        '--output-dir',
+        runDir
+      ],
+      {
+        timeout: config.chartInterpretationTimeoutMs,
+        maxBuffer: 8 * 1024 * 1024
+      }
+    );
+
+    const payload = JSON.parse(String(stdout || '').trim() || '{}');
+    validateChartInterpretationResult(payload, stderr);
+
+    return {
+      ok: true,
+      mode: 'ticker',
+      label: String(payload.label || ticker).trim() || ticker,
+      artifacts: {
+        analysis_json: chartInterpretationArtifactUrl(runId, payload.artifacts.analysis_json),
+        chart_png: chartInterpretationArtifactUrl(runId, payload.artifacts.chart_png),
+        report_html: chartInterpretationArtifactUrl(runId, payload.artifacts.report_html)
+      },
+      analysis: payload.analysis
+    };
+  } catch (error) {
+    const detail = [
+      error instanceof Error ? error.message : '',
+      String(error?.stderr || '').trim(),
+      String(error?.stdout || '').trim()
+    ]
+      .filter(Boolean)
+      .join('\n');
+    if (isMissingStoredTickerDataError(detail)) {
+      const wrapped = new Error(chartInterpretationTickerMissingDataMessage(ticker));
+      wrapped.statusCode = 503;
+      throw wrapped;
     }
-  );
-
-  const payload = JSON.parse(String(stdout || '').trim() || '{}');
-  validateChartInterpretationResult(payload, stderr);
-
-  return {
-    ok: true,
-    mode: 'ticker',
-    label: String(payload.label || ticker).trim() || ticker,
-    artifacts: {
-      analysis_json: chartInterpretationArtifactUrl(runId, payload.artifacts.analysis_json),
-      chart_png: chartInterpretationArtifactUrl(runId, payload.artifacts.chart_png),
-      report_html: chartInterpretationArtifactUrl(runId, payload.artifacts.report_html)
-    },
-    analysis: payload.analysis
-  };
+    throw error;
+  }
 }
 
 async function analyzeChartInterpretationCsvUpload(file, title = '') {
@@ -1225,11 +1252,12 @@ app.get('/api/media/:id/file', async (req, res, next) => {
 
 app.use((err, _req, res, _next) => {
   const message = err instanceof Error ? err.message : 'Unexpected error';
+  const statusCode = Number(err?.statusCode || 500);
   if (err?.code === 'LIMIT_FILE_SIZE') {
     return jsonError(res, 413, 'File size exceeds 10MB limit');
   }
   console.error('[utility-box-api]', err);
-  jsonError(res, 500, message);
+  jsonError(res, Number.isFinite(statusCode) && statusCode >= 400 ? statusCode : 500, message);
 });
 
 await bootstrap();
