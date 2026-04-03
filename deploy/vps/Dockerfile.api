@@ -6,6 +6,7 @@ WORKDIR /app
 COPY server/package*.json /app/
 RUN npm install --omit=dev
 COPY server /app
+COPY market_data_store /app/market_data_store
 COPY apps/games/holdem-tournament/src /app/apps/games/holdem-tournament/src
 RUN node scripts/build-holdem-online-engine.mjs
 COPY web_backend_bundle /app/web_backend_bundle

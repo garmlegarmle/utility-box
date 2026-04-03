@@ -86,6 +86,12 @@ ADMIN_LOGIN_USER=your-admin-id
 ADMIN_LOGIN_PASSWORD=strong-password
 ```
 
+If the ticker-based analysis tools should read market data from PostgreSQL, keep
+`DATABASE_URL` pointed at the database that also contains `us_equity_daily` and
+`kr_equity_daily`, or set `MARKET_DATA_DATABASE_URL` when those tables live in a
+different PostgreSQL database. The daily GitHub Actions sync is documented in
+`docs/market-data-pipeline.md`.
+
 6. Run preflight:
 
 ```bash

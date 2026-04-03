@@ -82,6 +82,7 @@ const publicBaseUrl = config.mediaPublicBaseUrl || config.siteOrigin || '';
 const SITEMAP_LANGS = ['en', 'ko'];
 const SITEMAP_SECTIONS = ['tools', 'games', 'blog'];
 const VIEW_COUNT_EXCLUDED_PAGE_SLUGS = new Set(['about', 'contact', 'privacy-policy']);
+const CHART_INTERPRETATION_TOOL_SLUG = 'chart-interpretation';
 const HOLDEM_GAME_SLUG = 'texas-holdem-tournament';
 const MAX_HOLDEM_PLAYER_NAME_LENGTH = 24;
 const HOLDEM_MAX_PLAYERS = 9;
@@ -144,7 +145,7 @@ function shouldTrackViewCount(row) {
 
 function hasEmbeddedProgram(section, slug) {
   return (
-    (section === 'tools' && slug === 'trend-analyzer') ||
+    (section === 'tools' && (slug === 'trend-analyzer' || slug === CHART_INTERPRETATION_TOOL_SLUG)) ||
     (section === 'games' && (slug === 'texas-holdem-tournament' || slug === 'mine-cart-duel'))
   );
 }
@@ -187,6 +188,44 @@ function normalizeTrendTicker(value) {
     .trim()
     .toUpperCase()
     .replace(/[^A-Z0-9._-]/g, '');
+}
+
+function normalizeChartArtifactSegment(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[^a-z0-9._-]/gi, '');
+}
+
+function createChartInterpretationRunId() {
+  return `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
+}
+
+function chartInterpretationRunsRoot() {
+  return path.join(config.chartInterpretationWorkspaceRoot, 'runs');
+}
+
+function chartInterpretationCacheRoot() {
+  return path.join(config.chartInterpretationWorkspaceRoot, 'cache');
+}
+
+function chartInterpretationArtifactUrl(runId, filePath) {
+  const safeRunId = normalizeChartArtifactSegment(runId);
+  const fileName = normalizeChartArtifactSegment(path.basename(String(filePath || '')));
+  if (!safeRunId || !fileName) return '';
+  return `/api/tools/chart-interpretation/artifacts/${encodeURIComponent(safeRunId)}/${encodeURIComponent(fileName)}`;
+}
+
+function validateChartInterpretationResult(payload, stderr = '') {
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    !payload.analysis ||
+    typeof payload.analysis !== 'object' ||
+    !payload.artifacts ||
+    typeof payload.artifacts !== 'object'
+  ) {
+    throw new Error(String(stderr || '').trim() || 'Chart interpretation returned an invalid payload');
+  }
 }
 
 function normalizeHoldemPlayerName(value) {
@@ -320,8 +359,91 @@ async function analyzeTrendCsvUpload(file, ticker) {
   }
 }
 
+async function analyzeChartInterpretationTicker(ticker) {
+  const runId = createChartInterpretationRunId();
+  const runDir = path.join(chartInterpretationRunsRoot(), runId);
+  await fs.mkdir(runDir, { recursive: true });
+
+  const { stdout, stderr } = await execFileAsync(
+    config.chartInterpretationPythonBin,
+    [
+      config.chartInterpretationScript,
+      'ticker',
+      ticker,
+      '--output-dir',
+      runDir
+    ],
+    {
+      timeout: config.chartInterpretationTimeoutMs,
+      maxBuffer: 8 * 1024 * 1024
+    }
+  );
+
+  const payload = JSON.parse(String(stdout || '').trim() || '{}');
+  validateChartInterpretationResult(payload, stderr);
+
+  return {
+    ok: true,
+    mode: 'ticker',
+    label: String(payload.label || ticker).trim() || ticker,
+    artifacts: {
+      analysis_json: chartInterpretationArtifactUrl(runId, payload.artifacts.analysis_json),
+      chart_png: chartInterpretationArtifactUrl(runId, payload.artifacts.chart_png),
+      report_html: chartInterpretationArtifactUrl(runId, payload.artifacts.report_html)
+    },
+    analysis: payload.analysis
+  };
+}
+
+async function analyzeChartInterpretationCsvUpload(file, title = '') {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ga-ml-chart-interpretation-upload-'));
+  const originalName = String(file.originalname || 'upload.csv').replace(/[^a-z0-9._-]/gi, '_');
+  const tempCsvPath = path.join(tempDir, originalName.endsWith('.csv') ? originalName : `${originalName}.csv`);
+  const runId = createChartInterpretationRunId();
+  const runDir = path.join(chartInterpretationRunsRoot(), runId);
+  const fallbackTitle = path.parse(originalName).name || 'uploaded_csv';
+  const safeTitle = String(title || fallbackTitle)
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 80);
+
+  try {
+    await fs.writeFile(tempCsvPath, file.buffer);
+    await fs.mkdir(runDir, { recursive: true });
+
+    const { stdout, stderr } = await execFileAsync(
+      config.chartInterpretationPythonBin,
+      [config.chartInterpretationScript, 'csv', tempCsvPath, '--output-dir', runDir, '--title', safeTitle || fallbackTitle],
+      {
+        timeout: config.chartInterpretationTimeoutMs,
+        maxBuffer: 8 * 1024 * 1024
+      }
+    );
+
+    const payload = JSON.parse(String(stdout || '').trim() || '{}');
+    validateChartInterpretationResult(payload, stderr);
+
+    return {
+      ok: true,
+      mode: 'csv',
+      label: String(payload.label || safeTitle || fallbackTitle).trim() || fallbackTitle,
+      artifacts: {
+        analysis_json: chartInterpretationArtifactUrl(runId, payload.artifacts.analysis_json),
+        chart_png: chartInterpretationArtifactUrl(runId, payload.artifacts.chart_png),
+        report_html: chartInterpretationArtifactUrl(runId, payload.artifacts.report_html)
+      },
+      analysis: payload.analysis
+    };
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 async function bootstrap() {
   await fs.mkdir(config.mediaRoot, { recursive: true });
+  await fs.mkdir(config.chartInterpretationWorkspaceRoot, { recursive: true });
+  await fs.mkdir(chartInterpretationRunsRoot(), { recursive: true });
+  await fs.mkdir(chartInterpretationCacheRoot(), { recursive: true });
   await ensureSchema(pool);
   await ensureSeedPages(pool);
   await ensureSeedProgramPosts(pool);
@@ -786,6 +908,60 @@ app.post(
     }
   }
 );
+
+app.post(
+  '/api/tools/chart-interpretation/analyze-ticker',
+  rateLimit({ namespace: 'chart-interpretation-ticker', max: 12, windowMs: 10 * 60 * 1000 }),
+  async (req, res, next) => {
+    try {
+      const ticker = normalizeTrendTicker(req.body?.ticker);
+      if (!ticker) return jsonError(res, 400, 'ticker is required');
+
+      const payload = await analyzeChartInterpretationTicker(ticker);
+      res.setHeader('Cache-Control', 'no-store');
+      jsonOk(res, payload);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+app.post(
+  '/api/tools/chart-interpretation/analyze-csv',
+  rateLimit({ namespace: 'chart-interpretation-csv', max: 8, windowMs: 10 * 60 * 1000 }),
+  upload.single('file'),
+  async (req, res, next) => {
+    try {
+      const file = req.file;
+      if (!file) return jsonError(res, 400, 'file is required');
+      if (!isCsvUpload(file)) return jsonError(res, 415, 'Only CSV uploads are supported');
+
+      const payload = await analyzeChartInterpretationCsvUpload(file, String(req.body?.title || '').trim());
+      res.setHeader('Cache-Control', 'no-store');
+      jsonOk(res, payload);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+app.get('/api/tools/chart-interpretation/artifacts/:runId/:filename', async (req, res, next) => {
+  try {
+    const runId = normalizeChartArtifactSegment(req.params.runId);
+    const fileName = normalizeChartArtifactSegment(req.params.filename);
+    if (!runId || !fileName) return jsonError(res, 400, 'Invalid artifact path');
+
+    const runRoot = path.resolve(chartInterpretationRunsRoot(), runId);
+    const target = path.resolve(runRoot, fileName);
+    if (target !== path.join(runRoot, fileName)) return jsonError(res, 400, 'Invalid artifact path');
+
+    await fs.access(target);
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=3600');
+    res.sendFile(target);
+  } catch (error) {
+    next(error);
+  }
+});
 
 app.get('/api/games/texas-holdem-tournament/stats', async (req, res, next) => {
   try {

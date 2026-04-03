@@ -1,0 +1,1240 @@
+{
+  "trend_state": "uptrend",
+  "market_structure": "break of structure",
+  "location_state": "near resistance",
+  "active_patterns": [],
+  "recent_events": [
+    {
+      "timestamp": "2025-03-21T00:00:00",
+      "event_type": "structure break",
+      "strength": 0.85,
+      "freshness": 1.0,
+      "details": "bullish break of structure is active."
+    },
+    {
+      "timestamp": "2025-03-21T00:00:00",
+      "event_type": "breakout above prior swing high",
+      "strength": 0.8,
+      "freshness": 1.0,
+      "details": "Current close is above the latest major swing high."
+    },
+    {
+      "timestamp": "2025-03-21T00:00:00",
+      "event_type": "rejection from resistance zone",
+      "strength": 0.58,
+      "freshness": 0.9,
+      "details": "Upper wick indicates overhead rejection."
+    }
+  ],
+  "primary_scenario": {
+    "name": "breakout in progress",
+    "direction": "bullish",
+    "score": 0.6567096614831862,
+    "confidence": 0.6567096614831862,
+    "invalidation_level": 146.13796020258266,
+    "confirmation_needed": [
+      "A close that stays above the breakout zone",
+      "Follow-through volume on the next bars"
+    ],
+    "risk_flags": [
+      "Fresh breakout can still retest"
+    ],
+    "explanation": [
+      "Price is attempting to leave the prior range or compression zone.",
+      "Indicator confirmation is supportive but secondary to the price break."
+    ],
+    "target_zone_1": {
+      "low": 148.3071944066343,
+      "high": 151.21517861068597,
+      "mid": 149.76118650866013
+    },
+    "target_zone_2": {
+      "low": 152.6691707127118,
+      "high": 158.4851391208151,
+      "mid": 155.57715491676345
+    }
+  },
+  "bullish_alternative": {
+    "name": "bullish continuation after pullback",
+    "direction": "bullish",
+    "score": 0.3945676938507499,
+    "confidence": 0.4445676938507499,
+    "invalidation_level": 140.32205175444255,
+    "confirmation_needed": [
+      "Hold above the nearest support zone",
+      "See stable or improving relative volume"
+    ],
+    "risk_flags": [
+      "Overhead resistance remains close"
+    ],
+    "explanation": [
+      "Price structure still leans constructive.",
+      "Price is near a support or retest area rather than extended from it."
+    ],
+    "target_zone_1": {
+      "low": 145.39921020258265,
+      "high": 149.76118650866013,
+      "mid": 147.5801983556214
+    },
+    "target_zone_2": {
+      "low": 152.6691707127118,
+      "high": 157.03114701878928,
+      "mid": 154.85015886575053
+    }
+  },
+  "bearish_alternative": {
+    "name": "breakout likely to fail",
+    "direction": "bearish",
+    "score": 0.32,
+    "confidence": 0.32,
+    "invalidation_level": 149.76118650866013,
+    "confirmation_needed": [
+      "A close back inside the prior range",
+      "Follow-through selling below the failed breakout bar"
+    ],
+    "risk_flags": [
+      "Failure setup is weaker if higher timeframe trend stays bullish"
+    ],
+    "explanation": [
+      "Upper-wick rejection and weak acceptance above resistance make the breakout vulnerable.",
+      "This is a scenario path, not a guaranteed reversal."
+    ],
+    "target_zone_1": {
+      "low": 140.32205175444255,
+      "high": 142.57870705102417,
+      "mid": 141.45037940273335
+    },
+    "target_zone_2": {
+      "low": 136.6752575904277,
+      "high": 141.03723389650517,
+      "mid": 138.85624574346645
+    }
+  },
+  "confidence": 0.5186109686354238,
+  "invalidation_level": 146.13796020258266,
+  "confirmation_needed": [
+    "A close that stays above the breakout zone",
+    "Follow-through volume on the next bars",
+    "Stay above the 50 EMA while the larger trend stays constructive"
+  ],
+  "risk_flags": [
+    "Fresh breakout can still retest"
+  ],
+  "projection": {
+    "base_path": [
+      {
+        "timestamp": "2025-03-24",
+        "price": 145.39921020258265
+      },
+      {
+        "timestamp": "2025-03-25",
+        "price": 145.66265569863413
+      },
+      {
+        "timestamp": "2025-03-26",
+        "price": 145.92610119468563
+      },
+      {
+        "timestamp": "2025-03-27",
+        "price": 146.1895466907371
+      },
+      {
+        "timestamp": "2025-03-28",
+        "price": 146.4529921867886
+      },
+      {
+        "timestamp": "2025-03-31",
+        "price": 146.71643768284008
+      },
+      {
+        "timestamp": "2025-04-01",
+        "price": 146.78166733047036
+      },
+      {
+        "timestamp": "2025-04-02",
+        "price": 146.84689697810063
+      },
+      {
+        "timestamp": "2025-04-03",
+        "price": 146.91212662573088
+      },
+      {
+        "timestamp": "2025-04-04",
+        "price": 146.97735627336115
+      },
+      {
+        "timestamp": "2025-04-07",
+        "price": 147.04258592099143
+      },
+      {
+        "timestamp": "2025-04-08",
+        "price": 147.46310914468856
+      },
+      {
+        "timestamp": "2025-04-09",
+        "price": 147.8836323683857
+      },
+      {
+        "timestamp": "2025-04-10",
+        "price": 148.3041555920828
+      },
+      {
+        "timestamp": "2025-04-11",
+        "price": 148.72467881577992
+      },
+      {
+        "timestamp": "2025-04-14",
+        "price": 149.14520203947706
+      },
+      {
+        "timestamp": "2025-04-15",
+        "price": 150.4144987856237
+      },
+      {
+        "timestamp": "2025-04-16",
+        "price": 151.68379553177033
+      },
+      {
+        "timestamp": "2025-04-17",
+        "price": 152.953092277917
+      },
+      {
+        "timestamp": "2025-04-18",
+        "price": 154.22238902406363
+      }
+    ],
+    "bullish_path": [
+      {
+        "timestamp": "2025-03-24",
+        "price": 145.39921020258265
+      },
+      {
+        "timestamp": "2025-03-25",
+        "price": 145.76997818859923
+      },
+      {
+        "timestamp": "2025-03-26",
+        "price": 146.14074617461583
+      },
+      {
+        "timestamp": "2025-03-27",
+        "price": 146.51151416063243
+      },
+      {
+        "timestamp": "2025-03-28",
+        "price": 146.882282146649
+      },
+      {
+        "timestamp": "2025-03-31",
+        "price": 146.82677015597127
+      },
+      {
+        "timestamp": "2025-04-01",
+        "price": 146.77125816529355
+      },
+      {
+        "timestamp": "2025-04-02",
+        "price": 146.71574617461584
+      },
+      {
+        "timestamp": "2025-04-03",
+        "price": 146.66023418393812
+      },
+      {
+        "timestamp": "2025-04-04",
+        "price": 146.6047221932604
+      },
+      {
+        "timestamp": "2025-04-07",
+        "price": 146.54921020258266
+      },
+      {
+        "timestamp": "2025-04-08",
+        "price": 147.10700546379815
+      },
+      {
+        "timestamp": "2025-04-09",
+        "price": 147.66480072501363
+      },
+      {
+        "timestamp": "2025-04-10",
+        "price": 148.22259598622915
+      },
+      {
+        "timestamp": "2025-04-11",
+        "price": 148.78039124744464
+      },
+      {
+        "timestamp": "2025-04-14",
+        "price": 149.33818650866013
+      },
+      {
+        "timestamp": "2025-04-15",
+        "price": 150.89792861068597
+      },
+      {
+        "timestamp": "2025-04-16",
+        "price": 152.45767071271177
+      },
+      {
+        "timestamp": "2025-04-17",
+        "price": 154.0174128147376
+      },
+      {
+        "timestamp": "2025-04-18",
+        "price": 155.57715491676345
+      }
+    ],
+    "bearish_path": [
+      {
+        "timestamp": "2025-03-24",
+        "price": 145.39921020258265
+      },
+      {
+        "timestamp": "2025-03-25",
+        "price": 145.65588420457286
+      },
+      {
+        "timestamp": "2025-03-26",
+        "price": 145.91255820656306
+      },
+      {
+        "timestamp": "2025-03-27",
+        "price": 146.16923220855327
+      },
+      {
+        "timestamp": "2025-03-28",
+        "price": 146.42590621054347
+      },
+      {
+        "timestamp": "2025-03-31",
+        "price": 145.8862326678974
+      },
+      {
+        "timestamp": "2025-04-01",
+        "price": 145.34655912525133
+      },
+      {
+        "timestamp": "2025-04-02",
+        "price": 144.80688558260528
+      },
+      {
+        "timestamp": "2025-04-03",
+        "price": 144.2672120399592
+      },
+      {
+        "timestamp": "2025-04-04",
+        "price": 143.7275384973131
+      },
+      {
+        "timestamp": "2025-04-07",
+        "price": 143.18786495466705
+      },
+      {
+        "timestamp": "2025-04-08",
+        "price": 143.44636495466705
+      },
+      {
+        "timestamp": "2025-04-09",
+        "price": 143.70486495466704
+      },
+      {
+        "timestamp": "2025-04-10",
+        "price": 143.96336495466704
+      },
+      {
+        "timestamp": "2025-04-11",
+        "price": 144.22186495466704
+      },
+      {
+        "timestamp": "2025-04-14",
+        "price": 144.48036495466704
+      },
+      {
+        "timestamp": "2025-04-15",
+        "price": 143.07433515186688
+      },
+      {
+        "timestamp": "2025-04-16",
+        "price": 141.66830534906674
+      },
+      {
+        "timestamp": "2025-04-17",
+        "price": 140.2622755462666
+      },
+      {
+        "timestamp": "2025-04-18",
+        "price": 138.85624574346645
+      }
+    ],
+    "upper_band": [
+      {
+        "timestamp": "2025-03-24",
+        "price": 147.77271020258263
+      },
+      {
+        "timestamp": "2025-03-25",
+        "price": 148.4121556986341
+      },
+      {
+        "timestamp": "2025-03-26",
+        "price": 149.05160119468562
+      },
+      {
+        "timestamp": "2025-03-27",
+        "price": 149.6910466907371
+      },
+      {
+        "timestamp": "2025-03-28",
+        "price": 150.3304921867886
+      },
+      {
+        "timestamp": "2025-03-31",
+        "price": 150.96993768284005
+      },
+      {
+        "timestamp": "2025-04-01",
+        "price": 151.41116733047033
+      },
+      {
+        "timestamp": "2025-04-02",
+        "price": 151.85239697810061
+      },
+      {
+        "timestamp": "2025-04-03",
+        "price": 152.29362662573087
+      },
+      {
+        "timestamp": "2025-04-04",
+        "price": 152.73485627336115
+      },
+      {
+        "timestamp": "2025-04-07",
+        "price": 153.1760859209914
+      },
+      {
+        "timestamp": "2025-04-08",
+        "price": 153.97260914468853
+      },
+      {
+        "timestamp": "2025-04-09",
+        "price": 154.76913236838567
+      },
+      {
+        "timestamp": "2025-04-10",
+        "price": 155.56565559208278
+      },
+      {
+        "timestamp": "2025-04-11",
+        "price": 156.3621788157799
+      },
+      {
+        "timestamp": "2025-04-14",
+        "price": 157.15870203947702
+      },
+      {
+        "timestamp": "2025-04-15",
+        "price": 158.80399878562366
+      },
+      {
+        "timestamp": "2025-04-16",
+        "price": 160.4492955317703
+      },
+      {
+        "timestamp": "2025-04-17",
+        "price": 162.09459227791697
+      },
+      {
+        "timestamp": "2025-04-18",
+        "price": 163.7398890240636
+      }
+    ],
+    "lower_band": [
+      {
+        "timestamp": "2025-03-24",
+        "price": 143.02571020258267
+      },
+      {
+        "timestamp": "2025-03-25",
+        "price": 142.91315569863414
+      },
+      {
+        "timestamp": "2025-03-26",
+        "price": 142.80060119468564
+      },
+      {
+        "timestamp": "2025-03-27",
+        "price": 142.6880466907371
+      },
+      {
+        "timestamp": "2025-03-28",
+        "price": 142.5754921867886
+      },
+      {
+        "timestamp": "2025-03-31",
+        "price": 142.4629376828401
+      },
+      {
+        "timestamp": "2025-04-01",
+        "price": 142.15216733047038
+      },
+      {
+        "timestamp": "2025-04-02",
+        "price": 141.84139697810065
+      },
+      {
+        "timestamp": "2025-04-03",
+        "price": 141.5306266257309
+      },
+      {
+        "timestamp": "2025-04-04",
+        "price": 141.21985627336116
+      },
+      {
+        "timestamp": "2025-04-07",
+        "price": 140.90908592099146
+      },
+      {
+        "timestamp": "2025-04-08",
+        "price": 140.95360914468858
+      },
+      {
+        "timestamp": "2025-04-09",
+        "price": 140.9981323683857
+      },
+      {
+        "timestamp": "2025-04-10",
+        "price": 141.0426555920828
+      },
+      {
+        "timestamp": "2025-04-11",
+        "price": 141.08717881577994
+      },
+      {
+        "timestamp": "2025-04-14",
+        "price": 141.1317020394771
+      },
+      {
+        "timestamp": "2025-04-15",
+        "price": 142.02499878562372
+      },
+      {
+        "timestamp": "2025-04-16",
+        "price": 142.91829553177035
+      },
+      {
+        "timestamp": "2025-04-17",
+        "price": 143.81159227791701
+      },
+      {
+        "timestamp": "2025-04-18",
+        "price": 144.70488902406368
+      }
+    ],
+    "target_zone_1": {
+      "low": 148.3071944066343,
+      "high": 151.21517861068597,
+      "mid": 149.76118650866013
+    },
+    "target_zone_2": {
+      "low": 152.6691707127118,
+      "high": 158.4851391208151,
+      "mid": 155.57715491676345
+    }
+  },
+  "explanation": [
+    "The broader backdrop still leans bullish, and the daily chart is mostly trading in the same direction. Price is pressing into resistance, so acceptance above this area still needs to be earned. Resistance is still close, and looking strong is not the same thing as getting through. Price remains above the 200 EMA, so the larger directional bias is still constructive.",
+    "The favored path is breakout in progress with moderate conviction. Price structure still looks more like a fresh expansion than a full reversal. Current location matters because price is pressing into nearby resistance. The move is fine so far, but staying above the break is the actual exam.",
+    "The main alternative is bullish continuation after pullback. This area is important because failed reactions from the current zone would shift the read quickly."
+  ],
+  "summary_text": "The broader backdrop still leans bullish, and the daily chart is mostly trading in the same direction. Price is pressing into resistance, so acceptance above this area still needs to be earned. Resistance is still close, and looking strong is not the same thing as getting through. Price remains above the 200 EMA, so the larger directional bias is still constructive.",
+  "confidence_label": "moderate conviction",
+  "strongest_alternative": {
+    "name": "bullish continuation after pullback",
+    "direction": "bullish",
+    "score": 0.3945676938507499,
+    "confidence": 0.4445676938507499,
+    "invalidation_level": 140.32205175444255,
+    "confirmation_needed": [
+      "Hold above the nearest support zone",
+      "See stable or improving relative volume"
+    ],
+    "risk_flags": [
+      "Overhead resistance remains close"
+    ],
+    "explanation": [
+      "Price structure still leans constructive.",
+      "Price is near a support or retest area rather than extended from it."
+    ],
+    "target_zone_1": {
+      "low": 145.39921020258265,
+      "high": 149.76118650866013,
+      "mid": 147.5801983556214
+    },
+    "target_zone_2": {
+      "low": 152.6691707127118,
+      "high": 157.03114701878928,
+      "mid": 154.85015886575053
+    }
+  },
+  "primary_scenario_explanation": "The favored path is breakout in progress with moderate conviction. Price structure still looks more like a fresh expansion than a full reversal. Current location matters because price is pressing into nearby resistance. The move is fine so far, but staying above the break is the actual exam.",
+  "alternative_scenario_explanation": "The main alternative is bullish continuation after pullback. This area is important because failed reactions from the current zone would shift the read quickly.",
+  "risk_notes": [
+    "Fresh breakout can still retest"
+  ],
+  "confirmation_checklist": [
+    "A close that stays above the breakout zone",
+    "Follow-through volume on the next bars",
+    "Stay above the 50 EMA while the larger trend stays constructive"
+  ],
+  "modules": {
+    "preprocessing": {
+      "original_rows": 320,
+      "parsed_rows": 320,
+      "cleaned_rows": 320,
+      "dropped_rows": 0,
+      "outlier_adjustments": 0
+    },
+    "trend": {
+      "score": 0.6535480865671871,
+      "direction_score": 0.46699705625721094,
+      "strength_score": 1.0,
+      "label": "uptrend",
+      "ema_context": {
+        "ema20": 143.66457140945533,
+        "ema50": 141.289364011467,
+        "ema200": 131.64430023490388,
+        "pullback_to_ema20": false,
+        "lost_ema50": false,
+        "reclaimed_ema20": false,
+        "above_ema200": true,
+        "below_ema200": false,
+        "ema_stack_bullish": true,
+        "ema_stack_bearish": false
+      },
+      "ichimoku_context": {
+        "regime": "above cloud",
+        "near_cloud": true,
+        "tenkan_sen": 144.59109200641467,
+        "kijun_sen": 143.18475048305507,
+        "cloud_top": 143.88792124473486,
+        "cloud_bottom": 141.446055881471
+      },
+      "components": {
+        "ema_alignment": 1.0,
+        "ema_slope": 0.5359138773297212,
+        "regression": 0.14376769598548006,
+        "adx": 1.0,
+        "efficiency": 1.0,
+        "ema_context": {
+          "ema20": 143.66457140945533,
+          "ema50": 141.289364011467,
+          "ema200": 131.64430023490388,
+          "pullback_to_ema20": false,
+          "lost_ema50": false,
+          "reclaimed_ema20": false,
+          "above_ema200": true,
+          "below_ema200": false,
+          "ema_stack_bullish": true,
+          "ema_stack_bearish": false
+        },
+        "ichimoku_context": {
+          "regime": "above cloud",
+          "near_cloud": true,
+          "tenkan_sen": 144.59109200641467,
+          "kijun_sen": 143.18475048305507,
+          "cloud_top": 143.88792124473486,
+          "cloud_bottom": 141.446055881471
+        }
+      }
+    },
+    "higher_timeframe_trend": {
+      "score": 0.8637703569248271,
+      "direction_score": 0.7904159337305031,
+      "strength_score": 1.0,
+      "label": "uptrend",
+      "ema_context": {
+        "ema20": 137.93919877931972,
+        "ema50": 129.49444357140695,
+        "ema200": 113.21045764966117,
+        "pullback_to_ema20": false,
+        "lost_ema50": false,
+        "reclaimed_ema20": false,
+        "above_ema200": true,
+        "below_ema200": false,
+        "ema_stack_bullish": true,
+        "ema_stack_bearish": false
+      },
+      "ichimoku_context": {
+        "regime": "above cloud",
+        "near_cloud": false,
+        "tenkan_sen": 141.91150602415706,
+        "kijun_sen": 134.0345549197335,
+        "cloud_top": 137.97303047194526,
+        "cloud_bottom": 129.6367991400207
+      },
+      "components": {
+        "ema_alignment": 1.0,
+        "ema_slope": 1.0,
+        "regression": 0.5486117057351653,
+        "adx": 1.0,
+        "efficiency": 1.0,
+        "ema_context": {
+          "ema20": 137.93919877931972,
+          "ema50": 129.49444357140695,
+          "ema200": 113.21045764966117,
+          "pullback_to_ema20": false,
+          "lost_ema50": false,
+          "reclaimed_ema20": false,
+          "above_ema200": true,
+          "below_ema200": false,
+          "ema_stack_bullish": true,
+          "ema_stack_bearish": false
+        },
+        "ichimoku_context": {
+          "regime": "above cloud",
+          "near_cloud": false,
+          "tenkan_sen": 141.91150602415706,
+          "kijun_sen": 134.0345549197335,
+          "cloud_top": 137.97303047194526,
+          "cloud_bottom": 129.6367991400207
+        }
+      }
+    },
+    "swings": {
+      "short": [
+        {
+          "timestamp": "2024-06-17T00:00:00",
+          "price": 129.52507025467222,
+          "kind": "high",
+          "scale": "short",
+          "bar_index": 120,
+          "strength_atr": 0.0
+        },
+        {
+          "timestamp": "2024-08-26T00:00:00",
+          "price": 118.66646911398408,
+          "kind": "low",
+          "scale": "short",
+          "bar_index": 170,
+          "strength_atr": 4.620681336463011
+        }
+      ],
+      "medium": [
+        {
+          "timestamp": "2024-06-17T00:00:00",
+          "price": 129.52507025467222,
+          "kind": "high",
+          "scale": "medium",
+          "bar_index": 120,
+          "strength_atr": 0.0
+        },
+        {
+          "timestamp": "2024-08-26T00:00:00",
+          "price": 118.66646911398408,
+          "kind": "low",
+          "scale": "medium",
+          "bar_index": 170,
+          "strength_atr": 4.620681336463011
+        }
+      ],
+      "major": [
+        {
+          "timestamp": "2024-06-17T00:00:00",
+          "price": 129.52507025467222,
+          "kind": "high",
+          "scale": "major",
+          "bar_index": 120,
+          "strength_atr": 0.0
+        },
+        {
+          "timestamp": "2024-08-26T00:00:00",
+          "price": 118.66646911398408,
+          "kind": "low",
+          "scale": "major",
+          "bar_index": 170,
+          "strength_atr": 4.620681336463011
+        }
+      ]
+    },
+    "structure": {
+      "label": "break of structure",
+      "bullish_structure_intact": false,
+      "bearish_structure_intact": false,
+      "range_structure": false,
+      "compression": false,
+      "structure_weakening": true,
+      "break_of_structure": "bullish",
+      "change_of_character": false,
+      "swing_sequence": [],
+      "features": {
+        "high_relations": [],
+        "low_relations": [],
+        "last_major_high": {
+          "timestamp": "2024-06-17T00:00:00",
+          "price": 129.52507025467222,
+          "kind": "high",
+          "scale": "major",
+          "bar_index": 120,
+          "strength_atr": 0.0
+        },
+        "last_major_low": {
+          "timestamp": "2024-08-26T00:00:00",
+          "price": 118.66646911398408,
+          "kind": "low",
+          "scale": "major",
+          "bar_index": 170,
+          "strength_atr": 4.620681336463011
+        }
+      }
+    },
+    "zones": {
+      "zones": [
+        {
+          "lower_bound": 117.84396911398409,
+          "upper_bound": 119.48896911398407,
+          "zone_type": "support",
+          "touch_count": 10,
+          "strength_score": 1.0,
+          "source": "major+medium",
+          "label": "Support",
+          "anchor_index": 170
+        },
+        {
+          "lower_bound": 140.32205175444255,
+          "upper_bound": 142.57870705102417,
+          "zone_type": "support",
+          "touch_count": 4,
+          "strength_score": 0.9356353223228557,
+          "source": "box_range+volume_profile+volume_profile",
+          "label": "Box Support",
+          "anchor_index": 319
+        },
+        {
+          "lower_bound": 146.13796020258266,
+          "upper_bound": 146.96046020258265,
+          "zone_type": "resistance",
+          "touch_count": 2,
+          "strength_score": 0.45,
+          "source": "box_range",
+          "label": "Box Resistance",
+          "anchor_index": 319
+        },
+        {
+          "lower_bound": 128.70257025467222,
+          "upper_bound": 130.3475702546722,
+          "zone_type": "resistance",
+          "touch_count": 2,
+          "strength_score": 0.39999999999999997,
+          "source": "major+medium",
+          "label": "Resistance",
+          "anchor_index": 120
+        }
+      ],
+      "location_state": "near resistance",
+      "key_support_zone": {
+        "lower_bound": 140.32205175444255,
+        "upper_bound": 142.57870705102417,
+        "zone_type": "support",
+        "touch_count": 4,
+        "strength_score": 0.9356353223228557,
+        "source": "box_range+volume_profile+volume_profile",
+        "label": "Box Support",
+        "anchor_index": 319
+      },
+      "key_resistance_zone": {
+        "lower_bound": 146.13796020258266,
+        "upper_bound": 146.96046020258265,
+        "zone_type": "resistance",
+        "touch_count": 2,
+        "strength_score": 0.45,
+        "source": "box_range",
+        "label": "Box Resistance",
+        "anchor_index": 319
+      }
+    },
+    "confirmation": {
+      "rsi": 99.99836930024215,
+      "rsi_bias": 1.0,
+      "macd_hist": 0.04739174761412879,
+      "macd_hist_bias": 0.020166701112395293,
+      "bb_width": 2.9339079417200224,
+      "bb_width_rank": 0.9666666666666667,
+      "relative_volume": 1.0100263852242743,
+      "candle_body_strength": 0.1489361702127639,
+      "upper_wick_ratio": 0.48936170212766317,
+      "lower_wick_ratio": 0.36170212765957294,
+      "breakout_quality": 0.5381754898108098,
+      "bullish_divergence": false,
+      "bearish_divergence": false,
+      "candlestick_signals": [],
+      "bullish_candle_score": 0.0,
+      "bearish_candle_score": 0.0,
+      "summary": "momentum is extended, volume remains ordinary, bar quality is mixed"
+    },
+    "patterns": [],
+    "scenarios": [
+      {
+        "name": "breakout in progress",
+        "direction": "bullish",
+        "score": 0.6567096614831862,
+        "confidence": 0.6567096614831862,
+        "invalidation_level": 146.13796020258266,
+        "confirmation_needed": [
+          "A close that stays above the breakout zone",
+          "Follow-through volume on the next bars"
+        ],
+        "risk_flags": [
+          "Fresh breakout can still retest"
+        ],
+        "explanation": [
+          "Price is attempting to leave the prior range or compression zone.",
+          "Indicator confirmation is supportive but secondary to the price break."
+        ],
+        "target_zone_1": {
+          "low": 148.3071944066343,
+          "high": 151.21517861068597,
+          "mid": 149.76118650866013
+        },
+        "target_zone_2": {
+          "low": 152.6691707127118,
+          "high": 158.4851391208151,
+          "mid": 155.57715491676345
+        }
+      },
+      {
+        "name": "bullish continuation after pullback",
+        "direction": "bullish",
+        "score": 0.3945676938507499,
+        "confidence": 0.4445676938507499,
+        "invalidation_level": 140.32205175444255,
+        "confirmation_needed": [
+          "Hold above the nearest support zone",
+          "See stable or improving relative volume"
+        ],
+        "risk_flags": [
+          "Overhead resistance remains close"
+        ],
+        "explanation": [
+          "Price structure still leans constructive.",
+          "Price is near a support or retest area rather than extended from it."
+        ],
+        "target_zone_1": {
+          "low": 145.39921020258265,
+          "high": 149.76118650866013,
+          "mid": 147.5801983556214
+        },
+        "target_zone_2": {
+          "low": 152.6691707127118,
+          "high": 157.03114701878928,
+          "mid": 154.85015886575053
+        }
+      },
+      {
+        "name": "breakout likely to fail",
+        "direction": "bearish",
+        "score": 0.32,
+        "confidence": 0.32,
+        "invalidation_level": 149.76118650866013,
+        "confirmation_needed": [
+          "A close back inside the prior range",
+          "Follow-through selling below the failed breakout bar"
+        ],
+        "risk_flags": [
+          "Failure setup is weaker if higher timeframe trend stays bullish"
+        ],
+        "explanation": [
+          "Upper-wick rejection and weak acceptance above resistance make the breakout vulnerable.",
+          "This is a scenario path, not a guaranteed reversal."
+        ],
+        "target_zone_1": {
+          "low": 140.32205175444255,
+          "high": 142.57870705102417,
+          "mid": 141.45037940273335
+        },
+        "target_zone_2": {
+          "low": 136.6752575904277,
+          "high": 141.03723389650517,
+          "mid": 138.85624574346645
+        }
+      },
+      {
+        "name": "range mean reversion",
+        "direction": "bearish",
+        "score": 0.24,
+        "confidence": 0.24,
+        "invalidation_level": 146.96046020258265,
+        "confirmation_needed": [
+          "Price needs to stay inside the range",
+          "No decisive breakout should appear"
+        ],
+        "risk_flags": [
+          "Mean reversion loses validity quickly once range boundaries break"
+        ],
+        "explanation": [
+          "The market is behaving more like a range than a directional trend.",
+          "Location inside the box matters more than indicator momentum here."
+        ],
+        "target_zone_1": {
+          "low": 141.45037940273335,
+          "high": 146.54921020258266,
+          "mid": 143.99979480265802
+        },
+        "target_zone_2": null
+      },
+      {
+        "name": "bearish continuation",
+        "direction": "bearish",
+        "score": 0.18,
+        "confidence": 0.22999999999999998,
+        "invalidation_level": 146.96046020258265,
+        "confirmation_needed": [
+          "Stay below the nearest resistance zone",
+          "Keep seeing weak rebound quality"
+        ],
+        "risk_flags": [
+          "Support beneath price can slow the move"
+        ],
+        "explanation": [
+          "Structure remains vulnerable and price is not reclaiming resistance decisively.",
+          "Continuation is favored only if lower highs keep forming."
+        ],
+        "target_zone_1": {
+          "low": 141.03723389650517,
+          "high": 143.94521810055681,
+          "mid": 142.49122599853098
+        },
+        "target_zone_2": {
+          "low": 133.76727338637605,
+          "high": 138.1292496924535,
+          "mid": 135.94826153941477
+        }
+      },
+      {
+        "name": "reversal candidate",
+        "direction": "bearish",
+        "score": 0.09999999999999999,
+        "confidence": 0.09999999999999999,
+        "invalidation_level": 149.76118650866013,
+        "confirmation_needed": [
+          "A confirmed break of the nearest structure pivot",
+          "Better follow-through volume"
+        ],
+        "risk_flags": [
+          "Counter-trend reversal setups need stronger confirmation"
+        ],
+        "explanation": [
+          "A possible reversal signature is forming, but it is not yet dominant.",
+          "Counter-trend setups should be treated as scenario candidates, not forecasts."
+        ],
+        "target_zone_1": {
+          "low": 139.58324179447933,
+          "high": 142.491225998531,
+          "mid": 141.03723389650517
+        },
+        "target_zone_2": {
+          "low": 132.3132812843502,
+          "high": 136.6752575904277,
+          "mid": 134.49426943738894
+        }
+      }
+    ]
+  },
+  "locales": {
+    "default": "ko",
+    "en": {
+      "summary_text": "The broader backdrop still leans bullish, and the daily chart is mostly trading in the same direction. Price is pressing into resistance, so acceptance above this area still needs to be earned. Resistance is still close, and looking strong is not the same thing as getting through. Price remains above the 200 EMA, so the larger directional bias is still constructive.",
+      "trend_state": "uptrend",
+      "market_structure": "break of structure",
+      "location_state": "near resistance",
+      "confidence_label": "moderate conviction",
+      "primary_scenario_explanation": "The favored path is breakout in progress with moderate conviction. Price structure still looks more like a fresh expansion than a full reversal. Current location matters because price is pressing into nearby resistance. The move is fine so far, but staying above the break is the actual exam.",
+      "alternative_scenario_explanation": "The main alternative is bullish continuation after pullback. This area is important because failed reactions from the current zone would shift the read quickly.",
+      "confirmation_checklist": [
+        "A close that stays above the breakout zone",
+        "Follow-through volume on the next bars",
+        "Stay above the 50 EMA while the larger trend stays constructive"
+      ],
+      "risk_notes": [
+        "Fresh breakout can still retest"
+      ],
+      "primary_scenario": {
+        "name": "breakout in progress",
+        "direction": "bullish",
+        "score": 0.6567096614831862,
+        "confidence": 0.6567096614831862,
+        "invalidation_level": 146.13796020258266,
+        "confirmation_needed": [
+          "A close that stays above the breakout zone",
+          "Follow-through volume on the next bars"
+        ],
+        "risk_flags": [
+          "Fresh breakout can still retest"
+        ],
+        "explanation": [
+          "Price is attempting to leave the prior range or compression zone.",
+          "Indicator confirmation is supportive but secondary to the price break."
+        ],
+        "target_zone_1": {
+          "low": 148.3071944066343,
+          "high": 151.21517861068597,
+          "mid": 149.76118650866013
+        },
+        "target_zone_2": {
+          "low": 152.6691707127118,
+          "high": 158.4851391208151,
+          "mid": 155.57715491676345
+        }
+      },
+      "strongest_alternative": {
+        "name": "bullish continuation after pullback",
+        "direction": "bullish",
+        "score": 0.3945676938507499,
+        "confidence": 0.4445676938507499,
+        "invalidation_level": 140.32205175444255,
+        "confirmation_needed": [
+          "Hold above the nearest support zone",
+          "See stable or improving relative volume"
+        ],
+        "risk_flags": [
+          "Overhead resistance remains close"
+        ],
+        "explanation": [
+          "Price structure still leans constructive.",
+          "Price is near a support or retest area rather than extended from it."
+        ],
+        "target_zone_1": {
+          "low": 145.39921020258265,
+          "high": 149.76118650866013,
+          "mid": 147.5801983556214
+        },
+        "target_zone_2": {
+          "low": 152.6691707127118,
+          "high": 157.03114701878928,
+          "mid": 154.85015886575053
+        }
+      },
+      "active_patterns": [],
+      "recent_events": [
+        {
+          "timestamp": "2025-03-21T00:00:00",
+          "event_type": "structure break",
+          "strength": 0.85,
+          "freshness": 1.0,
+          "details": "bullish break of structure is active."
+        },
+        {
+          "timestamp": "2025-03-21T00:00:00",
+          "event_type": "breakout above prior swing high",
+          "strength": 0.8,
+          "freshness": 1.0,
+          "details": "Current close is above the latest major swing high."
+        },
+        {
+          "timestamp": "2025-03-21T00:00:00",
+          "event_type": "rejection from resistance zone",
+          "strength": 0.58,
+          "freshness": 0.9,
+          "details": "Upper wick indicates overhead rejection."
+        }
+      ]
+    },
+    "ko": {
+      "summary_text": "\ub354 \ud070 \ud750\ub984\uc740 \uc5ec\uc804\ud788 \uc0c1\ubc29 \ucabd\uc774\uace0, \uc77c\ubd09\ub3c4 \ub300\uccb4\ub85c \uadf8 \ubc29\ud5a5\uc744 \ub530\ub77c\uac00\uace0 \uc788\uc2b5\ub2c8\ub2e4. \uac00\uaca9\uc774 \uc800\ud56d\uc744 \ubc00\uc5b4\ubd99\uc774\ub294 \uc790\ub9ac\ub77c, \uc774 \uad6c\uac04 \uc704 \uc548\ucc29\uc774 \uc544\uc9c1 \ud544\uc694\ud569\ub2c8\ub2e4. \uc800\ud56d\uc774 \uc544\uc9c1 \uac00\uae5d\uace0, \uac15\ud574 \ubcf4\uc774\ub294 \uac83\uacfc \uc2e4\uc81c\ub85c \ub118\uae30\ub294 \uac83\uc740 \ub2e4\ub978 \ubb38\uc81c\uc785\ub2c8\ub2e4. \uac00\uaca9\uc774 \uc5ec\uc804\ud788 200 EMA \uc704\uc5d0 \uc788\uc5b4 \ud070 \ubc29\ud5a5\uc131\uc740 \uc544\uc9c1 \uc6b0\ud638\uc801\uc785\ub2c8\ub2e4.",
+      "trend_state": "\uc0c1\uc2b9 \ucd94\uc138",
+      "market_structure": "\uad6c\uc870 \ub3cc\ud30c",
+      "location_state": "\uc800\ud56d \uc778\uc811",
+      "confidence_label": "\ubcf4\ud1b5 \ud655\uc2e0",
+      "primary_scenario_explanation": "\uc6b0\uc120 \uc2dc\ub098\ub9ac\uc624\ub294 \ub3cc\ud30c \uc9c4\ud589\uc774\uba70, \ud655\uc2e0\ub3c4\ub294 \ubcf4\ud1b5 \ud655\uc2e0\uc785\ub2c8\ub2e4. \uac00\uaca9 \uad6c\uc870\ub294 \uc544\uc9c1 \uc644\uc804\ud55c \ubc18\uc804\ubcf4\ub2e4\ub294 \uc0c8\ub85c\uc6b4 \ud655\uc7a5 \uad6d\uba74\uc5d0 \ub354 \uac00\uae5d\uc2b5\ub2c8\ub2e4. \ud604\uc7ac \uc704\uce58\uac00 \uc911\uc694\ud55c \uc774\uc720\ub294 \uac00\uaca9\uc774 \ubc14\ub85c \uc704 \uc800\ud56d\uc744 \uc2dc\ud5d8\ud558\uace0 \uc788\uae30 \ub54c\ubb38\uc785\ub2c8\ub2e4. \uc6c0\uc9c1\uc784 \uc790\uccb4\ub294 \uc9c0\uae08\uae4c\uc9c4 \uad1c\ucc2e\uc2b5\ub2c8\ub2e4. \ub2e4\ub9cc \ub3cc\ud30c \uc704\uc5d0\uc11c \ubc84\ud2f0\ub294\uc9c0\uac00 \uc9c4\uc9dc \uc2dc\ud5d8\uc785\ub2c8\ub2e4.",
+      "alternative_scenario_explanation": "\uac00\uc7a5 \uac15\ud55c \ub300\uc548 \uc2dc\ub098\ub9ac\uc624\ub294 \ub20c\ub9bc \uc774\ud6c4 \uc0c1\uc2b9 \uc7ac\uac1c\uc785\ub2c8\ub2e4. \uc774 \uad6c\uac04 \ubc18\uc751\uc774 \uc2e4\ud328\ud558\uba74 \ud574\uc11d\uc774 \ube60\ub974\uac8c \ubc14\ub014 \uc218 \uc788\uc5b4 \uc9c0\uae08 \uc790\ub9ac\uac00 \uc911\uc694\ud569\ub2c8\ub2e4.",
+      "confirmation_checklist": [
+        "\uc885\uac00\uac00 \ub3cc\ud30c \uad6c\uac04 \uc704\uc5d0\uc11c \uc720\uc9c0\ub418\ub294\uc9c0",
+        "\ub2e4\uc74c \uce94\ub4e4\uc5d0\uc11c \uac70\ub798\ub7c9 \ucd94\uc885\uc774 \ubd99\ub294\uc9c0",
+        "\ud070 \ud750\ub984\uc774 \uc0b4\uc544 \uc788\ub294 \ub3d9\uc548 50 EMA \uc704\ub97c \uc720\uc9c0\ud558\ub294\uc9c0"
+      ],
+      "risk_notes": [
+        "\uc0c8 \ub3cc\ud30c\ub294 \ub2e4\uc2dc \ub9ac\ud14c\uc2a4\ud2b8\uac00 \ub098\uc62c \uc218 \uc788\uc2b5\ub2c8\ub2e4."
+      ],
+      "primary_scenario": {
+        "name": "\ub3cc\ud30c \uc9c4\ud589",
+        "direction": "\uc0c1\ubc29",
+        "score": 0.6567096614831862,
+        "confidence": 0.6567096614831862,
+        "invalidation_level": 146.13796020258266,
+        "confirmation_needed": [
+          "\uc885\uac00\uac00 \ub3cc\ud30c \uad6c\uac04 \uc704\uc5d0\uc11c \uc720\uc9c0\ub418\ub294\uc9c0",
+          "\ub2e4\uc74c \uce94\ub4e4\uc5d0\uc11c \uac70\ub798\ub7c9 \ucd94\uc885\uc774 \ubd99\ub294\uc9c0"
+        ],
+        "risk_flags": [
+          "\uc0c8 \ub3cc\ud30c\ub294 \ub2e4\uc2dc \ub9ac\ud14c\uc2a4\ud2b8\uac00 \ub098\uc62c \uc218 \uc788\uc2b5\ub2c8\ub2e4."
+        ],
+        "explanation": [
+          "\uac00\uaca9\uc740 \uc774\uc804 \ubc15\uc2a4\ub098 \uc555\ucd95 \uad6c\uac04\uc744 \ubc97\uc5b4\ub098\ub824 \ud558\uace0 \uc788\uc2b5\ub2c8\ub2e4.",
+          "\ubcf4\uc870\uc9c0\ud45c \ud655\uc778\uc740 \uc6b0\ud638\uc801\uc774\uc9c0\ub9cc, \ud575\uc2ec\uc740 \uac00\uaca9 \ub3cc\ud30c \uc790\uccb4\uc785\ub2c8\ub2e4."
+        ],
+        "target_zone_1": {
+          "low": 148.3071944066343,
+          "high": 151.21517861068597,
+          "mid": 149.76118650866013
+        },
+        "target_zone_2": {
+          "low": 152.6691707127118,
+          "high": 158.4851391208151,
+          "mid": 155.57715491676345
+        }
+      },
+      "strongest_alternative": {
+        "name": "\ub20c\ub9bc \uc774\ud6c4 \uc0c1\uc2b9 \uc7ac\uac1c",
+        "direction": "\uc0c1\ubc29",
+        "score": 0.3945676938507499,
+        "confidence": 0.4445676938507499,
+        "invalidation_level": 140.32205175444255,
+        "confirmation_needed": [
+          "\uac00\uc7a5 \uac00\uae4c\uc6b4 \uc9c0\uc9c0 \uad6c\uac04 \uc704\ub97c \uc720\uc9c0\ud558\ub294\uc9c0",
+          "\uc0c1\ub300 \uac70\ub798\ub7c9\uc774 \uc548\uc815\uc801\uc774\uac70\ub098 \uac1c\uc120\ub418\ub294\uc9c0"
+        ],
+        "risk_flags": [
+          "\ubc14\ub85c \uc704 \uc800\ud56d\uc774 \uac00\uae5d\uc2b5\ub2c8\ub2e4."
+        ],
+        "explanation": [
+          "\uac00\uaca9 \uad6c\uc870\ub294 \uc544\uc9c1 \uae0d\uc815\uc801\uc73c\ub85c \uae30\uc6b8\uc5b4 \uc788\uc2b5\ub2c8\ub2e4.",
+          "\uac00\uaca9\uc740 \uba40\ub9ac \uc774\uaca9\ub41c \uc704\uce58\ubcf4\ub2e4 \uc9c0\uc9c0 \ub610\ub294 \ub9ac\ud14c\uc2a4\ud2b8 \uad6c\uac04\uc5d0 \ub354 \uac00\uae5d\uc2b5\ub2c8\ub2e4."
+        ],
+        "target_zone_1": {
+          "low": 145.39921020258265,
+          "high": 149.76118650866013,
+          "mid": 147.5801983556214
+        },
+        "target_zone_2": {
+          "low": 152.6691707127118,
+          "high": 157.03114701878928,
+          "mid": 154.85015886575053
+        }
+      },
+      "active_patterns": [],
+      "recent_events": [
+        {
+          "timestamp": "2025-03-21T00:00:00",
+          "event_type": "\uad6c\uc870 \ub3cc\ud30c",
+          "strength": 0.85,
+          "freshness": 1.0,
+          "details": "\uc0c1\ubc29 \uad6c\uc870 \ub3cc\ud30c\uac00 \ud604\uc7ac \uc720\ud6a8\ud569\ub2c8\ub2e4."
+        },
+        {
+          "timestamp": "2025-03-21T00:00:00",
+          "event_type": "\uc774\uc804 \uc2a4\uc719 \uace0\uc810 \ub3cc\ud30c",
+          "strength": 0.8,
+          "freshness": 1.0,
+          "details": "\ud604\uc7ac \uc885\uac00\ub294 \ucd5c\uadfc \uc8fc\uc694 \uc2a4\uc719 \uace0\uc810 \uc704\uc5d0 \uc788\uc2b5\ub2c8\ub2e4."
+        },
+        {
+          "timestamp": "2025-03-21T00:00:00",
+          "event_type": "\uc800\ud56d\ub300 \ubc18\ub77d",
+          "strength": 0.58,
+          "freshness": 0.9,
+          "details": "\uc717\uaf2c\ub9ac\uac00 \uc704\ucabd \ub9e4\ubb3c \uc800\ud56d\uc744 \ubcf4\uc5ec\uc90d\ub2c8\ub2e4."
+        }
+      ]
+    }
+  }
+}

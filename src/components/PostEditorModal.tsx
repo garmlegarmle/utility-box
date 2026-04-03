@@ -265,7 +265,7 @@ function clearEdgeHoverStyles(editor: HTMLDivElement | null) {
 function isLockedBuiltinProgramPost(post: PostItem | null | undefined): boolean {
   return Boolean(
     post &&
-      ((post.section === 'tools' && post.slug === 'trend-analyzer') ||
+      ((post.section === 'tools' && (post.slug === 'trend-analyzer' || post.slug === 'chart-interpretation')) ||
         (post.section === 'games' &&
           (post.slug === 'texas-holdem-tournament' || post.slug === 'mine-cart-duel')))
   );
@@ -274,7 +274,7 @@ function isLockedBuiltinProgramPost(post: PostItem | null | undefined): boolean 
 function hasEmbeddedProgram(section: SiteSection, slug: string): boolean {
   const normalizedSlug = slugify(slug);
   return (
-    (section === 'tools' && normalizedSlug === 'trend-analyzer') ||
+    (section === 'tools' && (normalizedSlug === 'trend-analyzer' || normalizedSlug === 'chart-interpretation')) ||
     (section === 'games' &&
       (normalizedSlug === 'texas-holdem-tournament' || normalizedSlug === 'mine-cart-duel'))
   );

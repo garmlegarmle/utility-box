@@ -167,6 +167,87 @@ export interface TrendAnalysisResponse {
   payload: TrendPayload;
 }
 
+export interface ChartInterpretationZone {
+  low: number;
+  high: number;
+  mid: number;
+}
+
+export interface ChartInterpretationScenario {
+  name: string;
+  direction: string;
+  score: number;
+  confidence: number;
+  invalidation_level: number | null;
+  confirmation_needed: string[];
+  risk_flags: string[];
+  explanation: string[];
+  target_zone_1?: ChartInterpretationZone | null;
+  target_zone_2?: ChartInterpretationZone | null;
+}
+
+export interface ChartInterpretationPattern {
+  pattern_name: string;
+  direction: string;
+  confidence: number;
+  freshness: number;
+  explanation: string[];
+}
+
+export interface ChartInterpretationEvent {
+  timestamp: string;
+  event_type: string;
+  strength: number;
+  freshness: number;
+  details: string;
+}
+
+export interface ChartInterpretationLocalizedPayload {
+  summary_text?: string;
+  trend_state?: string;
+  market_structure?: string;
+  location_state?: string;
+  confidence_label?: string;
+  primary_scenario_explanation?: string;
+  alternative_scenario_explanation?: string;
+  confirmation_checklist?: string[];
+  risk_notes?: string[];
+  primary_scenario?: ChartInterpretationScenario | null;
+  strongest_alternative?: ChartInterpretationScenario | null;
+  active_patterns?: ChartInterpretationPattern[];
+  recent_events?: ChartInterpretationEvent[];
+}
+
+export interface ChartInterpretationPayload extends ChartInterpretationLocalizedPayload {
+  bullish_alternative?: ChartInterpretationScenario | null;
+  bearish_alternative?: ChartInterpretationScenario | null;
+  confidence?: number | null;
+  invalidation_level?: number | null;
+  explanation?: string[];
+  confirmation_needed?: string[];
+  risk_flags?: string[];
+  modules?: Record<string, unknown>;
+  locales?: {
+    default?: string;
+    en?: ChartInterpretationLocalizedPayload;
+    ko?: ChartInterpretationLocalizedPayload;
+  };
+}
+
+export interface ChartInterpretationArtifacts {
+  analysis_json: string;
+  chart_png: string;
+  report_html: string;
+}
+
+export interface ChartInterpretationAnalysisResponse {
+  ok: true;
+  mode: 'ticker' | 'csv';
+  label: string;
+  artifacts: ChartInterpretationArtifacts;
+  analysis: ChartInterpretationPayload;
+}
+
 export interface HoldemLeaderboardEntry {
   id: number;
   rank: number;

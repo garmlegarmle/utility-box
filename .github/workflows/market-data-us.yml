@@ -1,0 +1,47 @@
+name: Sync US Market Data
+
+on:
+  schedule:
+    - cron: '0 22 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: Optional override for US tickers (comma, space, or newline separated)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sync-us-market-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MARKET_DATA_DATABASE_URL: ${{ secrets.MARKET_DATA_DATABASE_URL }}
+      MARKET_DATA_US_TICKERS: ${{ github.event.inputs.tickers || vars.MARKET_DATA_US_TICKERS }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install market-data dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .github/requirements/market-data.txt
+
+      - name: Validate workflow inputs
+        run: |
+          test -n "$MARKET_DATA_DATABASE_URL"
+          test -n "$MARKET_DATA_US_TICKERS"
+
+      - name: Sync US OHLCV to PostgreSQL
+        run: |
+          python scripts/sync_market_data.py \
+            --market us \
+            --tickers "$MARKET_DATA_US_TICKERS" \
+            --retries 3

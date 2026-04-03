@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { AdminDock } from './components/AdminDock';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminPasswordModal } from './components/AdminPasswordModal';
+import { CHART_INTERPRETATION_TOOL_SLUG, ChartInterpretationToolContent } from './components/ChartInterpretationTool';
 import { EntryCard } from './components/EntryCard';
 import { HoldemTournamentGameContent, TEXAS_HOLDEM_TOURNAMENT_SLUG } from './components/HoldemTournamentGame';
 import { HandShooterGameContent, MINE_CART_DUEL_SLUG } from './components/HandShooterGame';
@@ -1002,10 +1003,11 @@ function DetailPage({
   const enableHiddenPolicyLogin =
     section === 'pages' && lang === 'en' && slug === 'privacy-policy' && !admin.isAdmin;
   const isStandalonePage = section === 'pages';
+  const isChartInterpretationTool = section === 'tools' && slug === CHART_INTERPRETATION_TOOL_SLUG;
   const isTrendAnalyzerTool = section === 'tools' && slug === TREND_ANALYZER_TOOL_SLUG;
   const isHoldemTournamentGame = section === 'games' && slug === TEXAS_HOLDEM_TOURNAMENT_SLUG;
   const isMineCartDuelGame = section === 'games' && slug === MINE_CART_DUEL_SLUG;
-  const isEmbeddedProgramPost = isTrendAnalyzerTool || isHoldemTournamentGame || isMineCartDuelGame;
+  const isEmbeddedProgramPost = isChartInterpretationTool || isTrendAnalyzerTool || isHoldemTournamentGame || isMineCartDuelGame;
   const programTopHtml = useMemo(
     () => (isEmbeddedProgramPost ? renderRichContent(post?.content_before_md) : ''),
     [isEmbeddedProgramPost, post?.content_before_md]
@@ -1119,7 +1121,11 @@ function DetailPage({
                 <section className="detail-layout__content content-prose" dangerouslySetInnerHTML={{ __html: programTopHtml }} />
               ) : null}
 
-              {isTrendAnalyzerTool ? (
+              {isChartInterpretationTool ? (
+                <section className="detail-program detail-program--tool" aria-label="Tool area">
+                  <ChartInterpretationToolContent lang={lang} embedded />
+                </section>
+              ) : isTrendAnalyzerTool ? (
                 <section className="detail-program detail-program--tool" aria-label="Tool area">
                   <TrendAnalyzerToolContent lang={lang} embedded />
                 </section>

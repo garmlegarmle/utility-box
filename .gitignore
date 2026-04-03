@@ -34,3 +34,4 @@ web_backend_bundle/out/
 
 # Local nested repos / desktop app workspaces
 external-repos/
+chart_interpretation_web_bundle/

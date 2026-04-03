@@ -1,4 +1,5 @@
 import type {
+  ChartInterpretationAnalysisResponse,
   HoldemCompleteResponse,
   HoldemOnlineSessionResponse,
   HoldemOnlineTablesResponse,
@@ -246,6 +247,32 @@ export async function analyzeTrendCsv(file: File): Promise<TrendAnalysisResponse
   form.append('file', file);
 
   return apiFetch<TrendAnalysisResponse>('/api/tools/trend-analyzer/analyze', {
+    method: 'POST',
+    body: form
+  });
+}
+
+export async function analyzeChartInterpretationTicker(ticker: string): Promise<ChartInterpretationAnalysisResponse> {
+  return apiFetch<ChartInterpretationAnalysisResponse>('/api/tools/chart-interpretation/analyze-ticker', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8'
+    },
+    body: JSON.stringify({ ticker })
+  });
+}
+
+export async function analyzeChartInterpretationCsv(
+  file: File,
+  title?: string
+): Promise<ChartInterpretationAnalysisResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  if (title) {
+    form.append('title', title);
+  }
+
+  return apiFetch<ChartInterpretationAnalysisResponse>('/api/tools/chart-interpretation/analyze-csv', {
     method: 'POST',
     body: form
   });
