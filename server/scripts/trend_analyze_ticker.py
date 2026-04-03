@@ -11,15 +11,13 @@ from pathlib import Path
 
 
 SERVER_ROOT = Path(__file__).resolve().parents[1]
-PROJECT_ROOT = SERVER_ROOT.parent
+PROJECT_ROOT = SERVER_ROOT if (SERVER_ROOT / "web_backend_bundle").exists() else SERVER_ROOT.parent
 BUNDLE_ROOT = PROJECT_ROOT / "web_backend_bundle"
 SRC_ROOT = BUNDLE_ROOT / "src"
 
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+for candidate in (SERVER_ROOT, PROJECT_ROOT, SRC_ROOT):
+    if candidate.exists() and str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
 
 from market_data_store import PostgresDailyPriceStore, normalize_ticker
 from trend_analysis.web_export import WebAnalysisExporter
